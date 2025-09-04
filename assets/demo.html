@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyant Travel Assistant</title>
+    <link rel="stylesheet" href="demo.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <h1 class="hero__title">Voyant Travel Assistant</h1>
+            <p class="hero__subtitle">Builds trust, then answers fast.</p>
+            <p class="hero__description">
+                This minimalist, fact-grounded travel assistant employs an LLM-driven approach for NLP tasks (intent classification, slot filling, context-aware generation), pulling verified data from trusted APIs (Open-Meteo/REST Countries/OpenTripMap) with multi-layered hallucination prevention via mandatory citations and secondary verification.
+            </p>
+        </header>
+
+        <section class="features-section">
+            <h2 class="section-title">Why is it cool?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3 class="feature-card__title">Direct Integration</h3>
+                    <p>Plugs directly into your existing stack with minimal configuration.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="feature-card__title">Self-Evaluation</h3>
+                    <p>Actively prevents hallucinations by self-evaluating responses for factual accuracy.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="feature-card__title">Resilient Fallbacks</h3>
+                    <p>Falls back to Brave web search when primary APIs fail, ensuring high availability.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 class="feature-card__title">End-to-End Testing</h3>
+                    <p>Includes end-to-end tests with actual agent interactions using LLM-based evaluation.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="conversation-section">
+            <h2 class="section-title">Live Conversation Demo</h2>
+            <div class="chat-messages">
+                <!-- Step 1 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Hey—can you actually help plan a short family trip?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">Which city and what dates are you planning to travel to?</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">From NYC, end of June (last week), 4–5 days. 2 adults + toddler in stroller. Parents mid‑60s; dad dislikes long flights. Budget under $2.5k total. Ideas?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Paragraph 1:</strong><br>For a budget-friendly trip under $2.5k total, consider affordable family vacations [2]. These can include destinations like the Adirondacks and Acadia National Park, which are both within driving distance from NYC and offer memorable experiences without breaking the bank [5].</p>
+                                <p><strong>Paragraph 2:</strong><br>To tackle the challenge of traveling with a toddler, ensure you pack essentials such as a folding stroller, a portable crib, and a portable high chair [6]. For flights, Dr. Young suggests helping toddlers create pressure equilibrium by drinking from a sippy cup, sucking on a lollipop, or blowing bubbles into a cup of water [4].</p>
+                                <p><strong>Paragraph 3:</strong><br>If you're planning a week-long trip in late June, consider that spring break season is upon us, and costs may rise [3]. To keep costs under control, consider traveling during the off-peak season or finding budget-friendly accommodations.</p>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li><a href="https://www.rd.com/list/affordable-family-vacations/" target="_blank">50 Affordable Family Vacation Ideas to Explore on a Budget [2]</a></li>
+                                        <li><a href="https://www.nytimes.com/2023/03/31/travel/budget-family-travel.html" target="_blank">12 Ways to Save on Family Spring Break Travel - The New York Times [3]</a></li>
+                                        <li><a href="https://www.nytimes.com/2017/08/09/travel/long-flights-tips-travel-children.html" target="_blank">8 Ways to Tackle Long-Haul Flights With Children - The New York Times [4]</a></li>
+                                        <li><a href="https://travel.usnews.com/rankings/best-affordable-family-vacations/" target="_blank">22 Cheap Family Vacations for 2025 | U.S. News Travel [5]</a></li>
+                                        <li><a href="https://www.nytimes.com/2025/01/30/travel/how-to-travel-fly-babies-toddlers.html" target="_blank">How to Travel With Babies and Toddlers - The New York Times [6]</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Make it kid‑friendly and minimize walking.</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Kid-friendly Attractions:</strong></p>
+                                <ul>
+                                    <li><strong>British Soldiers’ Barracks</strong>: Explore history through interactive exhibits.</li>
+                                    <li><strong>African Burial Ground National Monument</strong>: Learn about African history in America.</li>
+                                    <li><strong>City Hall Park</strong>: A green space for kids to play and enjoy the outdoors.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Let's say Boston—what should we do with a 3‑year‑old?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Boston with a 3-year-old:</strong></p>
+                                <ul>
+                                    <li><strong>Kings Chapel Burying Ground</strong>: Explore Boston's oldest cemetery, established in 1630.</li>
+                                    <li><strong>Boston Museum</strong>: Interactive exhibits suitable for kids, learn about the city's history.</li>
+                                    <li><strong>Theatre Comique</strong>: Family-friendly puppet shows and storytelling sessions.</li>
+                                    <li><strong>Rialto Theatre</strong>: Check for children's performances or movies during your visit.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">How's the weather that week?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Weather for Boston this week:</strong></p>
+                                <ul>
+                                    <li>High: 26.5°C</li>
+                                    <li>Low: 10.9°C</li>
+                                    <li>Precipitation probability: 0%</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 6 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">What should we pack?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Packing for Boston:</strong></p>
+                                <ul>
+                                    <li>Light breathable clothing</li>
+                                    <li>Sunscreen with high SPF</li>
+                                    <li>Wide-brimmed hat and sunglasses</li>
+                                    <li>Comfortable walking shoes</li>
+                                    <li>Water bottle and light scarf for sun protection</li>
+                                    <li>Moisturizing lotion and insect repellent</li>
+                                    <li>Light rain jacket for unexpected showers</li>
+                                    <li>Swimwear and beach towel for water activities</li>
+                                    <li>Portable fan and cooling towel for hot days</li>
+                                    <li>Light blanket for air-conditioned rooms</li>
+                                    <li>Breathable underwear and quick-dry socks</li>
+                                    <li>Hat with ventilation for outdoor activities</li>
+                                    <li>UV-protective clothing for extended sun exposure</li>
+                                    <li>Travel-sized deodorant and lip balm with SPF</li>
+                                    <li>Sunglasses retainer strap to prevent loss</li>
+                                    <li>Mesh laundry bag for easy organization</li>
+                                    <li>Portable phone charger for convenience</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 7 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">We'd prefer non‑stop travel and minimal transfers.</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Paragraph 1:</strong><br>Non-stop travel, where you stay on the same plane for the entire journey, is often preferred for its convenience and reduced risk of delays [3]. This is because there's no second take-off or landing, no transfer security point or passport control, and one less plane lowers the odds of issues delaying or canceling your flight [3].</p>
+                                <p><strong>Paragraph 2:</strong><br>Wanderu, a travel booking platform, offers "Multi-Carrier" options that provide travelers with alternative routes and, in some cases, more affordable options to reach their destination. This is particularly useful when the route searched has limited options [1].</p>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li><a href="https://help.wanderu.com/en/articles/3414995-direct-vs-non-stop-vs-transfer-trip" target="_blank">Direct vs Non-Stop vs Transfer Trip | Wanderu Help Center [1]</a></li>
+                                        <li><a href="https://simpleflying.com/nonstop-vs-connection/" target="_blank">Non-Stop vs Connecting Flights: Which Itinerary Type Is Best For Long-Distance Journeys? [3]</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 8 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Yes, please check nonstop options and rough prices.</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Paragraph 1:</strong><br>Boston Logan International Airport offers a wide range of international nonstop destinations [1]. With over 150 direct flights to various destinations, passengers can explore a variety of options [2][3].</p>
+                                <p><strong>Paragraph 2:</strong><br>Some popular nonstop international flights from Boston include routes to Paris, London, and Frankfurt, among others [1]. These destinations offer a mix of culture, history, and modern attractions.</p>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li><a href="https://www.massport.com/logan-airport/flights/airlines/nonstop-international-destinations" target="_blank">International Nonstop Destinations from Boston Logan | Massport [1]</a></li>
+                                        <li><a href="https://www.flightsfrom.com/BOS" target="_blank">Direct (non-stop) flights from Boston Logan (BOS) - FlightsFrom.com [2]</a></li>
+                                        <li><a href="https://www.flightconnections.com/flights-from-boston-bos" target="_blank">Flights from Boston (BOS) - FlightConnections.com [3]</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 9 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Please search the web for any festivals or events that week we should plan around.</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p>Boston hosts a variety of festivals throughout the year, including June. One notable event is the Boston Pizza Festival, held annually on June 21-22 at City Hall Plaza [1]. This festival transforms the area into a giant picnic ground, offering a wide selection of pizza and entertainment such as pizza tossing shows and live music.</p>
+                                <p>Boston's cultural diversity is celebrated through various cross-cultural festivals [2]. These events showcase the city's vibrant cultural landscape and provide a platform for different communities to share their traditions.</p>
+                                <p>While the provided results do not specify any other festivals in June, Boston is known for its numerous annual events and festivals throughout the year [7]. For a comprehensive list of events happening in Boston, one can refer to the official Boston events calendar [6].</p>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li><a href="https://www.boston.com/events/boston-pizza-festival/" target="_blank">Boston Pizza Festival: Dates, Tickets & Info - Boston.com [1]</a></li>
+                                        <li><a href="https://en.wikipedia.org/wiki/Festivals_and_events_in_Boston" target="_blank">Festivals & Events: Boston - Wikipedia [2]</a></li>
+                                        <li><a href="https://www.boston.gov/events" target="_blank">Boston Events Calendar 2024 - Official Tourism Site [6]</a></li>
+                                        <li><a href="https://www.timeout.com/boston/events" target="_blank">Fun Events in Boston: What's Happening Now - Time Out Boston [7]</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 10 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">Quick one: do US passport holders need a visa for Canada?</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <p><strong>Paragraph 1:</strong><br>U.S. passport holders do not require a visa for stays in Canada of less than 180 days [1]. American citizens, including those with dual nationality, do not need a Canadian visa or an eTA to enter Canada [2]. However, a valid U.S. passport is essential for entry [1, 2, 5].</p>
+                                <p><strong>Paragraph 2:</strong><br>Upon arrival, U.S. citizens can bring a maximum of 10,000 CAD into Canada [1]. Canadian visitors can usually stay in the United States for 6 months without a visa, and must declare their intended duration of stay [4].</p>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li><a href="https://travel.state.gov/content/travel/en/international-travel/International-Travel-Country-Information-Pages/Canada.html" target="_blank">Canada International Travel Information [1]</a></li>
+                                        <li><a href="https://ircc.canada.ca/english/helpcentre/answer.asp?qnum=1116&top=16" target="_blank">I am an American citizen. What do I need to enter Canada? [2]</a></li>
+                                        <li><a href="https://travel.gc.ca/destinations/united-states" target="_blank">Travel advice and advisories for United States (USA) [4]</a></li>
+                                        <li><a href="https://www.cbsa-asfc.gc.ca/travel-voyage/td-dv-eng.html" target="_blank">Travel and identification documents for entering Canada [5]</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 11 -->
+                <div class="message-group">
+                    <div class="message user-message">
+                        <div class="message-avatar"><span class="avatar-icon">👤</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">User</span></div>
+                            <div class="message-text">/why</div>
+                        </div>
+                    </div>
+                    <div class="message agent-message">
+                        <div class="message-avatar"><span class="avatar-icon">🤖</span></div>
+                        <div class="message-content">
+                            <div class="message-header"><span class="message-author">AI Assistant</span></div>
+                            <div class="message-text">
+                                <pre>--- RECEIPTS ---
+Sources: Brave Search
+Decisions: Performed web search for: \us passport canada visa\
+Self-Check: pass (Ensure to always check the latest travel advisories for any changes in entry requirements.)
+Budget: 0ms API, ~400 tokens</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="details-section">
+            <div class="detail-block">
+                <h2 class="section-title">Notes on Prompt Engineering</h2>
+                <ul class="detail-list">
+                    <li><strong>Format Priming:</strong> Enforced JSON/bullet-point schemas ensure structured, parseable outputs while preventing hallucinations.</li>
+                    <li><strong>Few-Shot Prompting:</strong> Curated examples in `router.md` and `cot.md` train accurate intent classification and slot extraction.</li>
+                    <li><strong>Chain-of-Thought:</strong> Structured reasoning in `cot.md` and `verify.md` decomposes analysis into verifiable steps.</li>
+                    <li><strong>Guardrails:</strong> `blend.md` requires fact-grounding + `verify.md` provides secondary validation of claims.</li>
+                </ul>
+            </div>
+            <div class="detail-block">
+                <h2 class="section-title">Other Perks</h2>
+                <ul class="detail-list">
+                    <li>Anti-hallucination receipts with self-check and sources.</li>
+                    <li>Resilient data blend: APIs → search fallback when providers fail.</li>
+                    <li>Smart routing + memory for natural multi-turn conversations.</li>
+                    <li>Clean interfaces: interactive CLI and REST API.</li>
+                    <li>Strong engineering: TS+Zod validation, tests, metrics, structured logs.</li>
+                </ul>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>Voyant Travel Assistant | A New Standard in AI-Powered Travel</p>
+        </footer>
+    </main>
+</body>
+</html>

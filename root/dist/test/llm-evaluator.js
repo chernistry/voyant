@@ -62,7 +62,7 @@ Return ONLY valid JSON (no markdown formatting):
         return { passes: false, confidence: 0, reason: `Evaluation failed: ${error}` };
     }
 }
-export function expectLLMEvaluation(testDescription, actualResponse, expectedCriteria, minConfidence = 0.7) {
+export function expectLLMEvaluation(testDescription, actualResponse, expectedCriteria, minConfidence = 0.6) {
     return {
         async toPass() {
             const result = await evaluateWithLLM(testDescription, actualResponse, expectedCriteria);

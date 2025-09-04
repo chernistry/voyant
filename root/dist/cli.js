@@ -29,28 +29,30 @@ function renderMarkdownToTerminal(markdown) {
         .replace(/<i>(.*?)<\/i>/gi, chalk.italic('$1'))
         // Код
         .replace(/<code>(.*?)<\/code>/gi, chalk.bgGray.white(' $1 '))
-        .replace(/<pre><code>(.*?)<\/code><\/pre>/gis, (match, code) => {
+        .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/gi, (_m, code) => {
         return '\n' + chalk.bgGray.white(' ' + code.trim() + ' ') + '\n';
     })
-        // Ссылки
-        .replace(/<a href="([^"]+)">(.*?)<\/a>/gi, chalk.blue.underline('$2'))
+        // Ссылки: показать и текст, и URL
+        .replace(/<a href="([^"]+)">(.*?)<\/a>/gi, (_m, href, text) => {
+        return chalk.blue.underline(text) + ' ' + chalk.gray('(' + href + ')');
+    })
         // Списки
         .replace(/<ul>/gi, '')
         .replace(/<\/ul>/gi, '')
         .replace(/<ol>/gi, '')
         .replace(/<\/ol>/gi, '')
-        .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
+        .replace(/<li>(.*?)<\/li>/gi, '  • $1\n')
         // Параграфы
         .replace(/<p>(.*?)<\/p>/gi, '$1\n')
         // Переносы строк
-        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<br\s*\/?>(?!\n)/gi, '\n')
         // Очистка оставшихся HTML тегов
         .replace(/<\/?[^>]+(>|$)/g, '')
         // Нормализация пробелов и переносов
         .replace(/\n\s*\n/g, '\n\n')
         .trim();
 }
-async function streamText(text, delayMs = 14) {
+async function streamText(text, delayMs = 8) {
     for (const char of text) {
         process.stdout.write(char);
         await new Promise(resolve => setTimeout(resolve, delayMs));

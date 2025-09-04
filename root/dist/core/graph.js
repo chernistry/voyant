@@ -75,7 +75,23 @@ export async function runGraphTurn(message, threadId, ctx) {
     // Handle follow-up responses: if intent is unknown but we have prior context, try to infer intent
     let intent = routeResult.next;
     const prior = getThreadSlots(threadId);
-    const slots = { ...prior, ...(routeResult.slots || {}) };
+    // Filter out placeholder values from extracted slots, but only for city switching
+    const extractedSlots = routeResult.slots || {};
+    const filteredSlots = {};
+    for (const [key, value] of Object.entries(extractedSlots)) {
+        if (typeof value === 'string' && value.trim()) {
+            // For city: reject placeholders only if we have a prior city and this looks like a placeholder
+            if (key === 'city' && prior.city &&
+                ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(value.toLowerCase())) {
+                continue; // Skip placeholder, keep prior city
+            }
+            // For other fields: reject obvious placeholders
+            if (!['unknown', 'clean_city_name', 'there', 'next week', 'normalized_date_string', 'month_name'].includes(value.toLowerCase())) {
+                filteredSlots[key] = value;
+            }
+        }
+    }
+    const slots = { ...prior, ...filteredSlots };
     // If intent is unknown but we have context and new slots, infer intent from last interaction
     if (intent === 'unknown' && Object.keys(prior).length > 0 && Object.keys(routeResult.slots || {}).length > 0) {
         const lastIntent = getLastIntent(threadId);
@@ -177,12 +193,15 @@ async function routeIntentNode(ctx, logger) {
     return { next: r.intent, slots: r.slots };
 }
 async function weatherNode(ctx, slots, logger) {
+    // Use thread slots to ensure we have the latest context
+    const threadSlots = getThreadSlots(ctx.threadId);
+    const mergedSlots = { ...threadSlots, ...(slots || {}) };
     const { reply, citations } = await blendWithFacts({
         message: ctx.msg,
         route: {
             intent: 'weather',
             needExternal: false,
-            slots: slots || {},
+            slots: mergedSlots,
             confidence: 0.7,
         },
         threadId: ctx.threadId,
@@ -190,12 +209,15 @@ async function weatherNode(ctx, slots, logger) {
     return { done: true, reply, citations };
 }
 async function destinationsNode(ctx, slots, logger, disclaimer) {
+    // Use thread slots to ensure we have the latest context
+    const threadSlots = getThreadSlots(ctx.threadId);
+    const mergedSlots = { ...threadSlots, ...(slots || {}) };
     const { reply, citations } = await blendWithFacts({
         message: ctx.msg,
         route: {
             intent: 'destinations',
             needExternal: true,
-            slots: slots || {},
+            slots: mergedSlots,
             confidence: 0.7,
         },
         threadId: ctx.threadId,
@@ -204,12 +226,15 @@ async function destinationsNode(ctx, slots, logger, disclaimer) {
     return { done: true, reply: finalReply, citations };
 }
 async function packingNode(ctx, slots, logger) {
+    // Use thread slots to ensure we have the latest context
+    const threadSlots = getThreadSlots(ctx.threadId);
+    const mergedSlots = { ...threadSlots, ...(slots || {}) };
     const { reply, citations } = await blendWithFacts({
         message: ctx.msg,
         route: {
             intent: 'packing',
             needExternal: false,
-            slots: slots || {},
+            slots: mergedSlots,
             confidence: 0.7,
         },
         threadId: ctx.threadId,
@@ -292,6 +317,12 @@ async function summarizeSearchResults(results, query, ctx) {
     try {
         const promptTemplate = await getPrompt('search_summarize');
         const topResults = results.slice(0, 7);
+        // Debug: Log search results for analysis
+        ctx.log.debug({
+            searchResultsCount: results.length,
+            topResultsTitles: results.slice(0, 3).map(r => r.title),
+            query: query
+        }, 'search_results_for_summarization');
         // Format results for LLM
         const formattedResults = topResults.map((result, index) => ({
             id: index + 1,
@@ -312,12 +343,12 @@ async function summarizeSearchResults(results, query, ctx) {
             .trim();
         // Ensure no CoT leakage
         sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '');
-        // Truncate if too long
-        if (sanitized.length > 400) {
+        // Truncate if too long (increased for 3-paragraph summaries)
+        if (sanitized.length > 2000) {
             const sentences = sanitized.split(/[.!?]+/);
             let truncated = '';
             for (const sentence of sentences) {
-                if ((truncated + sentence).length > 380)
+                if ((truncated + sentence).length > 1900)
                     break;
                 truncated += sentence + '.';
             }

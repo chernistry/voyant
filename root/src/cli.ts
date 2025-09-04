@@ -16,54 +16,56 @@ const md = new MarkdownIt({
 });
 
 function renderMarkdownToTerminal(markdown: string): string {
-  // Парсим markdown в HTML-подобную структуру
+  // Parse markdown into HTML-like structure
   const html = md.render(markdown);
 
-  // Конвертируем HTML в ANSI escape sequences для терминала
+  // Convert HTML to ANSI escape sequences for terminal
   return html
-    // Заголовки
+    // Headers
     .replace(/<h1>(.*?)<\/h1>/gi, chalk.bold.blue('\n$1\n') + '='.repeat(50))
     .replace(/<h2>(.*?)<\/h2>/gi, chalk.bold.cyan('\n$1\n') + '-'.repeat(30))
     .replace(/<h3>(.*?)<\/h3>/gi, chalk.bold.yellow('\n$1'))
     .replace(/<h[4-6]>(.*?)<\/h[4-6]>/gi, chalk.bold.magenta('\n$1'))
 
-    // Жирный и курсив
+    // Bold and italic
     .replace(/<strong>(.*?)<\/strong>/gi, chalk.bold('$1'))
     .replace(/<b>(.*?)<\/b>/gi, chalk.bold('$1'))
     .replace(/<em>(.*?)<\/em>/gi, chalk.italic('$1'))
     .replace(/<i>(.*?)<\/i>/gi, chalk.italic('$1'))
 
-    // Код
+    // Code
     .replace(/<code>(.*?)<\/code>/gi, chalk.bgGray.white(' $1 '))
-    .replace(/<pre><code>(.*?)<\/code><\/pre>/gis, (match: string, code: string) => {
+    .replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/gi, (_m: string, code: string) => {
       return '\n' + chalk.bgGray.white(' ' + code.trim() + ' ') + '\n';
     })
 
-    // Ссылки
-    .replace(/<a href="([^"]+)">(.*?)<\/a>/gi, chalk.blue.underline('$2'))
+    // Links: show both text and URL
+    .replace(/<a href="([^"]+)">(.*?)<\/a>/gi, (_m: string, href: string, text: string) => {
+      return chalk.blue.underline(text) + ' ' + chalk.gray('(' + href + ')');
+    })
 
-    // Списки
+    // Lists
     .replace(/<ul>/gi, '')
     .replace(/<\/ul>/gi, '')
     .replace(/<ol>/gi, '')
     .replace(/<\/ol>/gi, '')
-    .replace(/<li>(.*?)<\/li>/gi, '• $1\n')
+    .replace(/<li>(.*?)<\/li>/gi, '  • $1\n')
 
-    // Параграфы
+    // Paragraphs
     .replace(/<p>(.*?)<\/p>/gi, '$1\n')
 
-    // Переносы строк
-    .replace(/<br\s*\/?>/gi, '\n')
+    // Line breaks
+    .replace(/<br\s*\/?>(?!\n)/gi, '\n')
 
-    // Очистка оставшихся HTML тегов
+    // Clean up remaining HTML tags
     .replace(/<\/?[^>]+(>|$)/g, '')
 
-    // Нормализация пробелов и переносов
+    // Normalize whitespace and line breaks
     .replace(/\n\s*\n/g, '\n\n')
     .trim();
 }
 
-async function streamText(text: string, delayMs = 14) {
+async function streamText(text: string, delayMs = 8) {
   for (const char of text) {
     process.stdout.write(char);
     await new Promise(resolve => setTimeout(resolve, delayMs));
