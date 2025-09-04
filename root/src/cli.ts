@@ -63,7 +63,7 @@ function renderMarkdownToTerminal(markdown: string): string {
     .trim();
 }
 
-async function streamText(text: string, delayMs = 24) {
+async function streamText(text: string, delayMs = 14) {
   for (const char of text) {
     process.stdout.write(char);
     await new Promise(resolve => setTimeout(resolve, delayMs));

@@ -1,0 +1,85 @@
+test,result,user_query,expected_agent_response
+WEATHER_STANDARD,pass,"What is the weather like in Paris?","Provide current weather for Paris; may cite Open-Meteo"
+WEATHER_WITH_MONTH,pass,"Weather in New York in June?","Weather info for New York; dates optional; may cite Open-Meteo"
+WEATHER_NO_CITY,pass,"What's the weather like?","Ask: 'Which city?' (single concise question)"
+WEATHER_ABBREV,pass,"Weather in NYC?","Interpret NYC→New York; provide weather"
+WEATHER_MISSPELLED,pass,"Wheather in Lodon?","Gracefully handle misspelling (London) or ask to clarify"
+WEATHER_TODAY,pass,"what to wear in Paris today?","Immediate guidance; do not ask for dates; may cite Open-Meteo"
+WEATHER_SEASON,pass,"Weather in Oslo in winter?","Cold-weather guidance; no date clarifier"
+WEATHER_NON_LATIN_RU,pass,"Погода в Москве в июне","Handle RU; answer or gently note English preference"
+WEATHER_NON_LATIN_JP,pass,"東京の天気はどうですか？","Handle JP; answer or gently note English preference"
+WEATHER_UNKNOWN_CITY,pass,"Weather in Nonexistentville?","Handle gracefully; ask for valid city if APIs fail"
+WEATHER_LONG_CITY_NAME,pass,"Weather in VeryLongCityNameThatDoesNotExistAndShouldBeHandledGracefullyInTheSystem?","Handle long token; ask for valid/standard city name"
+
+PACKING_STANDARD,pass,"What to pack for Paris in June?","Packing list tailored to June temps; may cite Open-Meteo"
+PACKING_NEEDS_DATES,pass,"What to pack for Tokyo?","Ask: 'Which month or travel dates?'"
+PACKING_IMMEDIATE,pass,"what to wear in Tokyo right now","Answer without date clarifier"
+PACKING_WITH_KIDS,pass,"What to pack for Tokyo if I have kids?","Provide family-friendly packing tips (dates optional)"
+PACKING_UNKNOWN_CITY,pass,"What to pack for Faketown?","Handle unknown city gracefully or ask for clarification"
+PACKING_EMOJI_LOWERCASE,pass,"what to pack for tokyo in march 🤔","Provide guidance; mention layers/rain if relevant"
+
+ATTRACTIONS_STANDARD,pass,"What attractions are there in Tokyo?","Real POIs from OpenTripMap; cite OpenTripMap"
+ATTRACTIONS_PARIS,pass,"What to do in Paris?","Real POIs from OpenTripMap; cite OpenTripMap"
+ATTRACTIONS_UNKNOWN_CITY,pass,"What to do in Fakecityville?","Handle unknown city gracefully; clarify or guide"
+ATTRACTIONS_NO_CITY,pass,"What to do?","Ask: 'Which city are you asking about?'"
+ATTRACTIONS_ABBREV_SF,pass,"What to do in SF?","Interpret SF→San Francisco; real POIs; cite OpenTripMap"
+ATTRACTIONS_SPANISH,pass,"¿Qué hacer en Barcelona?","Spanish okay; real POIs; cite OpenTripMap"
+
+DESTINATIONS_STANDARD,pass,"Where should I go in June from NYC?","2–4 options with June weather rationale; may cite Open-Meteo & REST Countries"
+DESTINATIONS_NEED_DATES,pass,"Where should I go from NYC?","Ask: 'Which month or travel dates?'"
+DESTINATIONS_BUDGET_QUERY,pass,"Cheap places to go in June from NYC?","Add budget disclaimer; provide suggestions"
+DESTINATIONS_FLIGHT_QUERY_CONSENT_ASK,pass,"Which airlines fly from NYC to Paris?","Offer web search consent for flight info"
+DESTINATIONS_FLIGHT_QUERY_CONSENT_YES,pass,"Yes","Perform web search; return top 3 bullets; cite Brave Search"
+DESTINATIONS_FLIGHT_QUERY_CONSENT_NO,pass,"No thanks","Acknowledge and offer further travel help"
+
+INTENT_SWITCH_WEATHER_TO_PACKING_STEP1,pass,"Weather in Paris in June?","Provide weather"
+INTENT_SWITCH_WEATHER_TO_PACKING_STEP2,pass,"What should I pack?","Use context (Paris, June); provide packing"
+INTENT_SWITCH_ATTRACTIONS_TO_WEATHER_STEP1,pass,"Things to do in Barcelona?","Provide POIs; cite OpenTripMap"
+INTENT_SWITCH_ATTRACTIONS_TO_WEATHER_STEP2,pass,"How is the weather there in summer?","Use city from context; provide weather for summer"
+INTENT_SWITCH_TRIPLE_STEP1,pass,"Weather in Paris in June?","Weather with Paris context"
+INTENT_SWITCH_TRIPLE_STEP2,pass,"What to do there?","POIs for Paris; cite OpenTripMap"
+INTENT_SWITCH_TRIPLE_STEP3,pass,"Where else should I go?","Use Paris + June context for destinations"
+
+THREAD_COHERENCE_LONG,pass,"After many turns: Make it kid-friendly","Retains NYC + June context; adjusts suggestions"
+THREAD_ISOLATION_NEW_THREAD,pass,"Make it kid-friendly","Asks for missing city/dates; no leakage from other thread"
+
+MULTILINGUAL_MIXED,pass,"Weather in Paris погода в Москве?","Warn about English preference; answer reasonably"
+MULTILINGUAL_RU_PACKING,pass,"Что взять с собой в Токио в марте?","Handle RU; packing tailored to March"
+
+UNKNOWN_UNRELATED_MEANING_OF_LIFE,pass,"What is the meaning of life?","Identify as travel assistant; redirect to travel topics"
+UNKNOWN_UNRELATED_PROGRAMMING,pass,"How do I write a React component?","Politely redirect to travel topics"
+UNKNOWN_UNRELATED_MEDICAL,pass,"What medicine should I take for a headache?","Decline medical advice; redirect to travel"
+UNKNOWN_GIBBERISH,pass,"asdkfjhaskjdfhlkasjdhfkljashdf","Ask for clarification about travel plans"
+UNKNOWN_EMOJI_ONLY,pass,"🤔😊🚀🌟","Cannot interpret emoji-only; ask for travel question in words"
+UNKNOWN_WHITESPACE_ONLY,pass,"(spaces and tabs only)","Ask for travel-related content; cannot process empty message"
+
+SYSTEM_WHO_ARE_YOU,pass,"Who are you?","Identify as an AI travel assistant and capabilities"
+SYSTEM_CAPABILITIES,pass,"What can you help me with?","Explain weather, packing, destinations, attractions"
+SYSTEM_META_IN_THREAD_STEP1,pass,"Weather in Paris?","Provide weather"
+SYSTEM_META_IN_THREAD_STEP2,pass,"What do you mean?","Clarify previous response or ask for specifics"
+
+ERROR_WEATHER_TIMEOUT,pass,"What to pack for Tokyo in March? (weather timeout)","Provide helpful packing advice without exact numbers"
+ERROR_ATTRACTIONS_API_FAIL,pass,"What attractions are in London? (API fail)","Handle gracefully; avoid fabrications; may fallback"
+ERROR_COUNTRY_EMPTY,pass,"Where should I go in June from NYC? (country empty)","Provide reasonable suggestions; handle lack of country data"
+ERROR_ALL_APIS_FAIL,pass,"What to do in Tokyo in March? (all APIs fail)","Helpful general advice; no fabricated data; no citations"
+
+CITATIONS_WEATHER_SUCCESS,pass,"What to pack for Paris in March?","Include Open-Meteo in citations if weather succeeded"
+CITATIONS_DESTINATIONS_SUCCESS,pass,"Where should I go in June from NYC?","Include Open-Meteo and REST Countries in citations when both used"
+CITATIONS_ALL_FAIL_NO_FAB,pass,"What to pack for Tokyo in March? (all APIs fail)","No citations present"
+
+CLARIFIER_BOTH_MISSING,pass,"Help with travel planning","Ask: 'Could you share the city and month/dates?' (single question)"
+CLARIFIER_CITY_ONLY,pass,"What to pack in March?","Ask: 'Which city are you asking about?'"
+CLARIFIER_DATES_ONLY,pass,"What to pack for Rome?","Ask: 'Which month or travel dates?'"
+
+CONSENT_EXPLICIT_SEARCH,pass,"search web for visa requirements for Japan","Perform web search; show top results; cite Brave Search"
+CONSENT_FOLLOWUP_YES,pass,"yes","Execute pass search; show results; cite Brave Search"
+CONSENT_FOLLOWUP_NO,pass,"no","Acknowledge; offer other travel help"
+
+SENSITIVE_DANGEROUS_TRAVEL,pass,"How to travel to war zones?","Advise caution; redirect to safe travel topics"
+INAPPROPRIATE_REQUEST,pass,"Tell me something inappropriate about travel","Decline; maintain professional tone"
+
+ABRUPT_TOPIC_CHANGE_STEP1,pass,"Weather in Tokyo?","Provide weather"
+ABRUPT_TOPIC_CHANGE_STEP2,pass,"How to cook pasta?","Politely decline; redirect back to travel"
+
+DATE_TERMS_AVOID_CLARIFIER,pass,"What to pack for Oslo in winter?","Cold-weather packing; do not ask for dates"
+WEATHER_NO_DATE_CLARIFIER,pass,"What's the weather like in Rome?","Do not ask for dates; provide weather"

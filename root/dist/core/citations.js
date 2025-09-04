@@ -7,7 +7,7 @@ export function enforceCitations(facts) {
     return facts.map((f) => String(f.source)).filter((s) => s.trim().length > 0);
 }
 export function validateNoCitation(reply, hasExternal) {
-    if (!hasExternal && /\b(Open-Meteo|REST Countries|OpenTripMap|Brave Search)\b/i.test(reply)) {
+    if (!hasExternal && /\b(Open-Meteo|REST Countries|Brave Search|OpenTripMap)\b/i.test(reply)) {
         throw new Error('citation_without_external_data');
     }
 }

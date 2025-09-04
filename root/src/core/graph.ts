@@ -302,6 +302,22 @@ async function performWebSearchNode(
   
   const reply = `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`;
   
+  // Store search receipts
+  if (threadId) {
+    try {
+      const { setLastReceipts } = await import('./slot_memory.js');
+      const facts = results.map((result, index) => ({
+        source: 'Brave Search',
+        key: `search_result_${index}`,
+        value: `${result.title}: ${result.description.slice(0, 100)}...`
+      }));
+      const decisions = [`Performed web search for: "${query}"`];
+      setLastReceipts(threadId, facts, decisions, reply);
+    } catch {
+      // ignore receipt storage errors
+    }
+  }
+  
   return {
     done: true,
     reply,

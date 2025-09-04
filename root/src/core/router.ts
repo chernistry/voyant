@@ -71,28 +71,14 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
 
-  // Pre-check for unrelated content to override LLM results if needed
+  // Simple unrelated content detection - trust LLM for nuanced cases
   const m = input.message.toLowerCase();
-  const unrelatedHints = [
-    'meaning of life', 'universe', 'god', 'religion', 'politics', 'philosophy',
-    'react', 'javascript', 'programming', 'code', 'software', 'algorithm',
-    'medicine', 'medical', 'doctor', 'health', 'disease', 'treatment',
-    'cook', 'recipe', 'food', 'restaurant', 'eat', 'drink'
+  const clearlyUnrelated = [
+    'meaning of life', 'programming', 'code', 'javascript', 'react',
+    'medical', 'doctor', 'medicine', 'recipe', 'cook'
   ];
   
-  // Check for travel-related keywords to avoid false positives
-  const travelHints = [
-    'weather', 'pack', 'bring', 'clothes', 'attraction', 'visit', 'go to', 'travel',
-    'destination', 'city', 'country', 'temperature', 'forecast', 'museum', 'activities',
-    'where should i go', 'what to do', 'luggage', 'suitcase'
-  ];
-  
-  const hasUnrelatedHints = unrelatedHints.some((hint) => m.includes(hint.toLowerCase()));
-  const hasTravelHints = travelHints.some((hint) => m.includes(hint.toLowerCase()));
-  
-  const isUnrelated = hasUnrelatedHints && !hasTravelHints && 
-    m.length >= 3 && // Don't block very short messages yet
-    !/^[^a-zA-Zа-яА-Я]*$/.test(m); // Don't block non-alphabetic here
+  const isUnrelated = clearlyUnrelated.some(hint => m.includes(hint)) && m.length > 10;
 
   // Extract slots early for LLM override logic
   const extractedSlots = await extractSlots(input.message, {}, input.logger?.log);
@@ -106,24 +92,8 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       input.logger.log.debug({ intent, confidence, source: 'strict_llm' }, 'router_strict_llm_result');
     }
 
-    // Override LLM misclassification for obvious weather queries
-    const weatherPatterns = [
-      /what'?s the weather/i, 
-      /weather like/i, 
-      /how hot is/i, 
-      /how cold is/i, 
-      /temperature/i,
-      /weather in/i,
-      /weather for/i,
-      /climate in/i,
-      /climate for/i,
-      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+weather/i,
-      /weather\s+in\s+\w+\s+in\s+(january|february|march|april|may|june|july|august|september|october|november|december)/i,
-      /\bweather.*\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+in\s+\w+/i,
-      /\b(spring|summer|autumn|fall|winter)\s+weather/i,
-      /weather\s+in\s+(spring|summer|autumn|fall|winter)/i
-    ];
-    const isObviousWeather = weatherPatterns.some(pattern => pattern.test(input.message));
+    // Simple weather override for obvious cases
+    const isObviousWeather = /weather|temperature|climate/i.test(input.message);
     
     if (isObviousWeather && intent !== 'weather') {
       if (typeof input.logger?.log?.debug === 'function') {
@@ -182,7 +152,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   const base = { needExternal: false, slots: finalSlots, confidence: 0.7 as const };
 
   if (typeof input.logger?.log?.info === 'function') {
-    input.logger.log.debug({ message: m, isUnrelated, unrelatedHints: unrelatedHints.filter(h => m.toLowerCase().includes(h.toLowerCase())) }, 'heuristic_check');
+    input.logger.log.debug({ message: m, isUnrelated }, 'heuristic_check');
   }
 
   if (isUnrelated) {

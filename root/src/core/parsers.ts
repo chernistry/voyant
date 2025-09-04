@@ -33,9 +33,9 @@ const DateParseResult = z.object({
   confidence: z.number().min(0).max(1),
 });
 
-// Intent parser schema
+// Intent parser schema (updated to include 'weather')
 const IntentParseResult = z.object({
-  intent: z.enum(['destinations', 'packing', 'attractions', 'unknown']),
+  intent: z.enum(['weather', 'destinations', 'packing', 'attractions', 'unknown']),
   confidence: z.number().min(0).max(1),
   slots: z.record(z.string()),
 });
@@ -206,10 +206,11 @@ export async function parseIntent(text: string, context?: Record<string, any>, l
   const prompt = `Task: Classify intent and extract all slots from user message.
 
 Intents:
-- "destinations": weather queries, where to go
-- "packing": what to pack/bring
-- "attractions": what to do, see, visit
-- "unknown": unclear intent
+- "weather": temperature, climate, forecast (e.g., "What's the weather in Paris?", "Tokyo in March weather")
+- "destinations": where to go, travel options/recommendations
+- "packing": what to pack/bring/wear
+- "attractions": what to do/see/visit
+- "unknown": unclear or unrelated to travel
 
 Rules:
 - Extract clean slot values (city names without surrounding text)
@@ -221,7 +222,7 @@ ${contextInfo}
 Input: "${text}"
 
 Output JSON only:
-{"intent": "destinations|packing|attractions|unknown", "confidence": 0.0-1.0, "slots": {"city": "clean_name", "month": "month", "dates": "dates"}}`;
+{"intent": "weather|destinations|packing|attractions|unknown", "confidence": 0.0-1.0, "slots": {"city": "clean_name", "month": "month", "dates": "dates"}}`;
 
   try {
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });

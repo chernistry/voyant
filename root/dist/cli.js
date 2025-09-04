@@ -50,7 +50,7 @@ function renderMarkdownToTerminal(markdown) {
         .replace(/\n\s*\n/g, '\n\n')
         .trim();
 }
-async function streamText(text, delayMs = 24) {
+async function streamText(text, delayMs = 14) {
     for (const char of text) {
         process.stdout.write(char);
         await new Promise(resolve => setTimeout(resolve, delayMs));

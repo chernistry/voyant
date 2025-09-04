@@ -187,33 +187,20 @@ export async function blendWithFacts(
   // Detect mixed languages at the top level for use throughout the function
   const hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
   
-  // Targeted clarifications for underspecified inputs per ticket 02
+  // Trust the slot extraction - if LLM found a city, use it
+  // Only ask for clarification if no city was extracted at all
   const cityHint = input.route.slots.city && input.route.slots.city.trim();
   const whenHint = (input.route.slots.dates && input.route.slots.dates.trim()) || 
                    (input.route.slots.month && input.route.slots.month.trim());
                    
   if (input.route.intent === 'unknown') {
-    // Detect explicit search commands first
-    const explicitSearchPatterns = [
-      /search\s+(web|online|internet|google)\s+for/i,
-      /google\s+/i,
-      /find\s+(online|web)\s+/i,
-      /search\s+for\s+/i,
-      /look\s+up\s+online/i,
-      /web\s+search/i
-    ];
-    
-    const isExplicitSearch = explicitSearchPatterns.some(pattern => pattern.test(input.message));
+    // Simple explicit search detection
+    const isExplicitSearch = /search|google|find.*online/i.test(input.message);
     
     if (isExplicitSearch) {
-      // Extract search query from command
+      // Extract search query by removing common search prefixes
       let searchQuery = input.message
-        .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
-        .replace(/google\s+/i, '')
-        .replace(/find\s+(online|web)\s+/i, '')
-        .replace(/search\s+for\s+/i, '')
-        .replace(/look\s+up\s+online\s+/i, '')
-        .replace(/web\s+search\s+/i, '')
+        .replace(/^(search|google|find)\s+(web|online|for)?\s*/i, '')
         .trim();
       
       if (!searchQuery) {
@@ -428,14 +415,12 @@ export async function blendWithFacts(
     if (!cityHint) {
       return { reply: 'Which city?', citations: undefined };
     }
-    // Weather queries don't need dates - use current weather
   }
   if (input.route.intent === 'packing') {
     if (!cityHint) {
       return { reply: 'Which city?', citations: undefined };
     }
-    // Ask for dates if no time context and no special circumstances mentioned
-    // But default to today for immediate queries like "what to wear"
+    // Ask for dates if no time context and no immediate context
     const hasImmediateContext = /\b(today|now|currently|right now|what to wear)\b/i.test(input.message);
     if (!whenHint && !hasImmediateContext && !/\b(kids?|children|family|business|work|summer|winter|spring|fall)\b/i.test(input.message)) {
       return { reply: 'Which month or travel dates?', citations: undefined };
@@ -590,7 +575,14 @@ export async function blendWithFacts(
         .replace('{{USER}}', input.message)
     : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
   const prompt = `${systemMd}\n\n${tmpl}`.trim();
-  const reply = await callLLM(prompt, { log: ctx.log });
+  const rawReply = await callLLM(prompt, { log: ctx.log });
+  
+  // Decode HTML entities from LLM response
+  const reply = rawReply
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
   // Enforce no fabricated citations when no external facts were used
   try {
     validateNoCitation(reply, cits.length > 0);
@@ -598,8 +590,8 @@ export async function blendWithFacts(
     ctx.log.warn({ reply, cits, hasExternal: cits.length > 0 }, 'citation_validation_failed');
     // Don't throw - just log and continue with the response
   }
-  // Persist receipts components for this thread (if available)
-  if (input.threadId) {
+  // Persist receipts components for this thread (only if external facts were actually retrieved)
+  if (input.threadId && factsArr.length > 0) {
     try {
       setLastReceipts(input.threadId, factsArr, decisions, reply);
     } catch {
