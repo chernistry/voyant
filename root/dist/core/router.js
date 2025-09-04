@@ -32,6 +32,7 @@ export async function routeIntent(input) {
             .replace(/search\s+for\s+/i, '')
             .replace(/look\s+up\s+online\s+/i, '')
             .replace(/web\s+search\s+/i, '')
+            .replace(/find\s+/i, '')
             .trim();
         if (!searchQuery) {
             searchQuery = input.message;

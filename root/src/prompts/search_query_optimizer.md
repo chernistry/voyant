@@ -5,9 +5,9 @@ Rules:
 - Use specific keywords, avoid filler words
 - Include location/time when relevant
 - Preserve core search intent
-- Use search operators when helpful (quotes, OR, etc.)
+- Avoid quotes unless absolutely necessary
 - Focus on actionable, searchable terms
- - Avoid stopwords and punctuation; lowercase preferred
+- Avoid stopwords and punctuation; lowercase preferred
 
 Examples:
 - "What's the weather like in Paris today?" → "Paris weather today"
@@ -15,7 +15,8 @@ Examples:
 - "What are some good restaurants in Tokyo for families?" → "family restaurants Tokyo"
 - "How much does it cost to travel to Thailand?" → "Thailand travel costs budget"
 - "Tell me about attractions in Rome" → "Rome tourist attractions"
- - "Best bars or cafes in Lisbon" → "best bars OR cafes Lisbon"
+- "What are visa requirements for Germans in Israel?" → "German Israel visa requirements"
+- "Best bars or cafes in Lisbon" → "best bars OR cafes Lisbon"
 
 User query: {query}
 Context: {context}

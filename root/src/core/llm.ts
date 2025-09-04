@@ -306,16 +306,34 @@ export async function classifyContent(
   try {
     const promptTemplate = await getPrompt('nlp_content_classification');
     const prompt = promptTemplate.replace('{message}', message);
-    const response = await callLLM(prompt, { responseFormat: 'json', log });
-    const parsed = JSON.parse(response);
+    const response = await callLLM(prompt, { log }); // Remove responseFormat: 'json'
+    
+    if (log) log.debug({ message, response: response.substring(0, 200) }, 'content_classification_response');
+    
+    // Try to extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      if (log) log.debug({ response }, 'content_classification_no_json_found');
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (typeof parsed.is_explicit_search !== 'boolean' || 
+        typeof parsed.content_type !== 'string') {
+      if (log) log.debug({ parsed }, 'content_classification_invalid_format');
+      return null;
+    }
+    
     return {
       content_type: parsed.content_type,
       is_explicit_search: parsed.is_explicit_search,
-      has_mixed_languages: parsed.has_mixed_languages,
-      needs_web_search: parsed.needs_web_search,
+      has_mixed_languages: parsed.has_mixed_languages || false,
+      needs_web_search: parsed.needs_web_search || false,
     };
   } catch (error) {
-    if (log) log.debug('LLM content classification failed');
+    if (log) log.debug({ error: String(error), message }, 'content_classification_failed');
     return null;
   }
 }
@@ -372,6 +390,9 @@ export async function optimizeSearchQuery(
     
     const response = await callLLM(prompt, { log });
     let optimized = response.trim();
+    
+    // Remove quotes that LLM might add
+    optimized = optimized.replace(/^["']|["']$/g, '');
     
     // Validate length constraint (≤7 words)
     const wordCount = optimized.split(/\s+/).length;

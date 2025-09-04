@@ -39,6 +39,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       .replace(/search\s+for\s+/i, '')
       .replace(/look\s+up\s+online\s+/i, '')
       .replace(/web\s+search\s+/i, '')
+      .replace(/find\s+/i, '')
       .trim();
     
     if (!searchQuery) {

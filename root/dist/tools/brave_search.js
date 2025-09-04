@@ -8,8 +8,11 @@ export async function searchTravelInfo(query) {
     const apiKey = process.env.BRAVE_SEARCH_API_KEY;
     if (!apiKey)
         return { ok: false, reason: 'no_api_key' };
+    console.log(`🔍 Brave Search: query="${query}", apiKey="${apiKey.slice(0, 10)}..."`);
     try {
-        const response = await fetchJSON(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`, {
+        const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`;
+        console.log(`🔗 Brave Search URL: ${url}`);
+        const response = await fetchJSON(url, {
             timeoutMs: 5000,
             retries: 2,
             target: 'brave-search',
@@ -18,9 +21,17 @@ export async function searchTravelInfo(query) {
                 'Accept': 'application/json'
             }
         });
-        return { ok: true, results: response.web.results || [] };
+        console.log(`✅ Brave Search response:`, JSON.stringify(response, null, 2));
+        // Handle different response structures
+        const results = response?.web?.results ||
+            response?.mixed?.main ||
+            response?.results ||
+            [];
+        console.log(`✅ Brave Search success: ${results.length} results`);
+        return { ok: true, results };
     }
     catch (e) {
+        console.log(`❌ Brave Search error:`, e);
         if (e instanceof ExternalFetchError) {
             return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx' };
         }
