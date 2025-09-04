@@ -12,7 +12,8 @@ type PromptName =
   | 'consent_detector'
   | 'city_parser'
   | 'date_parser'
-  | 'intent_parser';
+  | 'intent_parser'
+  | 'router_llm';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -50,6 +51,9 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.intent_parser = await loadFileSafe(
     path.join(base, 'intent_parser.md'),
+  );
+  PROMPTS.router_llm = await loadFileSafe(
+    path.join(base, 'router_llm.md'),
   );
   loaded = true;
 }

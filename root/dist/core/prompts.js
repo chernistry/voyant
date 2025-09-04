@@ -25,6 +25,7 @@ export async function preloadPrompts() {
     PROMPTS.city_parser = await loadFileSafe(path.join(base, 'city_parser.md'));
     PROMPTS.date_parser = await loadFileSafe(path.join(base, 'date_parser.md'));
     PROMPTS.intent_parser = await loadFileSafe(path.join(base, 'intent_parser.md'));
+    PROMPTS.router_llm = await loadFileSafe(path.join(base, 'router_llm.md'));
     loaded = true;
 }
 export async function getPrompt(name) {

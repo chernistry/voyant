@@ -264,8 +264,12 @@ async function tryRouteViaLLM(message: string, logger?: { log: pino.Logger }): P
     .split('\n')
     .filter((l) => !l.trim().startsWith('{') && !l.trim().endsWith('}'))
     .join('\n');
-  const sys = 'Task: Classify intent and extract slots. Return strict JSON only.';
-  const prompt = `${sys}\n\n${instructions}\n\nUser: ${message}`;
+  
+  const promptTemplate = await getPrompt('router_llm');
+  const prompt = promptTemplate
+    .replace('{instructions}', instructions)
+    .replace('{message}', message);
+  
   const raw = await callLLM(prompt, { responseFormat: 'json', log: logger?.log });
   const json = extractJsonObject(raw);
   if (!json) return undefined;
