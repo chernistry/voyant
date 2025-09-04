@@ -119,7 +119,8 @@ async function main() {
         log.debug({ threadId, responseThreadId: res.threadId }, 'cli_thread_debug');
         process.stdout.write(chalk.green.bold('Assistant> '));
         let outputText = res.reply;
-        if (res.receipts) {
+        // Only append receipts if this isn't a /why command (which already includes receipts in reply)
+        if (res.receipts && !wantReceipts) {
             outputText += '\n\n--- RECEIPTS ---\n';
             outputText += `Sources: ${(res.sources || []).join(', ')}\n`;
             outputText += `Decisions: ${res.receipts.decisions.join(' ')}\n`;

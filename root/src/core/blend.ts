@@ -40,9 +40,14 @@ export async function handleChat(
       }
       const merged = { ...receipts, selfCheck: { verdict: audit.verdict, notes: audit.notes } };
       const safe = ReceiptsSchema.parse(merged);
-      return ChatOutput.parse({ reply, threadId, sources: receipts.sources, receipts: safe });
+      
+      // For /why commands, return only receipts content as reply
+      const receiptsReply = `--- RECEIPTS ---\n\nSources: ${receipts.sources.join(', ')}\n\nDecisions: ${decisions.join(' ')}\n\nSelf-Check: ${audit.verdict}${audit.notes.length > 0 ? ` (${audit.notes.join(', ')})` : ''}\n\nBudget: ${receipts.budgets.ext_api_latency_ms || 0}ms API, ~${token_estimate} tokens`;
+      
+      return ChatOutput.parse({ reply: receiptsReply, threadId, sources: receipts.sources, receipts: safe });
     } catch {
-      return ChatOutput.parse({ reply, threadId, sources: receipts.sources });
+      const receiptsReply = `--- RECEIPTS ---\n\nSources: ${receipts.sources.join(', ')}\n\nDecisions: ${decisions.join(' ')}\n\nSelf-Check: not available\n\nBudget: ${receipts.budgets.ext_api_latency_ms || 0}ms API, ~${token_estimate} tokens`;
+      return ChatOutput.parse({ reply: receiptsReply, threadId, sources: receipts.sources });
     }
   }
   pushMessage(threadId, { role: 'user', content: input.message });
