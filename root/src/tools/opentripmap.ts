@@ -35,7 +35,7 @@ export type PoiFeature = {
 
 type Out =
   | { ok: true; pois: PoiFeature[]; source?: string }
-  | { ok: false; reason: string };
+  | { ok: false; reason: string; source?: string };
 
 export async function searchPOIs(input: {
   lat: number;
@@ -82,16 +82,16 @@ export async function searchPOIs(input: {
       }));
       return { ok: true, pois, source: 'opentripmap' };
     }
-    return { ok: false, reason: 'invalid_schema' };
+    return { ok: false, reason: 'invalid_schema', source: 'opentripmap' };
   } catch (e) {
     if (e instanceof ExternalFetchError) {
-      if (e.kind === 'timeout') return { ok: false, reason: 'timeout' };
+      if (e.kind === 'timeout') return { ok: false, reason: 'timeout', source: 'opentripmap' };
       if (e.kind === 'http') {
-        return { ok: false, reason: e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx' };
+        return { ok: false, reason: e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx', source: 'opentripmap' };
       }
-      return { ok: false, reason: 'network' };
+      return { ok: false, reason: 'network', source: 'opentripmap' };
     }
-    return { ok: false, reason: 'network' };
+    return { ok: false, reason: 'network', source: 'opentripmap' };
   }
 }
 

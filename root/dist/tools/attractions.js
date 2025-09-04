@@ -37,26 +37,26 @@ async function tryOpenTripMap(city, limit = 5) {
             if (names.length > 0) {
                 return { ok: true, summary: names.join(', '), source: 'opentripmap' };
             }
-            return { ok: false, reason: 'no_pois' };
+            return { ok: false, reason: 'no_pois', source: 'opentripmap' };
         }
-        return { ok: false, reason: pois.reason };
+        return { ok: false, reason: pois.reason, source: pois.source || 'opentripmap' };
     }
     catch (e) {
         if (e instanceof ExternalFetchError) {
-            return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network' };
+            return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network', source: 'opentripmap' };
         }
-        return { ok: false, reason: 'network' };
+        return { ok: false, reason: 'network', source: 'opentripmap' };
     }
 }
 async function tryAttractionsFallback(city) {
     const query = `top attractions in ${city} things to do visit`;
     const searchResult = await searchTravelInfo(query);
     if (!searchResult.ok) {
-        return { ok: false, reason: 'fallback_failed' };
+        return { ok: false, reason: 'fallback_failed', source: 'brave-search' };
     }
     const attractionsInfo = extractAttractionsFromResults(searchResult.results, city);
     if (attractionsInfo) {
-        return { ok: true, summary: attractionsInfo };
+        return { ok: true, summary: attractionsInfo, source: 'brave-search' };
     }
-    return { ok: false, reason: 'no_attractions_data' };
+    return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };
 }

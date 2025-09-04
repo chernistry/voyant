@@ -2,7 +2,7 @@ import { searchTravelInfo, extractAttractionsFromResults } from './brave_search.
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs } from './opentripmap.js';
 
-type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
+type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };
 
 export async function getAttractions(input: {
   city?: string;
@@ -58,31 +58,31 @@ async function tryOpenTripMap(city: string, limit = 5): Promise<Out> {
       if (names.length > 0) {
         return { ok: true, summary: names.join(', '), source: 'opentripmap' };
       }
-      return { ok: false, reason: 'no_pois' };
+      return { ok: false, reason: 'no_pois', source: 'opentripmap' };
     }
-    return { ok: false, reason: pois.reason };
+    return { ok: false, reason: pois.reason, source: pois.source || 'opentripmap' };
   } catch (e) {
     if (e instanceof ExternalFetchError) {
-      return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network' };
+      return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network', source: 'opentripmap' };
     }
-    return { ok: false, reason: 'network' };
+    return { ok: false, reason: 'network', source: 'opentripmap' };
   }
 }
 
 async function tryAttractionsFallback(city: string): Promise<Out> {
   const query = `top attractions in ${city} things to do visit`;
-  
+
   const searchResult = await searchTravelInfo(query);
   if (!searchResult.ok) {
-    return { ok: false, reason: 'fallback_failed' };
+    return { ok: false, reason: 'fallback_failed', source: 'brave-search' };
   }
 
   const attractionsInfo = extractAttractionsFromResults(searchResult.results, city);
   if (attractionsInfo) {
-    return { ok: true, summary: attractionsInfo };
+    return { ok: true, summary: attractionsInfo, source: 'brave-search' };
   }
 
-  return { ok: false, reason: 'no_attractions_data' };
+  return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };
 }
 
 
