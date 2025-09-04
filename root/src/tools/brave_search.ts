@@ -31,39 +31,68 @@ export async function searchTravelInfo(query: string, log?: any): Promise<Out> {
 
   if (log) log.debug(`🔍 Brave Search: query="${query}", apiKey="${apiKey.slice(0, 10)}..."`);
 
-  try {
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`;
-    if (log) log.debug(`🔗 Brave Search URL: ${url}`);
-    
-    const response = await fetchJSON<BraveSearchResponse>(
-      url,
-      {
-        timeoutMs: 5000,
-        retries: 2,
-        target: 'brave-search',
-        headers: {
-          'X-Subscription-Token': apiKey,
-          'Accept': 'application/json'
-        }
+  // More aggressive exponential backoff for 1 req/sec rate limit
+  const delays = [0, 1200, 2500, 5000]; // 0s, 1.2s, 2.5s, 5s
+  
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    try {
+      // Wait before attempt (except first)
+      if (attempt > 0) {
+        const delay = delays[attempt];
+        if (log) log.debug(`⏳ Rate limit backoff: waiting ${delay}ms before attempt ${attempt + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    );
-    
-    if (log) log.debug(`✅ Brave Search response:`, JSON.stringify(response, null, 2));
-    
-    // Handle different response structures
-    const results = response?.web?.results || 
-                   response?.mixed?.main || 
-                   response?.results || 
-                   [];
-    if (log) log.debug(`✅ Brave Search success: ${results.length} results`);
-    return { ok: true, results };
-  } catch (e) {
-    if (log) log.debug(`❌ Brave Search error:`, e);
-    if (e instanceof ExternalFetchError) {
-      return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx' };
+      
+      const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`;
+      if (log) log.debug(`🔗 Brave Search URL (attempt ${attempt + 1}): ${url}`);
+      
+      const response = await fetchJSON<BraveSearchResponse>(
+        url,
+        {
+          timeoutMs: 8000, // Longer timeout for retries
+          retries: 0, // Handle retries manually
+          target: 'brave-search',
+          headers: {
+            'X-Subscription-Token': apiKey,
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (log) log.debug(`✅ Brave Search success on attempt ${attempt + 1}`);
+      
+      // Handle different response structures
+      const results = response?.web?.results || 
+                     response?.mixed?.main || 
+                     response?.results || 
+                     [];
+      if (log) log.debug(`✅ Brave Search success: ${results.length} results`);
+      return { ok: true, results };
+      
+    } catch (e) {
+      if (log) log.debug(`❌ Brave Search error (attempt ${attempt + 1}/${delays.length}):`, e);
+      
+      // Check if it's a rate limit error
+      const isRateLimit = e instanceof ExternalFetchError && 
+                         (e.status === 429 || (e.status && e.status >= 400 && e.status < 500));
+      
+      // If not rate limit, return error immediately
+      if (!isRateLimit) {
+        if (e instanceof ExternalFetchError) {
+          return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : e.status && e.status >= 500 ? 'http_5xx' : 'network' };
+        }
+        return { ok: false, reason: 'network' };
+      }
+      
+      // If last attempt, return rate limit error
+      if (attempt === delays.length - 1) {
+        if (log) log.debug(`❌ Brave Search failed after ${delays.length} attempts due to rate limiting`);
+        return { ok: false, reason: 'rate_limited' };
+      }
     }
-    return { ok: false, reason: 'network' };
   }
+  
+  return { ok: false, reason: 'max_retries' };
 }
 
 /**
