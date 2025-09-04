@@ -1,7 +1,39 @@
-// Simple city name cleaner to fix the critical regression
-export function cleanCityName(rawCity: string): string {
+import { extractCityWithLLM } from './llm.js';
+
+// LLM-powered city name cleaner with regex fallback
+export async function cleanCityName(rawCity: string, log?: any): Promise<string> {
   if (!rawCity) return '';
   
+  // Try LLM first for better accuracy and multilingual support
+  const llmResult = await extractCityWithLLM(rawCity, log);
+  if (llmResult && llmResult.trim().length > 0) {
+    return llmResult.trim();
+  }
+  
+  // Fallback to regex-based cleaning
+  return fallbackCleanCityName(rawCity);
+}
+
+// Extract season/time information from text (keep existing logic)
+export function extractSeason(text: string): string {
+  const seasonMatch = text.match(/\b(winter|summer|spring|fall|autumn|january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i);
+  return seasonMatch?.[1] || '';
+}
+
+// LLM-powered city extraction with regex fallback
+export async function extractCleanCity(text: string, log?: any): Promise<string> {
+  // Try LLM first for better accuracy
+  const llmResult = await extractCityWithLLM(text, log);
+  if (llmResult && llmResult.trim().length > 0) {
+    return llmResult.trim();
+  }
+  
+  // Fallback to regex patterns
+  return fallbackExtractCleanCity(text);
+}
+
+// Fallback regex-based implementations
+function fallbackCleanCityName(rawCity: string): string {
   // Remove common prefixes that contaminate city names
   let cleaned = rawCity
     .replace(/^(pack for|do in|see in|weather in|to|in|for|from)\s+/i, '')
@@ -34,14 +66,7 @@ export function cleanCityName(rawCity: string): string {
   return cleaned;
 }
 
-// Extract season/time information from text
-export function extractSeason(text: string): string {
-  const seasonMatch = text.match(/\b(winter|summer|spring|fall|autumn|january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i);
-  return seasonMatch?.[1] || '';
-}
-
-// Extract clean city from various text patterns
-export function extractCleanCity(text: string): string {
+function fallbackExtractCleanCity(text: string): string {
   // Try different patterns to extract city
   const patterns = [
     /\b(?:in|to|for|from)\s+([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)/,
@@ -54,7 +79,7 @@ export function extractCleanCity(text: string): string {
     if (match?.[1]) {
       const rawCity = match[1].split(/[.,!?]/)[0]?.trim();
       if (rawCity) {
-        return cleanCityName(rawCity);
+        return fallbackCleanCityName(rawCity);
       }
     }
   }

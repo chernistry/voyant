@@ -108,8 +108,12 @@ async function routeWithLLMFallback(
   const ctx = contextSlots && Object.keys(contextSlots).length > 0
     ? `Known slots from context (may be used if user omits them): ${JSON.stringify(contextSlots)}`
     : 'Known slots from context: {}';
-  const sys = 'Task: Return STRICT JSON only. Classify intent and extract CLEAN slot values.';
-  const prompt = `${sys}\n\n${instructions}\n\n${ctx}\n\nUser: ${message}\n\nOutput (strict JSON only): { ... }`;
+  
+  const promptTemplate = await getPrompt('router_fallback');
+  const prompt = promptTemplate
+    .replace('{instructions}', instructions)
+    .replace('{context}', ctx)
+    .replace('{message}', message);
   
   if (logger?.log && typeof logger.log.debug === 'function') {
     logger.log.debug({ prompt }, 'llm_router_fallback_prompt');

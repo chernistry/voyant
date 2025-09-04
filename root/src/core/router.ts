@@ -1,7 +1,7 @@
 import { RouterResult, RouterResultT } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
 import { z } from 'zod';
-import { callLLM } from './llm.js';
+import { callLLM, classifyIntent, classifyContent } from './llm.js';
 import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
@@ -23,29 +23,11 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  // Check for extremely long city names
-  if (/\b\w{30,}\b/.test(input.message)) {
-    return RouterResult.parse({
-      intent: 'unknown',
-      needExternal: false,
-      slots: {},
-      confidence: 0.2
-    });
-  }
-
-  // Detect explicit search commands early
-  const explicitSearchPatterns = [
-    /search\s+(web|online|internet|google)\s+for/i,
-    /google\s+/i,
-    /find\s+(online|web)\s+/i,
-    /search\s+for\s+/i,
-    /look\s+up\s+online/i,
-    /web\s+search/i
-  ];
+  // Use LLM for content classification first
+  const contentClassification = await classifyContent(input.message, input.logger?.log);
   
-  const isExplicitSearch = explicitSearchPatterns.some(pattern => pattern.test(input.message));
-  
-  if (isExplicitSearch) {
+  // Handle explicit search commands early
+  if (contentClassification?.is_explicit_search) {
     // Extract search query from command
     let searchQuery = input.message
       .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
@@ -68,21 +50,79 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
+  // Check for extremely long city names
+  if (/\b\w{30,}\b/.test(input.message)) {
+    return RouterResult.parse({
+      intent: 'unknown',
+      needExternal: false,
+      slots: {},
+      confidence: 0.2
+    });
+  }
+
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
 
-  // Simple unrelated content detection - trust LLM for nuanced cases
-  const m = input.message.toLowerCase();
-  const clearlyUnrelated = [
-    'meaning of life', 'programming', 'code', 'javascript', 'react',
-    'medical', 'doctor', 'medicine', 'recipe', 'cook'
-  ];
-  
-  const isUnrelated = clearlyUnrelated.some(hint => m.includes(hint)) && m.length > 10;
+  // Use LLM content classification for unrelated content detection
+  const isUnrelated = contentClassification?.content_type === 'unrelated' || 
+                     contentClassification?.content_type === 'gibberish';
 
   // Extract slots early for LLM override logic
   const extractedSlots = await extractSlots(input.message, {}, input.logger?.log);
   let finalSlots = extractedSlots;
+
+  // Try LLM-based intent classification first
+  const llmIntentResult = await classifyIntent(input.message, ctxSlots, input.logger?.log);
+  if (llmIntentResult && llmIntentResult.confidence > 0.5) {
+    if (typeof input.logger?.log?.info === 'function') {
+      input.logger.log.debug({ 
+        intent: llmIntentResult.intent, 
+        confidence: llmIntentResult.confidence, 
+        source: 'llm_intent_classification' 
+      }, 'router_llm_intent_result');
+    }
+
+    // Simple weather override for obvious cases
+    const isObviousWeather = /weather|temperature|climate/i.test(input.message);
+    
+    if (isObviousWeather && llmIntentResult.intent !== 'weather') {
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          originalIntent: llmIntentResult.intent, 
+          correctedIntent: 'weather' 
+        }, 'overriding_llm_weather_misclassification');
+      }
+      return RouterResult.parse({
+        intent: 'weather',
+        needExternal: true,
+        slots: finalSlots,
+        confidence: 0.8
+      });
+    }
+
+    // Override LLM result if we detected unrelated content
+    if (isUnrelated && llmIntentResult.intent === 'unknown') {
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          originalIntent: llmIntentResult.intent, 
+          originalConfidence: llmIntentResult.confidence 
+        }, 'overriding_llm_with_unrelated');
+      }
+      return RouterResult.parse({
+        intent: 'unknown',
+        needExternal: false,
+        slots: finalSlots,
+        confidence: 0.3
+      });
+    }
+
+    return RouterResult.parse({ 
+      intent: llmIntentResult.intent, 
+      needExternal: llmIntentResult.needExternal, 
+      slots: finalSlots, 
+      confidence: llmIntentResult.confidence 
+    });
+  }
 
   const viaStrictLLM = await routeWithLLM(input.message, ctxSlots, input.logger).catch(() => undefined);
   if (viaStrictLLM && viaStrictLLM.confidence > 0.5) {
@@ -152,12 +192,12 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   const base = { needExternal: false, slots: finalSlots, confidence: 0.7 as const };
 
   if (typeof input.logger?.log?.info === 'function') {
-    input.logger.log.debug({ message: m, isUnrelated }, 'heuristic_check');
+    input.logger.log.debug({ message: input.message.toLowerCase(), isUnrelated }, 'heuristic_check');
   }
 
   if (isUnrelated) {
     if (typeof input.logger?.log?.info === 'function') {
-      input.logger.log.debug({ message: m }, 'heuristic_intent_unrelated_block_executed');
+      input.logger.log.debug({ message: input.message.toLowerCase() }, 'heuristic_intent_unrelated_block_executed');
     }
     return RouterResult.parse({
       intent: 'unknown',
@@ -167,47 +207,32 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  const packingHints = ['pack', 'bring', 'clothes', 'items', 'luggage', 'suitcase', 'wear', 'what to wear'];
-  const familyHints = ['kids', 'children', 'family'];
-  if (
-    packingHints.some((k) => m.includes(k)) ||
-    (m.includes('what about') && familyHints.some((k) => m.includes(k)))
-  ) {
+  // Fallback heuristic patterns (simplified)
+  const m = input.message.toLowerCase();
+  
+  if (/pack|bring|clothes|items|luggage|suitcase|wear|what to wear/.test(m) ||
+      (m.includes('what about') && /kids|children|family/.test(m))) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_packing');
     }
     return RouterResult.parse({ intent: 'packing', ...base });
   }
-  const attractionHints = [
-    'attraction',
-    'do in',
-    'what to do',
-    'museum',
-    'activities',
-  ];
-  if (attractionHints.some((k) => m.includes(k))) {
+  
+  if (/attraction|do in|what to do|museum|activities/.test(m)) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_attractions');
     }
     return RouterResult.parse({ intent: 'attractions', ...base });
   }
   
-  const weatherHints = ['weather', "what's the weather", 'what is the weather', 'temperature', 'forecast'];
-  if (weatherHints.some((k) => m.includes(k))) {
+  if (/weather|what's the weather|what is the weather|temperature|forecast/.test(m)) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_weather');
     }
     return RouterResult.parse({ intent: 'weather', ...base });
   }
   
-  const destHints = [
-    'where should i go',
-    'destination',
-    'where to go',
-    'budget',
-    'options',
-  ];
-  if (destHints.some((k) => m.includes(k))) {
+  if (/where should i go|destination|where to go|budget|options/.test(m)) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_destinations');
     }

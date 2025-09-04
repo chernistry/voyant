@@ -3,7 +3,7 @@ import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
 import { searchTravelInfo } from '../tools/brave_search.js';
-import { callLLM } from './llm.js';
+import { callLLM, classifyContent } from './llm.js';
 import { getPrompt } from './prompts.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
@@ -36,13 +36,21 @@ export async function runGraphTurn(
   threadId: string,
   ctx: { log: pino.Logger },
 ): Promise<NodeOut> {
-  // Check for budget queries - process as destination query with disclaimer
-  const budgetPatterns = [
-    /budget|cost|price|money|expensive|cheap|afford|spend|currency exchange|exchange rate/i
-  ];
-  
-  const isBudgetQuery = budgetPatterns.some(pattern => pattern.test(message));
+  // Use LLM for budget query detection with fallback
+  let isBudgetQuery = false;
   let budgetDisclaimer = '';
+  
+  try {
+    const contentClassification = await classifyContent(message, ctx.log);
+    isBudgetQuery = contentClassification?.content_type === 'budget';
+  } catch {
+    // Fallback to regex patterns
+    const budgetPatterns = [
+      /budget|cost|price|money|expensive|cheap|afford|spend|currency exchange|exchange rate/i
+    ];
+    isBudgetQuery = budgetPatterns.some(pattern => pattern.test(message));
+  }
+  
   if (isBudgetQuery) {
     budgetDisclaimer = 'I can\'t help with budget planning or costs, but I can provide travel destination information. ';
   }
@@ -119,13 +127,20 @@ export async function runGraphTurn(
   
   // Check for flight queries in destinations intent that should trigger web search instead of asking for dates
   if (intent === 'destinations' && missing.includes('dates')) {
-    const flightPatterns = [
-      /airline|flight|fly|plane|ticket|booking/i,
-      /what\s+airlines/i,
-      /which\s+airlines/i
-    ];
+    let isFlightQuery = false;
     
-    const isFlightQuery = flightPatterns.some(pattern => pattern.test(message));
+    try {
+      const contentClassification = await classifyContent(message, ctx.log);
+      isFlightQuery = contentClassification?.content_type === 'flight';
+    } catch {
+      // Fallback to regex patterns
+      const flightPatterns = [
+        /airline|flight|fly|plane|ticket|booking/i,
+        /what\s+airlines/i,
+        /which\s+airlines/i
+      ];
+      isFlightQuery = flightPatterns.some(pattern => pattern.test(message));
+    }
     
     if (isFlightQuery) {
       // Store the pending search query and set consent state
@@ -152,7 +167,7 @@ export async function runGraphTurn(
   
   if (missing.length > 0) {
     updateThreadSlots(threadId, slots as Record<string, string>, missing);
-    const q = buildClarifyingQuestion(missing, slots as Record<string, string>);
+    const q = await buildClarifyingQuestion(missing, slots as Record<string, string>, ctx.log);
     if (ctx.log && typeof ctx.log.debug === 'function') {
       ctx.log.debug({ missing, q }, 'clarifier');
     }

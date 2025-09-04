@@ -13,7 +13,12 @@ type PromptName =
   | 'city_parser'
   | 'date_parser'
   | 'intent_parser'
-  | 'router_llm';
+  | 'router_llm'
+  | 'router_fallback'
+  | 'nlp_city_extraction'
+  | 'nlp_clarifier'
+  | 'nlp_intent_detection'
+  | 'nlp_content_classification';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -54,6 +59,21 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.router_llm = await loadFileSafe(
     path.join(base, 'router_llm.md'),
+  );
+  PROMPTS.router_fallback = await loadFileSafe(
+    path.join(base, 'router_fallback.md'),
+  );
+  PROMPTS.nlp_city_extraction = await loadFileSafe(
+    path.join(base, 'nlp_city_extraction.md'),
+  );
+  PROMPTS.nlp_clarifier = await loadFileSafe(
+    path.join(base, 'nlp_clarifier.md'),
+  );
+  PROMPTS.nlp_intent_detection = await loadFileSafe(
+    path.join(base, 'nlp_intent_detection.md'),
+  );
+  PROMPTS.nlp_content_classification = await loadFileSafe(
+    path.join(base, 'nlp_content_classification.md'),
   );
   loaded = true;
 }

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { ChatInputT, ChatOutput } from '../schemas/chat.js';
 import { getThreadId, pushMessage } from './memory.js';
 import { runGraphTurn } from './graph.js';
-import { callLLM } from './llm.js';
+import { callLLM, classifyContent } from './llm.js';
 import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
@@ -218,8 +218,15 @@ export async function blendWithFacts(
   input: { message: string; route: RouterResultT; threadId?: string },
   ctx: { log: pino.Logger },
 ) {
-  // Detect mixed languages at the top level for use throughout the function
-  const hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
+  // Use LLM for mixed language detection with fallback
+  let hasMixedLanguages = false;
+  try {
+    const contentClassification = await classifyContent(input.message, ctx.log);
+    hasMixedLanguages = contentClassification?.has_mixed_languages || false;
+  } catch {
+    // Fallback to regex detection
+    hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
+  }
   
   // Trust the slot extraction - if LLM found a city, use it
   // Only ask for clarification if no city was extracted at all
@@ -228,8 +235,15 @@ export async function blendWithFacts(
                    (input.route.slots.month && input.route.slots.month.trim());
                    
   if (input.route.intent === 'unknown') {
-    // Only detect explicit search commands with hardcoded patterns
-    const isExplicitSearch = /search|google/i.test(input.message);
+    // Use LLM for explicit search detection with fallback
+    let isExplicitSearch = false;
+    try {
+      const contentClassification = await classifyContent(input.message, ctx.log);
+      isExplicitSearch = contentClassification?.is_explicit_search || false;
+    } catch {
+      // Fallback to regex patterns
+      isExplicitSearch = /search|google/i.test(input.message);
+    }
     
     if (isExplicitSearch) {
       let searchQuery = input.message.replace(/^(search|google)\s+(web|online|for)?\s*/i, '').trim();
@@ -243,28 +257,54 @@ export async function blendWithFacts(
       return await performWebSearch(input.message, ctx, input.threadId);
     }
 
-    // Simple unrelated content detection
-    if (/programming|code|javascript|react|cook|pasta|medicine|doctor/i.test(input.message)) {
+    // Use LLM for unrelated content detection with fallback
+    let isUnrelated = false;
+    try {
+      const contentClassification = await classifyContent(input.message, ctx.log);
+      isUnrelated = contentClassification?.content_type === 'unrelated';
+    } catch {
+      // Fallback to simple patterns
+      isUnrelated = /programming|code|javascript|react|cook|pasta|medicine|doctor/i.test(input.message);
+    }
+
+    if (isUnrelated) {
       return {
         reply: "I'm a travel assistant focused on helping with weather, destinations, packing, and attractions. Could you ask me something about travel planning?",
         citations: undefined,
       };
     }
 
-    // Handle system/meta questions
-    const systemPatterns = [
-      /who are you|what are you|are you real|are you human|ai assistant/i,
-      /help me with|can you do|what can you|how do you work/i,
-      /explain yourself|what do you mean/i
-    ];
+    // Use LLM for system question detection with fallback
+    let isSystemQuestion = false;
+    try {
+      const contentClassification = await classifyContent(input.message, ctx.log);
+      isSystemQuestion = contentClassification?.content_type === 'system';
+    } catch {
+      // Fallback to regex patterns
+      const systemPatterns = [
+        /who are you|what are you|are you real|are you human|ai assistant/i,
+        /help me with|can you do|what can you|how do you work/i,
+        /explain yourself|what do you mean/i
+      ];
+      isSystemQuestion = systemPatterns.some(pattern => pattern.test(input.message));
+    }
 
-    // Handle edge cases
-    const isEmptyOrWhitespace = input.message.trim().length === 0;
-    const isEmojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\s]*$/u.test(input.message) && input.message.trim().length > 0;
-    const isGibberish = /^[a-z]{10,}$/i.test(input.message.replace(/\s/g, '')) && !/\b(weather|pack|travel|city|go|visit|attraction|destination|trip|flight|hotel)\b/i.test(input.message);
-    const isVeryLong = input.message.length > 500;
-    const hasLongCityName = /\b\w{30,}\b/.test(input.message);
-    const isSystemQuestion = systemPatterns.some(pattern => pattern.test(input.message));
+    // Use LLM for edge case detection with fallbacks
+    let isEmptyOrWhitespace = input.message.trim().length === 0;
+    let isEmojiOnly = false;
+    let isGibberish = false;
+    let isVeryLong = input.message.length > 500;
+    let hasLongCityName = /\b\w{30,}\b/.test(input.message);
+    
+    try {
+      const contentClassification = await classifyContent(input.message, ctx.log);
+      isEmojiOnly = contentClassification?.content_type === 'emoji_only';
+      isGibberish = contentClassification?.content_type === 'gibberish';
+    } catch {
+      // Fallback to regex patterns
+      isEmojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\s]*$/u.test(input.message) && input.message.trim().length > 0;
+      isGibberish = /^[a-z]{10,}$/i.test(input.message.replace(/\s/g, '')) && !/\b(weather|pack|travel|city|go|visit|attraction|destination|trip|flight|hotel)\b/i.test(input.message);
+    }
 
     ctx.log.debug({
       message: input.message,

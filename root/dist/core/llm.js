@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { fetch as undiciFetch } from 'undici';
+import { getPrompt } from './prompts.js';
 // Simple token counter (approximate)
 function countTokens(text) {
     return Math.ceil(text.length / 4); // Rough approximation: 1 token ≈ 4 characters
@@ -204,4 +205,110 @@ function stubSynthesize(prompt) {
         return `Understood. ${userPart}`;
     }
     return 'I can help with your travel question.';
+}
+// NLP Service Functions
+export async function extractCityWithLLM(message, log) {
+    try {
+        const promptTemplate = await getPrompt('nlp_city_extraction');
+        const prompt = promptTemplate.replace('{message}', message);
+        const response = await callLLM(prompt, { log });
+        return response.trim();
+    }
+    catch (error) {
+        if (log)
+            log.debug('LLM city extraction failed, using fallback');
+        return fallbackExtractCity(message);
+    }
+}
+export async function generateClarifyingQuestion(missingSlots, context = {}, log) {
+    try {
+        const promptTemplate = await getPrompt('nlp_clarifier');
+        const prompt = promptTemplate
+            .replace('{missing_slots}', JSON.stringify(missingSlots))
+            .replace('{context}', JSON.stringify(context));
+        const response = await callLLM(prompt, { log });
+        return response.trim();
+    }
+    catch (error) {
+        if (log)
+            log.debug('LLM clarification failed, using fallback');
+        return fallbackBuildClarifyingQuestion(missingSlots, context);
+    }
+}
+export async function classifyIntent(message, context = {}, log) {
+    try {
+        const promptTemplate = await getPrompt('nlp_intent_detection');
+        const prompt = promptTemplate
+            .replace('{message}', message)
+            .replace('{context}', JSON.stringify(context));
+        const response = await callLLM(prompt, { responseFormat: 'json', log });
+        const parsed = JSON.parse(response);
+        return {
+            intent: parsed.intent,
+            confidence: parsed.confidence,
+            needExternal: parsed.needExternal,
+        };
+    }
+    catch (error) {
+        if (log)
+            log.debug('LLM intent classification failed');
+        return null;
+    }
+}
+export async function classifyContent(message, log) {
+    try {
+        const promptTemplate = await getPrompt('nlp_content_classification');
+        const prompt = promptTemplate.replace('{message}', message);
+        const response = await callLLM(prompt, { responseFormat: 'json', log });
+        const parsed = JSON.parse(response);
+        return {
+            content_type: parsed.content_type,
+            is_explicit_search: parsed.is_explicit_search,
+            has_mixed_languages: parsed.has_mixed_languages,
+            needs_web_search: parsed.needs_web_search,
+        };
+    }
+    catch (error) {
+        if (log)
+            log.debug('LLM content classification failed');
+        return null;
+    }
+}
+// Fallback functions for when LLM fails
+function fallbackExtractCity(text) {
+    const patterns = [
+        /\b(?:in|to|for|from)\s+([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)/,
+        /\b([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)\s+(?:in|on|for|during)\s+\w+/,
+        /(?:pack|weather|visit|go|travel)\s+(?:for|to|in)\s+([A-Z][A-Za-z\- ]+)/i,
+    ];
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match?.[1]) {
+            let city = match[1].split(/[.,!?]/)[0]?.trim();
+            if (city) {
+                // Handle abbreviations
+                const abbrevMap = {
+                    'NYC': 'New York',
+                    'SF': 'San Francisco',
+                    'LA': 'Los Angeles',
+                    'BOS': 'Boston',
+                };
+                return abbrevMap[city] || city;
+            }
+        }
+    }
+    return '';
+}
+function fallbackBuildClarifyingQuestion(missing, slots = {}) {
+    const miss = new Set(missing.map((m) => m.toLowerCase()));
+    if (miss.has('dates') && miss.has('city')) {
+        return 'Could you share the city and month/dates?';
+    }
+    if (miss.has('dates')) {
+        return 'Which month or travel dates?';
+    }
+    if (miss.has('city')) {
+        return 'Which city are you asking about?';
+    }
+    return 'Could you provide more details about your travel plans?';
 }
