@@ -318,7 +318,7 @@ async function performWebSearchNode(
 ): Promise<NodeOut> {
   ctx.log.debug({ query }, 'performing_web_search_node');
   
-  const searchResult = await searchTravelInfo(query);
+  const searchResult = await searchTravelInfo(query, ctx.log);
   
   if (!searchResult.ok) {
     ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');

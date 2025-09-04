@@ -105,95 +105,66 @@ RECORD_TRANSCRIPTS=true npm test -- tests/e2e_comprehensive_flow.test.ts
 ```mermaid
 flowchart TD
     A["User Message"] --> B["handleChat()"]
-    B --> C{"Receipts mode?\n(/why or receipts flag)"}
-    C -->|Yes| R1["Load last receipts\nfrom slot memory"]
+    B --> C{"Receipts mode? (/why or receipts flag)"}
+    C -->|Yes| R1["Load last receipts from slot memory"]
     R1 --> R2["buildReceiptsSkeleton()"]
-    R2 --> R3["verifyAnswer()"]
-    R3 --> R4["Return ChatOutput\nwith receipts"]
-    C -->|No| D["pushMessage()"]
+    R2 --> R3["verifyAnswer() (LLM JSON)"]
+    R3 --> R4["Return ChatOutput with receipts"]
+    C -->|No| D["pushMessage(threadId)"]
     D --> E["runGraphTurn()"]
 
-    E --> F{"Budget query?\n(cost, price, budget)"}
-    F -->|Yes| F1["Add budget disclaimer"]
-    F -->|No| F2["No disclaimer"]
-    F1 --> G
-    F2 --> G
+    %% Pre-routing LLM checks
+    E --> F["classifyContent() (LLM): type, explicit search, mixed languages"]
+    F --> G{"Awaiting search consent?"}
+    G -->|Yes| G1["detectConsent() (LLM): yes/no/unclear"]
+    G1 -->|yes| H1["optimizeSearchQuery() (LLM)"]
+    H1 --> H2["performWebSearchNode()"]
+    G1 -->|no| H3["Reply: No problem..."]
+    G -->|No| I["routeIntentNode()"]
 
-    G --> H{"Awaiting search consent?"}
-    H -->|Yes| H1["Check consent response\n(yes/no)"]
-    H1 -->|Yes| H2["performWebSearchNode()"]
-    H1 -->|No| H3["Return: 'No problem!'"]
-    H -->|No| I["routeIntentNode()"]
+    %% Routing and slots
+    I --> J["routeIntent():<br>- classifyContent (LLM)<br>- classifyIntent (LLM)<br>- routeWithLLM (LLM+parsers)<br>- extractSlots (LLM parsers)<br>- heuristics fallback"]
+    J --> K{"Missing slots? (city/dates rules)"}
+    K -->|Yes| L1["buildClarifyingQuestion() (LLM with fallback)"]
+    L1 --> L2["Return single targeted question"]
+    K -->|No| M["setLastIntent(); merge slots"]
 
-    I --> J["routeIntent()"]
-    J --> K{"Missing slots?"}
-    K -->|Yes| L["buildClarifyingQuestion()"]
-    L --> M["Return Clarification"]
-    K -->|No| N["Intent Inference\n(if unknown + context)"]
+    %% Intent switch
+    M --> N{"Intent"}
+    N -->|weather| Q["weatherNode() → blendWithFacts()"]
+    N -->|destinations| R["destinationsNode() → blendWithFacts()"]
+    N -->|packing| S["packingNode() → blendWithFacts()"]
+    N -->|attractions| T["attractionsNode() → blendWithFacts()"]
+    N -->|web_search| U["webSearchNode()"]
+    N -->|unknown| V["unknownNode() → blendWithFacts()"]
 
-    N --> O["setLastIntent()"]
-    O --> P{"Intent"}
-
-    P -->|weather| Q["weatherNode()"]
-    P -->|destinations| R["destinationsNode()"]
-    P -->|packing| S["packingNode()"]
-    P -->|attractions| T["attractionsNode()"]
-    P -->|web_search| U["webSearchNode()"]
-    P -->|unknown| V["unknownNode()"]
-
-    Q --> W["blendWithFacts()"]
+    %% Facts blend and external tools
+    Q --> W["getWeather (API) → facts"]
     R --> W
     S --> W
-    T --> W
-    U --> W2["performWebSearchNode()"]
-    V --> W
+    T --> W2["getAttractions (API) → facts"]
+    R --> W3["getCountryFacts (API) → facts"]
+    U --> X1["searchTravelInfo (Brave)"]
+    X1 --> X2{"Results?"}
+    X2 -->|Yes| X3["search_summarize (LLM): 2 paragraphs + [n] cites + Sources:"]
+    X3 --> X4["Return reply + citations ['Brave Search']"]
+    X2 -->|No| X5["Reply: couldn't find relevant info"]
 
-    W --> X["Detect mixed languages"]
-    X --> Y["Targeted clarifications"]
-    Y --> Z["Check explicit search commands"]
-    Z --> AA["Check travel search patterns"]
-    AA --> BB["Check unrelated patterns"]
-    BB --> CC["Check system questions"]
-    CC --> DD["Handle edge cases\n(long city, emoji, gibberish)"]
+    %% Compose final answer
+    W --> Y["getPrompt(system) + getPrompt(blend) → callLLM"]
+    W2 --> Y
+    W3 --> Y
+    V --> Y
+    Y --> Z1["validateNoCitation()"]
+    Z1 --> Z2["setLastReceipts(threadId)"]
+    Z2 --> Z3{"Mixed languages?"}
+    Z3 -->|Yes| Z4["Prefix warning"]
+    Z3 -->|No| Z5["No warning"]
+    Z4 --> Z6["Return Final Reply + citations"]
+    Z5 --> Z6
 
-    DD --> EE{"Unknown intent processing"}
-    EE -->|Explicit search| FF["performWebSearch()"]
-    EE -->|Travel search worthy| GG["Set consent state\nfor web search"]
-    EE -->|Restaurant/Budget| HH["Set consent state\nfor web search"]
-    EE -->|Unrelated| II["Return travel-focused message"]
-    EE -->|System| JJ["Return system info"]
-    EE -->|Edge case| KK["Return appropriate message"]
-    EE -->|Default unknown| LL["Ask for city/dates"]
-
-    W -->|Intent-specific| MM["Check missing slots\nper intent"]
-    MM -->|Missing| NN["Return clarification"]
-    MM -->|Complete| OO["Fetch External Data"]
-
-    OO --> PP["Weather: Open-Meteo\n→ Brave Search fallback"]
-    OO --> QQ["Country: REST Countries\n→ Brave Search fallback"]
-    OO --> RR["Attractions: OpenTripMap\n→ Brave Search fallback"]
-
-    PP --> SS["Weather Facts"]
-    QQ --> TT["Country Facts"]
-    RR --> UU["Attractions Facts"]
-
-    SS --> VV["Combine with LLM"]
-    TT --> VV
-    UU --> VV
-    W -->|No external facts| VV
-
-    VV --> WW["Validate Citations"]
-    VV --> XX["setLastReceipts(thread)"]
-    WW --> YY["Add language warning\nif mixed"]
-    YY --> ZZ["Return Final Reply\n+ Citations"]
-
-    W2 --> AAA["searchTravelInfo()"]
-    AAA --> BBB["Format search results"]
-    BBB --> CCC["Return web search reply"]
-
-    H2 --> DDD["searchTravelInfo()"]
-    DDD --> EEE["Format search results"]
-    EEE --> FFF["Return web search reply"]
+    %% Fallbacks and unknowns
+    E --> Fallbacks["Fallback heuristics (regex) only when LLM unavailable"]
 ```
 
 ## Usage

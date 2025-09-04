@@ -237,7 +237,7 @@ async function webSearchNode(ctx, slots, logger) {
 }
 async function performWebSearchNode(query, ctx, threadId) {
     ctx.log.debug({ query }, 'performing_web_search_node');
-    const searchResult = await searchTravelInfo(query);
+    const searchResult = await searchTravelInfo(query, ctx.log);
     if (!searchResult.ok) {
         ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
         return {

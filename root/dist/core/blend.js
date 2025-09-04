@@ -103,7 +103,7 @@ function formatSearchResultsFallback(results) {
 }
 async function performWebSearch(query, ctx, threadId) {
     ctx.log.debug({ query }, 'performing_web_search');
-    const searchResult = await searchTravelInfo(query);
+    const searchResult = await searchTravelInfo(query, ctx.log);
     if (!searchResult.ok) {
         ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
         return {
