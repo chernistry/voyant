@@ -44,7 +44,7 @@ The agent connects to several external APIs for real-time travel data, with resi
 
 - **Open-Meteo API** - Weather forecasts and geocoding (city coordinates resolution)
 - **REST Countries API** - Country information (currency, languages, region, capital)
-- **Wikipedia API** - Tourist attractions and points of interest search  // Currently being refactored to OpenTripMap
+- **OpenTripMap API** - Tourist attractions and points of interest search
 - **Brave Search API** - Fallback search engine for weather, country data, and attractions when primary APIs fail
 - **OpenRouter API** - Free-tier LLM service for natural language processing
 
@@ -70,59 +70,95 @@ RECORD_TRANSCRIPTS=true npm test -- tests/e2e_comprehensive_flow.test.ts
 ```mermaid
 flowchart TD
     A["User Message"] --> B["handleChat()"]
-    B --> C{"Receipts mode? (/why or receipts flag)"}
-    C -->|Yes| R1["Load last receipts from slot memory"]
+    B --> C{"Receipts mode?\n(/why or receipts flag)"}
+    C -->|Yes| R1["Load last receipts\nfrom slot memory"]
     R1 --> R2["buildReceiptsSkeleton()"]
     R2 --> R3["verifyAnswer()"]
-    R3 --> R4["Return ChatOutput with receipts"]
+    R3 --> R4["Return ChatOutput\nwith receipts"]
     C -->|No| D["pushMessage()"]
     D --> E["runGraphTurn()"]
 
-    E --> F["routeIntentNode()"]
-    F --> G["routeIntent()"]
+    E --> F{"Budget query?\n(cost, price, budget)"}
+    F -->|Yes| F1["Add budget disclaimer"]
+    F -->|No| F2["No disclaimer"]
+    F1 --> G
+    F2 --> G
 
-    G --> H{"Missing slots?"}
-    H -->|Yes| I["buildClarifyingQuestion()"]
-    I --> J["Return Clarification"]
-    H -->|No| K["Intent Handler"]
+    G --> H{"Awaiting search consent?"}
+    H -->|Yes| H1["Check consent response\n(yes/no)"]
+    H1 -->|Yes| H2["performWebSearchNode()"]
+    H1 -->|No| H3["Return: 'No problem!'"]
+    H -->|No| I["routeIntentNode()"]
 
-    K --> L["Weather"] --> M["blendWithFacts()"]
-    K --> L2["Destinations"] --> M
-    K --> L3["Packing"] --> M
-    K --> L4["Attractions"] --> M
-    K --> L5["Unknown"] --> M
+    I --> J["routeIntent()"]
+    J --> K{"Missing slots?"}
+    K -->|Yes| L["buildClarifyingQuestion()"]
+    L --> M["Return Clarification"]
+    K -->|No| N["Intent Inference\n(if unknown + context)"]
 
-    M --> N["Fetch External Data"]
+    N --> O["setLastIntent()"]
+    O --> P{"Intent"}
 
-    N --> W0["Weather: Open-Meteo"]
-    W0 --> W1["Weather Facts"]
-    N --> Wf0{"Open-Meteo failed?"}
-    Wf0 -->|Yes| WB["Brave Search (weather)"]
-    WB --> W1b["Web Search Facts"]
+    P -->|weather| Q["weatherNode()"]
+    P -->|destinations| R["destinationsNode()"]
+    P -->|packing| S["packingNode()"]
+    P -->|attractions| T["attractionsNode()"]
+    P -->|web_search| U["webSearchNode()"]
+    P -->|unknown| V["unknownNode()"]
 
-    N --> C0["Country: REST Countries"]
-    C0 --> C1["Country Facts"]
-    N --> Cf0{"REST Countries failed?"}
-    Cf0 -->|Yes| CB["Brave Search (country)"]
-    CB --> C1b["Web Search Facts"]
+    Q --> W["blendWithFacts()"]
+    R --> W
+    S --> W
+    T --> W
+    U --> W2["performWebSearchNode()"]
+    V --> W
 
-    N --> A0["Attractions: Wikipedia/Brave Search"]
-    A0 --> A1["Attractions Facts"]
-    N --> Af0{"Wikipedia failed?"}
-    Af0 -->|Yes| AB["Brave Search (attractions)"]
-    AB --> A1b["Web Search Facts"]
+    W --> X["Detect mixed languages"]
+    X --> Y["Targeted clarifications"]
+    Y --> Z["Check explicit search commands"]
+    Z --> AA["Check travel search patterns"]
+    AA --> BB["Check unrelated patterns"]
+    BB --> CC["Check system questions"]
+    CC --> DD["Handle edge cases\n(long city, emoji, gibberish)"]
 
-    W1 --> O["Combine with LLM"]
-    W1b --> O
-    C1 --> O
-    C1b --> O
-    A1 --> O
-    A1b --> O
-    M -->|No external facts| O
+    DD --> EE{"Unknown intent processing"}
+    EE -->|Explicit search| FF["performWebSearch()"]
+    EE -->|Travel search worthy| GG["Set consent state\nfor web search"]
+    EE -->|Restaurant/Budget| HH["Set consent state\nfor web search"]
+    EE -->|Unrelated| II["Return travel-focused message"]
+    EE -->|System| JJ["Return system info"]
+    EE -->|Edge case| KK["Return appropriate message"]
+    EE -->|Default unknown| LL["Ask for city/dates"]
 
-    O --> P["Validate Citations"]
-    O --> S["setLastReceipts(thread)"]
-    P --> T["Return Final Reply"]
+    W -->|Intent-specific| MM["Check missing slots\nper intent"]
+    MM -->|Missing| NN["Return clarification"]
+    MM -->|Complete| OO["Fetch External Data"]
+
+    OO --> PP["Weather: Open-Meteo\n→ Brave Search fallback"]
+    OO --> QQ["Country: REST Countries\n→ Brave Search fallback"]
+    OO --> RR["Attractions: OpenTripMap\n→ Brave Search fallback"]
+
+    PP --> SS["Weather Facts"]
+    QQ --> TT["Country Facts"]
+    RR --> UU["Attractions Facts"]
+
+    SS --> VV["Combine with LLM"]
+    TT --> VV
+    UU --> VV
+    W -->|No external facts| VV
+
+    VV --> WW["Validate Citations"]
+    VV --> XX["setLastReceipts(thread)"]
+    WW --> YY["Add language warning\nif mixed"]
+    YY --> ZZ["Return Final Reply\n+ Citations"]
+
+    W2 --> AAA["searchTravelInfo()"]
+    AAA --> BBB["Format search results"]
+    BBB --> CCC["Return web search reply"]
+
+    H2 --> DDD["searchTravelInfo()"]
+    DDD --> EEE["Format search results"]
+    EEE --> FFF["Return web search reply"]
 ```
 
 ## Usage
