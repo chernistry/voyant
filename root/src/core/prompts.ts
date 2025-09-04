@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-type PromptName = 'system' | 'router' | 'blend' | 'cot' | 'verify';
+type PromptName = 'system' | 'router' | 'blend' | 'cot' | 'verify' | 'web_search_decider' | 'query_type_detector';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -22,6 +22,8 @@ export async function preloadPrompts(): Promise<void> {
   PROMPTS.blend = await loadFileSafe(path.join(base, 'blend.md'));
   PROMPTS.cot = await loadFileSafe(path.join(base, 'cot.md'));
   PROMPTS.verify = await loadFileSafe(path.join(base, 'verify.md'));
+  PROMPTS.web_search_decider = await loadFileSafe(path.join(base, 'web_search_decider.md'));
+  PROMPTS.query_type_detector = await loadFileSafe(path.join(base, 'query_type_detector.md'));
   loaded = true;
 }
 

@@ -17,27 +17,8 @@ import { buildReceiptsSkeleton, ReceiptsSchema } from './receipts.js';
 import { verifyAnswer } from './verify.js';
 
 async function decideShouldSearch(message: string, ctx: { log: pino.Logger }): Promise<boolean> {
-  const prompt = `Decide if this travel question needs web search (vs using travel APIs for weather/attractions).
-
-Question: "${message}"
-
-Return "yes" if the question asks about:
-- Visa requirements, passport info, entry requirements
-- Flight information, airlines, booking
-- Budget, costs, prices, money
-- Best restaurants, hotels, local tips
-- Safety, crime, current events
-- Transportation, metro, buses
-- Shopping, markets, nightlife
-- Currency, exchange rates
-
-Return "no" if it asks about:
-- Weather (use weather API)
-- Attractions/things to do (use attractions API)  
-- What to pack (use weather API)
-- General destination advice
-
-Answer: yes or no`;
+  const promptTemplate = await getPrompt('web_search_decider');
+  const prompt = promptTemplate.replace('{message}', message);
 
   try {
     const response = await callLLM(prompt, { log: ctx.log });
@@ -47,22 +28,19 @@ Answer: yes or no`;
   }
 }
 
-async function classifyAsUnrelated(message: string, ctx: { log: pino.Logger }): Promise<boolean> {
-  const prompt = `Is this question related to travel planning?
-
-Question: "${message}"
-
-Travel-related topics: weather, destinations, packing, attractions, flights, hotels, visas, transportation, travel safety, travel costs, travel tips.
-
-Non-travel topics: programming, cooking, medicine, philosophy, general knowledge, personal advice.
-
-Answer: travel or unrelated`;
+async function detectQueryType(message: string, ctx: { log: pino.Logger }): Promise<'restaurant' | 'budget' | 'flight' | 'none'> {
+  const promptTemplate = await getPrompt('query_type_detector');
+  const prompt = promptTemplate.replace('{message}', message);
 
   try {
     const response = await callLLM(prompt, { log: ctx.log });
-    return response.toLowerCase().includes('unrelated');
+    const type = response.toLowerCase().trim();
+    if (['restaurant', 'budget', 'flight'].includes(type)) {
+      return type as 'restaurant' | 'budget' | 'flight';
+    }
+    return 'none';
   } catch {
-    return false;
+    return 'none';
   }
 }
 
@@ -343,30 +321,16 @@ export async function blendWithFacts(
   
   // Check for restaurant/food queries in attractions intent
   if (input.route.intent === 'attractions') {
-    const restaurantPatterns = [
-      /best\s+(restaurant|food|eat|dining|cafe|coffee|bar|pub)/i,
-      /where\s+to\s+(eat|dine|drink)/i,
-      /good\s+(restaurant|food|place\s+to\s+eat)/i,
-      /restaurant\s+recommendation/i
-    ];
+    const queryType = await detectQueryType(input.message, ctx);
     
-    const budgetPatterns = [
-      /budget|cost|price|money|expensive|cheap|afford|spend/i,
-      /how\s+much/i,
-      /exchange\s+rate|currency/i
-    ];
-    
-    const isRestaurantQuery = restaurantPatterns.some(pattern => pattern.test(input.message));
-    const isBudgetQuery = budgetPatterns.some(pattern => pattern.test(input.message));
-    
-    if ((isRestaurantQuery || isBudgetQuery) && input.threadId) {
+    if ((queryType === 'restaurant' || queryType === 'budget') && input.threadId) {
       // Store the pending search query and set consent state
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
       }, []);
       
-      const searchType = isRestaurantQuery ? 'restaurant recommendations' : 'cost and budget information';
+      const searchType = queryType === 'restaurant' ? 'restaurant recommendations' : 'cost and budget information';
       return {
         reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
         citations: undefined,
@@ -390,23 +354,16 @@ export async function blendWithFacts(
       /exchange\s+rate|currency/i
     ];
     
-    const flightPatterns = [
-      /airline|flight|fly|plane|ticket|booking/i,
-      /what\s+airlines/i,
-      /which\s+airlines/i
-    ];
+    const queryType = await detectQueryType(input.message, ctx);
     
-    const isBudgetQuery = budgetPatterns.some(pattern => pattern.test(input.message));
-    const isFlightQuery = flightPatterns.some(pattern => pattern.test(input.message));
-    
-    if ((isBudgetQuery || isFlightQuery) && input.threadId) {
+    if ((queryType === 'budget' || queryType === 'flight') && input.threadId) {
       // Store the pending search query and set consent state
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
       }, []);
       
-      const searchType = isBudgetQuery ? 'cost and budget information' : 'flight and airline information';
+      const searchType = queryType === 'budget' ? 'cost and budget information' : 'flight and airline information';
       return {
         reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
         citations: undefined,

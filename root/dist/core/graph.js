@@ -3,7 +3,30 @@ import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
 import { searchTravelInfo } from '../tools/brave_search.js';
+import { callLLM } from './llm.js';
 import pinoLib from 'pino';
+async function detectConsent(message, ctx) {
+    const prompt = `Is this a positive or negative response to a yes/no question?
+
+Message: "${message}"
+
+Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright
+Negative responses: no, nope, not now, maybe later, skip, don't, never mind
+
+Answer: yes, no, or unclear`;
+    try {
+        const response = await callLLM(prompt, { log: ctx.log });
+        const answer = response.toLowerCase().trim();
+        if (answer.includes('yes'))
+            return 'yes';
+        if (answer.includes('no'))
+            return 'no';
+        return 'unclear';
+    }
+    catch {
+        return 'unclear';
+    }
+}
 export async function runGraphTurn(message, threadId, ctx) {
     // Check for budget queries - process as destination query with disclaimer
     const budgetPatterns = [
@@ -19,13 +42,10 @@ export async function runGraphTurn(message, threadId, ctx) {
     const awaitingSearchConsent = threadSlots.awaiting_search_consent === 'true';
     const pendingSearchQuery = threadSlots.pending_search_query;
     if (awaitingSearchConsent && pendingSearchQuery) {
-        const consentPatterns = [
-            /^(yes|yeah|yep|sure|ok|okay|please|do it|go ahead|search)/i,
-            /^(no|nope|not now|maybe later|skip)/i
-        ];
-        const isConsentResponse = consentPatterns.some(pattern => pattern.test(message.trim()));
+        const consent = await detectConsent(message, ctx);
+        const isConsentResponse = consent !== 'unclear';
         if (isConsentResponse) {
-            const isPositiveConsent = /^(yes|yeah|yep|sure|ok|okay|please|do it|go ahead|search)/i.test(message.trim());
+            const isPositiveConsent = consent === 'yes';
             // Clear consent state
             updateThreadSlots(threadId, {
                 awaiting_search_consent: '',
