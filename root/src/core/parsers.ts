@@ -41,6 +41,16 @@ const IntentParseResult = z.object({
 });
 
 export async function parseCity(text: string, context?: Record<string, any>, logger?: any): Promise<ParseResponse<z.infer<typeof CityParseResult>>> {
+  // Check if text is just a month name
+  const monthNames = /^(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\.?$/i;
+  if (monthNames.test(text.trim())) {
+    return {
+      success: false,
+      data: null,
+      confidence: 0,
+    };
+  }
+
   // First check if there's any city-like word in the text
   const hasLocationWords = /\b(?:in|to|for|from|at|visit|go|travel|weather|city|place|destination)\b/i.test(text);
   const hasCityPattern = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/.test(text);

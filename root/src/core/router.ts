@@ -115,7 +115,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       });
     }
 
-    return RouterResult.parse({ intent, needExternal, slots, confidence });
+    return RouterResult.parse({ intent, needExternal, slots: { ...finalSlots, ...slots }, confidence });
   }
   
   const viaLLM = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
