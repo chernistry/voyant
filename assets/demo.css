@@ -6,21 +6,22 @@
 */
 
 :root {
-    /* Color Palette */
+    /* Color Palette (WCAG AA on dark) */
     --color-background: #121212;
     --color-surface: #1E1E1E;
     --color-primary: #FFFFFF;
     --color-secondary: #A0A0A0;
-    --color-accent: #007AFF; /* Apple Blue for a recognizable tech accent */
-    --color-accent-2: #FF9500; /* Amber for highlights */
-    --color-success: #34C759; /* Green for success states */
+    --color-accent: #007AFF; /* Apple Blue */
+    --color-accent-2: #FF9500; /* Amber */
+    --color-success: #34C759; /* Green */
     --color-border: #333333;
 
     /* Typography */
     --font-family-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --fs-xl: 3.5rem;
-    --fs-l: 2rem;
-    --fs-m: 1.25rem;
+    /* Fluid type for scalable hierarchy */
+    --fs-xl: clamp(2.25rem, 3vw + 1rem, 3.5rem);
+    --fs-l: clamp(1.5rem, 1.2vw + 1rem, 2rem);
+    --fs-m: clamp(1.0625rem, 0.6vw + 0.8rem, 1.25rem);
     --fs-base: 1rem;
     --fs-s: 0.875rem;
 
@@ -63,6 +64,12 @@ body {
     display: flex;
     justify-content: center;
     padding: var(--space-5);
+}
+
+/* Accessible focus styles */
+:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
 }
 
 /* --- Layout --- */
@@ -285,6 +292,12 @@ body {
     text-decoration: underline;
 }
 
+/* High-contrast link focus */
+.message-text a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
 .sources-section {
     margin-top: var(--space-4);
     padding-top: var(--space-3);
@@ -366,6 +379,58 @@ body {
     border-left: 3px solid var(--color-border);
 }
 
+/* Receipts Block */
+.receipts-block {
+    background: #1a1a1a;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    margin: var(--space-3) 0;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: var(--fs-s);
+    line-height: 1.4;
+}
+
+.receipts-header {
+    color: var(--color-accent);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-2);
+}
+
+.receipts-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.receipts-item {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
+.receipts-item::before {
+    content: '•';
+    color: var(--color-accent);
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.receipts-label {
+    color: var(--color-secondary);
+    font-weight: 600;
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.receipts-value {
+    color: var(--color-primary);
+    word-break: break-word;
+}
+
 /* --- Details Section --- */
 .details-section {
     display: grid;
@@ -417,6 +482,19 @@ body {
     border-top: 1px solid var(--color-border);
     font-size: var(--fs-s);
     color: var(--color-secondary);
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+    .feature-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
 }
 
 /* --- Responsive --- */
@@ -529,6 +607,21 @@ body {
         font-size: 0.95rem;
     }
 
+    .receipts-block {
+        padding: var(--space-2);
+        font-size: 0.8rem;
+    }
+
+    .receipts-item {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .receipts-label {
+        min-width: auto;
+        margin-bottom: var(--space-1);
+    }
+
     .visa-info p.note {
         padding: var(--space-2);
         font-size: 0.8rem;
@@ -555,6 +648,10 @@ body {
 
 /* Print Styles */
 @media print {
+    @page {
+        size: A4;
+        margin: 16mm;
+    }
     body {
         background: white;
         color: black;
@@ -572,9 +669,13 @@ body {
         gap: var(--space-5);
     }
 
-    .hero,
+    /* Keep hero for intro text as requested */
+    .hero {
+        border: none;
+        padding: 0 0 var(--space-4) 0;
+    }
     .features-section {
-        display: none;
+        display: none; /* omit marketing features in print */
     }
 
     .conversation-section {
@@ -612,7 +713,7 @@ body {
     .message-content {
         box-shadow: none;
         border: 1px solid #e0e0e0;
-        border-radius: var(--border-radius-small);
+        border-radius: 8px;
         padding: var(--space-2) var(--space-3);
         max-width: 100%;
         background-color: white;
@@ -684,6 +785,37 @@ body {
         color: #555;
     }
 
+    .receipts-block {
+        background: #f8f8f8;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: var(--space-3);
+        margin: var(--space-2) 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        color: #000;
+        page-break-inside: avoid;
+    }
+
+    .receipts-header {
+        color: #000;
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: bold;
+    }
+
+    .receipts-item::before {
+        color: #000;
+    }
+
+    .receipts-label {
+        color: #555;
+        font-weight: bold;
+    }
+
+    .receipts-value {
+        color: #000;
+    }
+
     .details-section {
         box-shadow: none;
         border: none;
@@ -712,5 +844,13 @@ body {
 
     .footer {
         display: none;
+    }
+    a, a:visited {
+        color: #000;
+        text-decoration: underline;
+    }
+    .message-group,
+    .message {
+        break-inside: avoid;
     }
 }
