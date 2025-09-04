@@ -1,8 +1,26 @@
 # Voyant Travel Assistant
 
+>Builds trust, then answers fast.
+
 ![Voyant Travel Assistant Screenshot](./assets/screenshot.png)
 
-Builds trust first, then answers fast.
+
+>This minimalist, fact-grounded travel assistant employs an LLM-driven approach for NLP tasks (intent classification, slot filling, context-aware generation), pulling verified data from trusted APIs (Open-Meteo/REST Countries/OpenTripMap) with multi-layered hallucination prevention via mandatory citations and secondary verification.
+
+## Why is it cool?
+
+- Plugs directly into your stack
+- Self-evaluates and prevents hallucinations
+- Falls back to Brave web search when APIs fail
+
+## Notes on Prompt Engineering
+
+- **Format Priming**: Enforced JSON/bullet-point schemas ensure structured, parseable outputs while preventing hallucinations
+- **Few-Shot Prompting**: Curated examples in router.md and cot.md train accurate intent classification and slot extraction
+- **Chain-of-Thought**: Structured reasoning in cot.md and verify.md decomposes analysis into verifiable steps
+- **Guardrails**: blend.md requires fact-grounding + verify.md provides secondary validation of claims
+
+## Other perks
 
 - Anti-hallucination receipts with self-check and sources
 - Resilient data blend: APIs → search fallback when providers fail
@@ -45,8 +63,25 @@ The agent connects to several external APIs for real-time travel data, with resi
 - **Open-Meteo API** - Weather forecasts and geocoding (city coordinates resolution)
 - **REST Countries API** - Country information (currency, languages, region, capital)
 - **OpenTripMap API** - Tourist attractions and points of interest search
-- **Brave Search API** - Fallback search engine for weather, country data, and attractions when primary APIs fail
+- **Brave Search API** - Fallback search engine for weather, country data, and attractions when primary APIs fail. Features LLM-powered summarization of search results into coherent 2-paragraph responses with numbered citations.
 - **OpenRouter API** - Free-tier LLM service for natural language processing
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Configure LLM provider (optional)
+export LLM_PROVIDER_BASEURL="https://api.openai.com/v1"
+export LLM_API_KEY="your-api-key"
+export LLM_MODEL="gpt-4"
+
+# Or use free tier
+export OPENROUTER_API_KEY="your-openrouter-key"
+
+# Search summarization (default: on)
+export SEARCH_SUMMARY=on  # or 'off' to disable
+```
 
 ## Testing & Transcripts
 
@@ -185,15 +220,4 @@ Budget: 0ms API, ~400 tokens
 curl -X POST http://localhost:3000/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"What to pack for Tokyo in March?", "receipts": true}'
-```
-
-### Environment
-```bash
-# Configure LLM provider (optional)
-export LLM_PROVIDER_BASEURL="https://api.openai.com/v1"
-export LLM_API_KEY="your-api-key"
-export LLM_MODEL="gpt-4"
-
-# Or use free tier
-export OPENROUTER_API_KEY="your-openrouter-key"
 ```
