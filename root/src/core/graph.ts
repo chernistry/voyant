@@ -101,14 +101,21 @@ export async function runGraphTurn(
   let intent = routeResult.next;
   const prior = getThreadSlots(threadId);
   
-  // Filter out placeholder values from extracted slots
+  // Filter out placeholder values from extracted slots, but only for city switching
   const extractedSlots = routeResult.slots || {};
   const filteredSlots: Record<string, string> = {};
   
   for (const [key, value] of Object.entries(extractedSlots)) {
-    if (typeof value === 'string' && value.trim() && 
-        !['unknown', 'clean_city_name', 'there', 'next week', 'normalized_date_string'].includes(value.toLowerCase())) {
-      filteredSlots[key] = value;
+    if (typeof value === 'string' && value.trim()) {
+      // For city: reject placeholders only if we have a prior city and this looks like a placeholder
+      if (key === 'city' && prior.city && 
+          ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(value.toLowerCase())) {
+        continue; // Skip placeholder, keep prior city
+      }
+      // For other fields: reject obvious placeholders
+      if (!['unknown', 'clean_city_name', 'there', 'next week', 'normalized_date_string', 'month_name'].includes(value.toLowerCase())) {
+        filteredSlots[key] = value;
+      }
     }
   }
   
