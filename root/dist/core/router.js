@@ -1,6 +1,6 @@
 import { RouterResult } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
-import { callLLM, classifyIntent, classifyContent } from './llm.js';
+import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
 import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
@@ -20,9 +20,11 @@ export async function routeIntent(input) {
     }
     // Use LLM for content classification first
     const contentClassification = await classifyContent(input.message, input.logger?.log);
+    // Prefer LLM router first for robust NLU and slot extraction
+    const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
     // Handle explicit search commands early
     if (contentClassification?.is_explicit_search) {
-        // Extract search query from command
+        // Extract and optimize search query
         let searchQuery = input.message
             .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
             .replace(/google\s+/i, '')
@@ -34,10 +36,12 @@ export async function routeIntent(input) {
         if (!searchQuery) {
             searchQuery = input.message;
         }
+        // Optimize the search query
+        const optimizedQuery = await optimizeSearchQuery(searchQuery, ctxSlots, 'web_search', input.logger?.log);
         return RouterResult.parse({
             intent: 'web_search',
             needExternal: true,
-            slots: { search_query: searchQuery },
+            slots: { search_query: optimizedQuery },
             confidence: 0.9
         });
     }
@@ -50,8 +54,6 @@ export async function routeIntent(input) {
             confidence: 0.2
         });
     }
-    // Prefer LLM router first for robust NLU and slot extraction
-    const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
     // Use LLM content classification for unrelated content detection
     const isUnrelated = contentClassification?.content_type === 'unrelated' ||
         contentClassification?.content_type === 'gibberish';

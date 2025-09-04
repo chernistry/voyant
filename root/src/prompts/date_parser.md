@@ -15,3 +15,8 @@ Context: {context}
 
 Output JSON only:
 {"dates": "normalized_date_string", "month": "month_name", "confidence": 0.0-1.0}
+
+Examples:
+- Input: "June 24-28" → {"dates":"June 24-28","month":"June","confidence":0.95}
+- Input: "next week" → {"dates":"next week","month":"","confidence":0.7}
+- Input: "15-20 июня" → {"dates":"15-20 June","month":"June","confidence":0.85}

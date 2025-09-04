@@ -17,3 +17,7 @@ Examples:
 User message: {message}
 
 City name:
+
+Edge cases:
+- If message contains no location, return an empty string.
+- If message says "here/there" and context has city, prefer context city.

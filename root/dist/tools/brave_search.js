@@ -9,7 +9,7 @@ export async function searchTravelInfo(query) {
     if (!apiKey)
         return { ok: false, reason: 'no_api_key' };
     try {
-        const response = await fetchJSON(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
+        const response = await fetchJSON(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`, {
             timeoutMs: 5000,
             retries: 2,
             target: 'brave-search',

@@ -18,4 +18,10 @@ Return "no" if it asks about:
 - What to pack (use weather API)
 - General destination advice
 
-Answer: yes or no
+Output strictly one word: yes or no
+
+Examples:
+- "Do I need a visa for Japan?" → yes
+- "Weather in Paris today" → no
+- "Best restaurants in Rome" → yes
+- "What to pack for London in winter" → no

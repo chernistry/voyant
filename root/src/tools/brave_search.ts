@@ -25,7 +25,7 @@ export async function searchTravelInfo(query: string): Promise<Out> {
 
   try {
     const response = await fetchJSON<BraveSearchResponse>(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`,
+      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`,
       {
         timeoutMs: 5000,
         retries: 2,

@@ -3,7 +3,7 @@ import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
 import { searchTravelInfo } from '../tools/brave_search.js';
-import { callLLM, classifyContent } from './llm.js';
+import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
 import { getPrompt } from './prompts.js';
 import pinoLib from 'pino';
 async function detectConsent(message, ctx) {
@@ -55,7 +55,9 @@ export async function runGraphTurn(message, threadId, ctx) {
                 pending_search_query: ''
             }, []);
             if (isPositiveConsent) {
-                return await performWebSearchNode(pendingSearchQuery, ctx, threadId);
+                // Optimize the pending search query
+                const optimizedQuery = await optimizeSearchQuery(pendingSearchQuery, threadSlots, 'web_search', ctx.log);
+                return await performWebSearchNode(optimizedQuery, ctx, threadId);
             }
             else {
                 return {
@@ -227,7 +229,11 @@ async function attractionsNode(ctx, slots, logger) {
 }
 async function webSearchNode(ctx, slots, logger) {
     const searchQuery = slots?.search_query || ctx.msg;
-    return await performWebSearchNode(searchQuery, logger || { log: pinoLib({ level: 'silent' }) }, ctx.threadId);
+    // Optimize the search query if not already optimized
+    const optimizedQuery = slots?.search_query
+        ? searchQuery // Already optimized in router
+        : await optimizeSearchQuery(searchQuery, slots || {}, 'web_search', logger?.log);
+    return await performWebSearchNode(optimizedQuery, logger || { log: pinoLib({ level: 'silent' }) }, ctx.threadId);
 }
 async function performWebSearchNode(query, ctx, threadId) {
     ctx.log.debug({ query }, 'performing_web_search_node');
@@ -245,21 +251,13 @@ async function performWebSearchNode(query, ctx, threadId) {
             reply: 'I couldn\'t find relevant information for your search. Could you try rephrasing your question or ask me about weather, destinations, packing, or attractions?',
         };
     }
-    // Format search results for travel context
-    const results = searchResult.results.slice(0, 3); // Limit to top 3 results
-    const formattedResults = results.map(result => {
-        // Decode HTML entities and clean up description
-        const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
-        const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
-        const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
-        return `• ${cleanTitle} - ${truncatedDesc}`;
-    }).join('\n');
-    const reply = `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`;
+    // Use summarization for better results
+    const { reply, citations } = await summarizeSearchResults(searchResult.results, query, ctx);
     // Store search receipts
     if (threadId) {
         try {
             const { setLastReceipts } = await import('./slot_memory.js');
-            const facts = results.map((result, index) => ({
+            const facts = searchResult.results.slice(0, 3).map((result, index) => ({
                 source: 'Brave Search',
                 key: `search_result_${index}`,
                 value: `${result.title}: ${result.description.slice(0, 100)}...`
@@ -274,7 +272,69 @@ async function performWebSearchNode(query, ctx, threadId) {
     return {
         done: true,
         reply,
-        citations: ['Brave Search'],
+        citations,
+    };
+}
+async function summarizeSearchResults(results, query, ctx) {
+    // Feature flag check
+    if (process.env.SEARCH_SUMMARY === 'off') {
+        return formatSearchResultsFallback(results);
+    }
+    try {
+        const promptTemplate = await getPrompt('search_summarize');
+        const topResults = results.slice(0, 7);
+        // Format results for LLM
+        const formattedResults = topResults.map((result, index) => ({
+            id: index + 1,
+            title: result.title.replace(/<[^>]*>/g, ''), // Strip HTML
+            url: result.url,
+            description: result.description.replace(/<[^>]*>/g, '').slice(0, 200)
+        }));
+        const prompt = promptTemplate
+            .replace('{query}', query)
+            .replace('{results}', JSON.stringify(formattedResults, null, 2));
+        const response = await callLLM(prompt, { log: ctx.log });
+        // Sanitize and validate response
+        let sanitized = response
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .trim();
+        // Ensure no CoT leakage
+        sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '');
+        // Truncate if too long
+        if (sanitized.length > 400) {
+            const sentences = sanitized.split(/[.!?]+/);
+            let truncated = '';
+            for (const sentence of sentences) {
+                if ((truncated + sentence).length > 380)
+                    break;
+                truncated += sentence + '.';
+            }
+            sanitized = truncated;
+        }
+        return {
+            reply: sanitized,
+            citations: ['Brave Search']
+        };
+    }
+    catch (error) {
+        ctx.log.debug('Search summarization failed, using fallback');
+        return formatSearchResultsFallback(results);
+    }
+}
+function formatSearchResultsFallback(results) {
+    const topResults = results.slice(0, 3);
+    const formattedResults = topResults.map(result => {
+        const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+        const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+        const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
+        return `• ${cleanTitle} - ${truncatedDesc}`;
+    }).join('\n');
+    return {
+        reply: `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`,
+        citations: ['Brave Search']
     };
 }
 async function unknownNode(ctx, logger) {

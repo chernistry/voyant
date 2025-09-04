@@ -5,6 +5,7 @@ Return strict JSON with:
 - is_explicit_search: boolean (contains explicit search commands)
 - has_mixed_languages: boolean (contains non-English text)
 - needs_web_search: boolean (requires web search to answer)
+ - confidence: 0.0-1.0
 
 Content type definitions:
 - travel: related to travel planning, weather, packing, destinations
@@ -19,3 +20,10 @@ Content type definitions:
 User message: {message}
 
 Return strict JSON:
+{
+  "content_type": "travel|system|unrelated|budget|restaurant|flight|gibberish|emoji_only",
+  "is_explicit_search": true/false,
+  "has_mixed_languages": true/false,
+  "needs_web_search": true/false,
+  "confidence": 0..1
+}

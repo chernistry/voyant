@@ -31,6 +31,8 @@ export async function preloadPrompts() {
     PROMPTS.nlp_clarifier = await loadFileSafe(path.join(base, 'nlp_clarifier.md'));
     PROMPTS.nlp_intent_detection = await loadFileSafe(path.join(base, 'nlp_intent_detection.md'));
     PROMPTS.nlp_content_classification = await loadFileSafe(path.join(base, 'nlp_content_classification.md'));
+    PROMPTS.search_summarize = await loadFileSafe(path.join(base, 'search_summarize.md'));
+    PROMPTS.search_query_optimizer = await loadFileSafe(path.join(base, 'search_query_optimizer.md'));
     loaded = true;
 }
 export async function getPrompt(name) {

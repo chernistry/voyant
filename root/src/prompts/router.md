@@ -17,6 +17,7 @@
 {"intent": "packing", "city": "Tokyo", "dates": "March", "month": "March"}  
 {"intent": "destinations", "city": null, "dates": "June", "month": "June"}
 {"intent": "attractions", "city": "London", "dates": null, "month": null}
+{"intent": "unknown", "city": null, "dates": null, "month": null}
 ```
 
 **Key Distinctions:**
@@ -51,4 +52,12 @@ Notes:
 - "bring" and "pack" are strong indicators of packing intent.
 - NEVER include action words in city names - extract pure city names only.
 - Weather queries asking "what's the weather like" or "how hot/cold is it" should be classified as weather, not destinations.
+
+Edge‑case examples:
+```json
+{"intent":"weather","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.86,"missingSlots":[]}
+{"intent":"packing","needExternal":false,"slots":{"city":"San Francisco","dates":"winter"},"confidence":0.78,"missingSlots":[]}
+{"intent":"unknown","needExternal":false,"slots":{},"confidence":0.3,"missingSlots":[]}
+{"intent":"attractions","needExternal":true,"slots":{"city":"Rome"},"confidence":0.73,"missingSlots":["city"]}
+```
 

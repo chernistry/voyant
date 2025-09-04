@@ -6,6 +6,7 @@ import { callLLM } from './llm.js';
 
 const VerifySchema = z.object({
   verdict: z.enum(['pass', 'warn', 'fail']),
+  confidence: z.number().min(0).max(1).optional(),
   notes: z.array(z.string()),
   revisedAnswer: z.string().optional(),
 });

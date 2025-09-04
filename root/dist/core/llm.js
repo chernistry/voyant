@@ -299,6 +299,57 @@ function fallbackExtractCity(text) {
     }
     return '';
 }
+// Simple query optimization cache
+const queryCache = new Map();
+export async function optimizeSearchQuery(query, context = {}, intent = 'unknown', log) {
+    // Check cache first
+    const cacheKey = `${query}:${intent}:${JSON.stringify(context)}`;
+    if (queryCache.has(cacheKey)) {
+        if (log)
+            log.debug('Using cached optimized query');
+        return queryCache.get(cacheKey);
+    }
+    try {
+        const promptTemplate = await getPrompt('search_query_optimizer');
+        const prompt = promptTemplate
+            .replace('{query}', query)
+            .replace('{context}', JSON.stringify(context))
+            .replace('{intent}', intent);
+        const response = await callLLM(prompt, { log });
+        let optimized = response.trim();
+        // Validate length constraint (≤7 words)
+        const wordCount = optimized.split(/\s+/).length;
+        if (wordCount > 7) {
+            // Truncate to first 7 words
+            optimized = optimized.split(/\s+/).slice(0, 7).join(' ');
+        }
+        // Cache the result
+        queryCache.set(cacheKey, optimized);
+        // Limit cache size
+        if (queryCache.size > 100) {
+            const firstKey = queryCache.keys().next().value;
+            if (firstKey) {
+                queryCache.delete(firstKey);
+            }
+        }
+        if (log)
+            log.debug({ original: query, optimized, wordCount }, 'query_optimized');
+        return optimized;
+    }
+    catch (error) {
+        if (log)
+            log.debug('Query optimization failed, using fallback');
+        return fallbackOptimizeQuery(query);
+    }
+}
+function fallbackOptimizeQuery(query) {
+    // Simple fallback: remove common filler words and truncate
+    const fillerWords = ['what', 'is', 'the', 'a', 'an', 'how', 'can', 'you', 'tell', 'me', 'about', 'some', 'good', 'best'];
+    const words = query.toLowerCase().split(/\s+/)
+        .filter(word => !fillerWords.includes(word) && word.length > 2)
+        .slice(0, 7);
+    return words.join(' ') || query.slice(0, 50);
+}
 function fallbackBuildClarifyingQuestion(missing, slots = {}) {
     const miss = new Set(missing.map((m) => m.toLowerCase()));
     if (miss.has('dates') && miss.has('city')) {

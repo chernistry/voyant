@@ -17,3 +17,8 @@ Examples:
 - Missing: ["city"] → "Which city are you asking about?"
 
 Question:
+
+Few‑shot examples:
+- Input: Missing ["city"], Context {} → "Which city are you asking about?"
+- Input: Missing ["dates"], Context {"city":"Paris"} → "Which month or travel dates?"
+- Input: Missing ["city","dates"], Context {} → "Could you share the city and month/dates?"

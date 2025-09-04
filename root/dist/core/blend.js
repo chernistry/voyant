@@ -3,7 +3,7 @@ import path from 'node:path';
 import { ChatOutput } from '../schemas/chat.js';
 import { getThreadId, pushMessage } from './memory.js';
 import { runGraphTurn } from './graph.js';
-import { callLLM, classifyContent } from './llm.js';
+import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
 import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
@@ -39,6 +39,68 @@ async function detectQueryType(message, ctx) {
         return 'none';
     }
 }
+async function summarizeSearch(results, query, ctx) {
+    // Feature flag check
+    if (process.env.SEARCH_SUMMARY === 'off') {
+        return formatSearchResultsFallback(results);
+    }
+    try {
+        const promptTemplate = await getPrompt('search_summarize');
+        const topResults = results.slice(0, 7);
+        // Format results for LLM
+        const formattedResults = topResults.map((result, index) => ({
+            id: index + 1,
+            title: result.title.replace(/<[^>]*>/g, ''), // Strip HTML
+            url: result.url,
+            description: result.description.replace(/<[^>]*>/g, '').slice(0, 200)
+        }));
+        const prompt = promptTemplate
+            .replace('{query}', query)
+            .replace('{results}', JSON.stringify(formattedResults, null, 2));
+        const response = await callLLM(prompt, { log: ctx.log });
+        // Sanitize and validate response
+        let sanitized = response
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .trim();
+        // Ensure no CoT leakage
+        sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '');
+        // Truncate if too long
+        if (sanitized.length > 400) {
+            const sentences = sanitized.split(/[.!?]+/);
+            let truncated = '';
+            for (const sentence of sentences) {
+                if ((truncated + sentence).length > 380)
+                    break;
+                truncated += sentence + '.';
+            }
+            sanitized = truncated;
+        }
+        return {
+            reply: sanitized,
+            citations: ['Brave Search']
+        };
+    }
+    catch (error) {
+        ctx.log.debug('Search summarization failed, using fallback');
+        return formatSearchResultsFallback(results);
+    }
+}
+function formatSearchResultsFallback(results) {
+    const topResults = results.slice(0, 3);
+    const formattedResults = topResults.map(result => {
+        const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+        const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+        const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
+        return `• ${cleanTitle} - ${truncatedDesc}`;
+    }).join('\n');
+    return {
+        reply: `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`,
+        citations: ['Brave Search']
+    };
+}
 async function performWebSearch(query, ctx, threadId) {
     ctx.log.debug({ query }, 'performing_web_search');
     const searchResult = await searchTravelInfo(query);
@@ -55,20 +117,12 @@ async function performWebSearch(query, ctx, threadId) {
             citations: undefined,
         };
     }
-    // Format search results for travel context
-    const results = searchResult.results.slice(0, 3); // Limit to top 3 results
-    const formattedResults = results.map(result => {
-        // Decode HTML entities and clean up description
-        const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
-        const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
-        const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
-        return `• ${cleanTitle} - ${truncatedDesc}`;
-    }).join('\n');
-    const reply = `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`;
+    // Use summarization for better results
+    const { reply, citations } = await summarizeSearch(searchResult.results, query, ctx);
     // Store search facts for receipts
     if (threadId) {
         try {
-            const facts = results.map((result, index) => ({
+            const facts = searchResult.results.slice(0, 3).map((result, index) => ({
                 source: 'Brave Search',
                 key: `search_result_${index}`,
                 value: `${result.title}: ${result.description}`,
@@ -80,10 +134,7 @@ async function performWebSearch(query, ctx, threadId) {
             // ignore
         }
     }
-    return {
-        reply,
-        citations: ['Brave Search'],
-    };
+    return { reply, citations };
 }
 export async function handleChat(input, ctx) {
     const threadId = getThreadId(input.threadId);
@@ -210,12 +261,16 @@ export async function blendWithFacts(input, ctx) {
             let searchQuery = input.message.replace(/^(search|google)\s+(web|online|for)?\s*/i, '').trim();
             if (!searchQuery)
                 searchQuery = input.message;
-            return await performWebSearch(searchQuery, ctx, input.threadId);
+            // Optimize the search query
+            const optimizedQuery = await optimizeSearchQuery(searchQuery, input.route.slots, 'web_search', ctx.log);
+            return await performWebSearch(optimizedQuery, ctx, input.threadId);
         }
         // Use LLM to decide if this needs web search
         const shouldSearch = await decideShouldSearch(input.message, ctx);
         if (shouldSearch) {
-            return await performWebSearch(input.message, ctx, input.threadId);
+            // Optimize the search query
+            const optimizedQuery = await optimizeSearchQuery(input.message, input.route.slots, input.route.intent, ctx.log);
+            return await performWebSearch(optimizedQuery, ctx, input.threadId);
         }
         // Use LLM for unrelated content detection with fallback
         let isUnrelated = false;

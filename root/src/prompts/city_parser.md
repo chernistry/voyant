@@ -14,3 +14,8 @@ Context: {context}
 
 Output JSON only:
 {"city": "clean_city_name", "normalized": "normalized_name", "confidence": 0.0-1.0}
+
+Few‑shot examples:
+- Input: "Weather in NYC" | Context: {} → {"city":"New York","normalized":"New York","confidence":0.95}
+- Input: "Что делать в Питере?" | Context: {} → {"city":"Saint Petersburg","normalized":"Saint Petersburg","confidence":0.9}
+- Input: "Go there in summer" | Context: {"city":"Berlin"} → {"city":"Berlin","normalized":"Berlin","confidence":0.7}

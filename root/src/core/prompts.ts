@@ -18,7 +18,9 @@ type PromptName =
   | 'nlp_city_extraction'
   | 'nlp_clarifier'
   | 'nlp_intent_detection'
-  | 'nlp_content_classification';
+  | 'nlp_content_classification'
+  | 'search_summarize'
+  | 'search_query_optimizer';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -74,6 +76,12 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.nlp_content_classification = await loadFileSafe(
     path.join(base, 'nlp_content_classification.md'),
+  );
+  PROMPTS.search_summarize = await loadFileSafe(
+    path.join(base, 'search_summarize.md'),
+  );
+  PROMPTS.search_query_optimizer = await loadFileSafe(
+    path.join(base, 'search_query_optimizer.md'),
   );
   loaded = true;
 }

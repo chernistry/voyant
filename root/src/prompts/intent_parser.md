@@ -18,3 +18,10 @@ Input: "{text}"
 
 Output JSON only:
 {"intent": "weather|destinations|packing|attractions|unknown", "confidence": 0.0-1.0, "slots": {"city": "clean_name", "month": "month", "dates": "dates"}}
+
+Few‑shot examples:
+Input: "Weather in NYC in June"
+Output: {"intent":"weather","confidence":0.9,"slots":{"city":"New York","month":"June","dates":"June"}}
+
+Input: "что взять в Токио в марте"
+Output: {"intent":"packing","confidence":0.85,"slots":{"city":"Tokyo","month":"March","dates":"March"}}
