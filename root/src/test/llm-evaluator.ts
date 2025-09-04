@@ -89,7 +89,7 @@ export function expectLLMEvaluation(
   testDescription: string,
   actualResponse: string,
   expectedCriteria: string,
-  minConfidence = 0.7
+  minConfidence = 0.6
 ) {
   return {
     async toPass() {

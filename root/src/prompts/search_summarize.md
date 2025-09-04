@@ -1,36 +1,26 @@
-Synthesize search results into exactly 3 coherent paragraphs with inline numbered citations, prioritizing travel-specific details.
+Synthesize search results into coherent paragraphs with inline numbered citations, using only information from Results.
 
 Rules:
-- Write exactly 3 paragraphs, 120–140 words each (each paragraph within range)
-- Cite every factual claim with [id], where id is the numeric id of a Result
-- Use only information from Results; do not invent numbers, dates, or names
-- If results are insufficient or contradictory, begin paragraph 1 with "Uncertain:" and briefly state why
+- Write 1-3 paragraphs, 80–120 words each (each paragraph within range)
+- ONLY use information explicitly present in the provided Results
+- Cite EVERY factual claim with [id] where id matches the Result's id number
+- Do NOT add, invent, or synthesize any information not in Results
+- Do NOT mention destinations, attractions, or details not explicitly in Results
+- If Results lack information for a topic, skip that topic entirely
+- If results are insufficient for 3 paragraphs, write fewer paragraphs
 - No CoT, no internal headers, no lists/bullets; sentences only
-- ALWAYS preserve specific travel details: destinations, prices, dates, attractions, transportation, accommodations, family-friendly features
-- Prefer concrete numbers from Results; if absent, describe without fabricating ranges
+- If Results don't answer the query adequately, state this clearly
 
 Query: {query}
 
 Results: {results}
 
-Travel Priority Details (include when available):
-- Specific destination names and locations
-- Exact prices, budgets, costs
-- Transportation options (flights, trains, etc.)
-- Accommodation suggestions
-- Family/kid-friendly attractions and activities
-- Weather information and seasonal considerations
-- Accessibility and walking requirements
-- Time durations and itineraries
-
 Format:
-Write three paragraphs directly, without any prefixes or headers (no "Paragraph 1:", "Paragraph 2:", etc.).
+Write paragraphs directly, using only information from Results. Write as many paragraphs as the Results support (1-3 paragraphs).
 
-First paragraph: focus on destinations and logistics (transportation, prices, accommodations) with [id] citations.
-
-Second paragraph: focus on attractions and activities (family-friendly features, accessibility) with [id] citations.
-
-Third paragraph: focus on practical details (weather, seasonal considerations, itineraries) with [id] citations.
+- If Results contain travel details, organize by topic (destinations, attractions, practical details)
+- Cite every factual claim with [id]
+- If Results don't contain enough information, write fewer paragraphs
 
 Then write:
 

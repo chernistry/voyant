@@ -32,6 +32,9 @@ Output: {"intent":"weather","needExternal":true,"slots":{"city":"New York City",
 Input: "what to pack for Tokyo in March"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"},"confidence":0.85,"missingSlots":[]}
 
+Input: "Any festivals or events that week?"
+Output: {"intent":"web_search","needExternal":true,"slots":{},"confidence":0.9,"missingSlots":[]}
+
 Input: "what to do there?"
 Output: {"intent":"attractions","needExternal":false,"slots":{},"confidence":0.4,"missingSlots":["city"]}
 

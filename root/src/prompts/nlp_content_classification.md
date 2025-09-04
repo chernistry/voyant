@@ -7,6 +7,8 @@ Examples:
 - "What can you do?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "Find visa requirements for Germans" → {"content_type": "travel", "is_explicit_search": true, "needs_web_search": true, "confidence": 0.9}
 - "Search for flights to Paris" → {"content_type": "flight", "is_explicit_search": true, "needs_web_search": true, "confidence": 0.9}
+- "Any festivals or events that week?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": true, "confidence": 0.9}
+- "What concerts are happening in Boston?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": true, "confidence": 0.9}
 - "Weather in London" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.8}
 - "What to pack for Tokyo" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.8}
 
@@ -29,7 +31,7 @@ Explicit search indicators:
 
 Content types:
 - system: questions about the AI assistant itself or requests for help
-- travel: weather, packing, destinations, attractions, visa, travel info
+- travel: weather, packing, destinations, attractions, events, visa, travel info
 - unrelated: programming, cooking, medicine, etc.
 - budget: cost, price, money, exchange rates
 - restaurant: food, dining recommendations

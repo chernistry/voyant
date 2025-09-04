@@ -229,6 +229,20 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Fallback heuristic patterns (simplified)
   const m = input.message.toLowerCase();
   
+  // Events/festivals should trigger web search (check first before attractions)
+  if (/festival|event|concert|show|happening|going on|plan around/.test(m) && 
+      !/attraction|museum|do in/.test(m)) {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_web_search_events');
+    }
+    return RouterResult.parse({ 
+      intent: 'web_search', 
+      needExternal: true, 
+      slots: { ...finalSlots, search_query: input.message }, 
+      confidence: 0.8 
+    });
+  }
+  
   if (/pack|bring|clothes|items|luggage|suitcase|wear|what to wear/.test(m) ||
       (m.includes('what about') && /kids|children|family/.test(m))) {
     if (typeof input.logger?.log?.debug === 'function') {

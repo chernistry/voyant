@@ -31,3 +31,6 @@ Output: {"intent":"weather","confidence":0.9,"needExternal":true,"slots":{"city"
 
 Input: "what to pack for Tokyo in March"
 Output: {"intent":"packing","confidence":0.85,"needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"}}
+
+Input: "Any festivals or events that week we should plan around?"
+Output: {"intent":"unknown","confidence":0.9,"needExternal":true,"slots":{}}
