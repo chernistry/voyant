@@ -38,7 +38,7 @@ async function tryPrimaryWeatherAPI(city) {
             const min = j.daily?.temperature_2m_min?.[0];
             const pp = j.daily?.precipitation_probability_mean?.[0];
             const summary = `High ${max}°C / Low ${min}°C; precip prob ${pp}%`;
-            return { ok: true, summary };
+            return { ok: true, summary, source: 'open-meteo' };
         }
         catch (e) {
             if (e instanceof ExternalFetchError) {
@@ -63,7 +63,7 @@ async function tryWeatherFallback(city, datesOrMonth) {
     }
     const weatherInfo = extractWeatherFromResults(searchResult.results, city);
     if (weatherInfo) {
-        return { ok: true, summary: weatherInfo };
+        return { ok: true, summary: weatherInfo, source: 'brave-search' };
     }
     return { ok: false, reason: 'no_weather_data' };
 }

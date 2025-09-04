@@ -104,6 +104,8 @@ async function loadPackingOnce() {
     }
 }
 export async function blendWithFacts(input, ctx) {
+    // Detect mixed languages at the top level for use throughout the function
+    const hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
     // Targeted clarifications for underspecified inputs per ticket 02
     const cityHint = input.route.slots.city && input.route.slots.city.trim();
     const whenHint = (input.route.slots.dates && input.route.slots.dates.trim()) ||
@@ -128,6 +130,7 @@ export async function blendWithFacts(input, ctx) {
         const isEmojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\s]*$/u.test(input.message) && input.message.trim().length > 0;
         const isGibberish = /^[a-z]{10,}$/i.test(input.message.replace(/\s/g, '')) && !/\b(weather|pack|travel|city|go|visit|attraction|destination|trip|flight|hotel)\b/i.test(input.message);
         const isVeryLong = input.message.length > 500;
+        const hasLongCityName = /\b\w{30,}\b/.test(input.message);
         const isSystemQuestion = systemPatterns.some(pattern => pattern.test(input.message));
         const isUnrelated = unrelatedPatterns.some(pattern => pattern.test(input.message)) ||
             input.message.length < 3 ||
@@ -141,7 +144,9 @@ export async function blendWithFacts(input, ctx) {
             isEmptyOrWhitespace,
             isEmojiOnly,
             isGibberish,
-            isVeryLong
+            isVeryLong,
+            hasLongCityName,
+            hasMixedLanguages
         }, 'blend_unknown_intent');
         if (isEmptyOrWhitespace) {
             return {
@@ -152,6 +157,22 @@ export async function blendWithFacts(input, ctx) {
         if (isEmojiOnly) {
             return {
                 reply: 'I can\'t interpret emoji-only messages. Could you ask me something about travel planning in words?',
+                citations: undefined,
+            };
+        }
+        if (hasLongCityName) {
+            return {
+                reply: 'I notice you mentioned a very long city name. Could you provide a standard city name for me to help with your travel planning?',
+                citations: undefined,
+            };
+        }
+        if (hasMixedLanguages) {
+            // Continue with normal processing but add warning prefix later
+            ctx.log.debug({ message: input.message }, 'mixed_language_detected');
+        }
+        if (isVeryLong) {
+            return {
+                reply: 'That\'s quite a detailed message! Could you ask me a specific question about weather, packing, destinations, or attractions to help with your travel planning?',
                 citations: undefined,
             };
         }
@@ -230,6 +251,7 @@ export async function blendWithFacts(input, ctx) {
             if (wx.ok) {
                 const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
                 cits.push(source);
+                ctx.log.debug({ wxSource: wx.source, source, citsLength: cits.length }, 'weather_citation_added');
                 facts += `Weather: ${wx.summary}\n`;
                 factsArr.push({ source, key: 'weather_summary', value: wx.summary });
                 decisions.push('Used weather API because user asked about weather or it informs packing.');
@@ -282,29 +304,6 @@ export async function blendWithFacts(input, ctx) {
         else if (input.route.intent === 'destinations') {
             const wx = await getWeather({
                 city: cityHint,
-                datesOrMonth: whenHint,
-            });
-            if (wx.ok) {
-                const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
-                cits.push(source);
-                facts += `Weather: ${wx.summary}\n`;
-                factsArr.push({ source, key: 'weather_summary', value: wx.summary });
-                decisions.push('Considered origin weather/season for destination suggestions.');
-            }
-            else {
-                ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-                // Handle unknown city specifically
-                if (wx.reason === 'unknown_city') {
-                    return {
-                        reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`,
-                        citations: undefined
-                    };
-                }
-            }
-        }
-        else if (input.route.intent === 'destinations') {
-            const wx = await getWeather({
-                city: cityHint,
                 datesOrMonth: whenHint || 'today',
             });
             if (wx.ok) {
@@ -337,11 +336,11 @@ export async function blendWithFacts(input, ctx) {
             }
             const at = await getAttractions({ city: cityHint, limit: 5 });
             if (at.ok) {
-                const source = at.source === 'brave-search' ? 'Brave Search' : 'Wikipedia';
+                const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
                 cits.push(source);
                 facts += `POIs: ${at.summary}\n`;
                 factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-                decisions.push('Listed top attractions from Wikipedia search.');
+                decisions.push('Listed top attractions from external POI API.');
             }
             else {
                 ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
@@ -351,11 +350,11 @@ export async function blendWithFacts(input, ctx) {
         else if (input.route.intent === 'attractions') {
             const at = await getAttractions({ city: cityHint, limit: 5 });
             if (at.ok) {
-                const source = at.source === 'brave-search' ? 'Brave Search' : 'Wikipedia';
+                const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
                 cits.push(source);
                 facts += `POIs: ${at.summary}\n`;
                 factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-                decisions.push('Listed top attractions from Wikipedia search.');
+                decisions.push('Listed top attractions from external POI API.');
             }
             else {
                 ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
@@ -404,7 +403,11 @@ export async function blendWithFacts(input, ctx) {
             // ignore
         }
     }
-    return { reply, citations: cits.length ? cits : undefined };
+    // Add mixed language warning if detected
+    const finalReply = hasMixedLanguages
+        ? `Note: I work best with English, but I'll try to help. ${reply}`
+        : reply;
+    return { reply: finalReply, citations: cits.length ? cits : undefined };
 }
 function extractCity(text) {
     const m = text.match(/\b(?:in|to)\s+([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)/);

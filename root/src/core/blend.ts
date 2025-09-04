@@ -362,11 +362,11 @@ export async function blendWithFacts(
       }
       const at = await getAttractions({ city: cityHint, limit: 5 });
       if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : 'Wikipedia';
+        const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
         cits.push(source);
         facts += `POIs: ${at.summary}\n`;
         factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from Wikipedia search.');
+        decisions.push('Listed top attractions from external POI API.');
       } else {
         ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
         decisions.push('Attractions lookup failed; avoided fabricating POIs.');
@@ -374,11 +374,11 @@ export async function blendWithFacts(
     } else if (input.route.intent === 'attractions') {
       const at = await getAttractions({ city: cityHint, limit: 5 });
       if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : 'Wikipedia';
+        const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
         cits.push(source);
         facts += `POIs: ${at.summary}\n`;
         factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from Wikipedia search.');
+        decisions.push('Listed top attractions from external POI API.');
       } else {
         ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
         decisions.push('Attractions lookup failed; avoided fabricating POIs.');

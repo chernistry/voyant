@@ -34,7 +34,7 @@ async function tryPrimaryCountryAPI(city) {
         const langs = c?.languages ? Object.values(c.languages) : [];
         const lang = langs.length > 1 ? langs.join(', ') : langs[0] || 'N/A';
         const summary = `${c?.name?.common} • Region: ${c?.region} • Currency: ${cur} • Language: ${lang}`;
-        return { ok: true, summary };
+        return { ok: true, summary, source: 'rest-countries' };
     }
     catch (e) {
         if (e instanceof ExternalFetchError) {

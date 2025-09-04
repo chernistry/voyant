@@ -17,6 +17,7 @@ const ALLOWLIST = new Set<string>([
   'restcountries.com',
   'en.wikipedia.org',
   'api.search.brave.com',
+  'api.opentripmap.com',
 ]);
 
 export class ExternalFetchError extends Error {

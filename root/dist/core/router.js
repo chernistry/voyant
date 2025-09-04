@@ -8,6 +8,25 @@ export async function routeIntent(input) {
     if (typeof input.logger?.log?.info === 'function') {
         input.logger.log.debug({ message: input.message }, 'router_start');
     }
+    // Handle edge cases before LLM processing
+    const trimmedMessage = input.message.trim();
+    if (trimmedMessage.length === 0) {
+        return RouterResult.parse({
+            intent: 'unknown',
+            needExternal: false,
+            slots: {},
+            confidence: 0.1
+        });
+    }
+    // Check for extremely long city names
+    if (/\b\w{30,}\b/.test(input.message)) {
+        return RouterResult.parse({
+            intent: 'unknown',
+            needExternal: false,
+            slots: {},
+            confidence: 0.2
+        });
+    }
     // Prefer LLM router first for robust NLU and slot extraction
     const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
     // Pre-check for unrelated content to override LLM results if needed
@@ -52,7 +71,7 @@ export async function routeIntent(input) {
             /climate for/i,
             /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+weather/i,
             /weather\s+in\s+\w+\s+in\s+(january|february|march|april|may|june|july|august|september|october|november|december)/i,
-            /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+in\s+\w+/i,
+            /\bweather.*\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+in\s+\w+/i,
             /\b(spring|summer|autumn|fall|winter)\s+weather/i,
             /weather\s+in\s+(spring|summer|autumn|fall|winter)/i
         ];
@@ -80,7 +99,7 @@ export async function routeIntent(input) {
                 confidence: 0.3 // Lower confidence to trigger blend.ts special handling
             });
         }
-        return RouterResult.parse({ intent, needExternal, slots, confidence });
+        return RouterResult.parse({ intent, needExternal, slots: { ...finalSlots, ...slots }, confidence });
     }
     const viaLLM = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
     if (viaLLM && viaLLM.confidence > 0.5) {

@@ -1,10 +1,11 @@
 import { searchTravelInfo, extractAttractionsFromResults } from './brave_search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
+import { searchPOIs } from './opentripmap.js';
 export async function getAttractions(input) {
     if (!input.city)
         return { ok: false, reason: 'no_city' };
-    // Try primary Wikipedia API first
-    const primaryResult = await tryPrimaryAttractionsAPI(input.city, input.limit);
+    // Try OpenTripMap first for richer POI data
+    const primaryResult = await tryOpenTripMap(input.city, input.limit);
     if (primaryResult.ok) {
         return primaryResult;
     }
@@ -15,43 +16,32 @@ export async function getAttractions(input) {
     }
     return primaryResult; // Return original error
 }
-async function tryPrimaryAttractionsAPI(city, limit = 5) {
-    // Try multiple search strategies for better results
-    const searchTerms = [
-        `${city} attractions`,
-        `${city} tourist attractions`,
-        `${city} landmarks`,
-        `things to do in ${city}`
-    ];
-    for (const searchTerm of searchTerms) {
-        const searchUrl = `https://en.wikipedia.org/w/rest.php/v1/search/page?q=${encodeURIComponent(searchTerm)}&limit=${limit}`;
-        try {
-            const searchResult = await fetchJSON(searchUrl, {
-                timeoutMs: 6000,
-                retries: 1,
-                target: 'wikipedia',
-                headers: {
-                    'User-Agent': 'Voyant-Travel-Assistant/1.0',
-                    'Accept': 'application/json'
-                }
-            });
-            const pages = searchResult?.pages || [];
-            if (pages.length > 0) {
-                const titles = pages.slice(0, limit).map(p => p.title);
-                const summary = titles.join(', ');
-                return { ok: true, summary };
-            }
+async function tryOpenTripMap(city, limit = 5) {
+    try {
+        const g = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`, { timeoutMs: 4000, retries: 2, target: 'open-meteo:geocode' });
+        const first = (g.results ?? [])[0];
+        if (!first || typeof first.latitude !== 'number' || typeof first.longitude !== 'number') {
+            return { ok: false, reason: 'unknown_city' };
         }
-        catch (e) {
-            if (e instanceof ExternalFetchError && e.status && e.status >= 500) {
-                continue; // Try next search term on 5xx errors
+        const pois = await searchPOIs({ lat: first.latitude, lon: first.longitude, limit });
+        if (pois.ok) {
+            const names = pois.pois
+                .map((p) => p.name)
+                .filter((s) => s && s.trim().length > 0)
+                .slice(0, limit);
+            if (names.length > 0) {
+                return { ok: true, summary: names.join(', '), source: 'opentripmap' };
             }
-            // For other errors (4xx, network, timeout), continue to next search term
-            continue;
+            return { ok: false, reason: 'no_pois' };
         }
+        return { ok: false, reason: pois.reason };
     }
-    // If all searches failed, return a more specific error
-    return { ok: false, reason: 'no_pois' };
+    catch (e) {
+        if (e instanceof ExternalFetchError) {
+            return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network' };
+        }
+        return { ok: false, reason: 'network' };
+    }
 }
 async function tryAttractionsFallback(city) {
     const query = `top attractions in ${city} things to do visit`;
