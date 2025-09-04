@@ -135,7 +135,7 @@ async function attractionsNode(ctx, slots, logger) {
         message: ctx.msg,
         route: {
             intent: 'attractions',
-            needExternal: false,
+            needExternal: true,
             slots: slots || {},
             confidence: 0.7,
         },

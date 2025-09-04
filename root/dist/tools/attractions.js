@@ -23,7 +23,12 @@ async function tryOpenTripMap(city, limit = 5) {
         if (!first || typeof first.latitude !== 'number' || typeof first.longitude !== 'number') {
             return { ok: false, reason: 'unknown_city' };
         }
-        const pois = await searchPOIs({ lat: first.latitude, lon: first.longitude, limit });
+        const pois = await searchPOIs({
+            lat: first.latitude,
+            lon: first.longitude,
+            limit,
+            kinds: 'museums,monuments,historic,cultural'
+        });
         if (pois.ok) {
             const names = pois.pois
                 .map((p) => p.name)

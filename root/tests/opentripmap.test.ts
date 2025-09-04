@@ -24,10 +24,10 @@ describe('OpenTripMap adapter', () => {
     const res = await searchPOIs({ lat: 48.8584, lon: 2.2945, limit: 1 });
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.pois[0].xid).toBe('X1');
-      expect(res.pois[0].name).toBe('Museum A');
-      expect(res.pois[0].point.lat).toBeCloseTo(48.8584);
-      expect(res.pois[0].point.lon).toBeCloseTo(2.2945);
+      expect(res.pois[0]?.xid).toBe('X1');
+      expect(res.pois[0]?.name).toBe('Museum A');
+      expect(res.pois[0]?.point.lat).toBeCloseTo(48.8584);
+      expect(res.pois[0]?.point.lon).toBeCloseTo(2.2945);
     }
     scope.done();
   });
