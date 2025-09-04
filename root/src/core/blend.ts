@@ -544,7 +544,7 @@ export async function blendWithFacts(
       }
       const at = await getAttractions({ city: cityHint, limit: 5 });
       if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
+        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
         cits.push(source);
         facts += `POIs: ${at.summary}\n`;
         factsArr.push({ source: source, key: 'poi_list', value: at.summary });
@@ -556,7 +556,7 @@ export async function blendWithFacts(
     } else if (input.route.intent === 'attractions') {
       const at = await getAttractions({ city: cityHint, limit: 5 });
       if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : at.source === 'opentripmap' ? 'OpenTripMap' : 'Wikipedia';
+        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
         cits.push(source);
         facts += `POIs: ${at.summary}\n`;
         factsArr.push({ source: source, key: 'poi_list', value: at.summary });

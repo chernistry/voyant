@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 export const FactSchema = z.object({
   source: z
-    .enum(['Open-Meteo', 'REST Countries', 'Wikipedia', 'OpenTripMap', 'Brave Search'])
+    .enum(['Open-Meteo', 'REST Countries', 'OpenTripMap', 'Brave Search'])
     .or(z.string()),
   key: z.string(),
   value: z.any(),

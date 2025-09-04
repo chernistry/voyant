@@ -10,7 +10,7 @@ export function enforceCitations(
 }
 
 export function validateNoCitation(reply: string, hasExternal: boolean): void {
-  if (!hasExternal && /\b(Open-Meteo|REST Countries|Wikipedia)\b/i.test(reply)) {
+  if (!hasExternal && /\b(Open-Meteo|REST Countries|OpenTripMap|Brave Search)\b/i.test(reply)) {
     throw new Error('citation_without_external_data');
   }
 }

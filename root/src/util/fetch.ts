@@ -15,7 +15,6 @@ const ALLOWLIST = new Set<string>([
   'api.open-meteo.com',
   'geocoding-api.open-meteo.com',
   'restcountries.com',
-  'en.wikipedia.org',
   'api.search.brave.com',
   'api.opentripmap.com',
 ]);
