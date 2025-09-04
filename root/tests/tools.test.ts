@@ -61,12 +61,11 @@ describe('Tools Layer', () => {
   describe('Attractions Tool', () => {
     test('returns attractions for known city', async () => {
       const result = await getAttractions({ city: 'Tokyo', limit: 3 });
-      // Wikipedia API might fail, so we accept both success and failure
       if (result.ok) {
         expect(typeof result.summary).toBe('string');
         expect(result.summary.length).toBeGreaterThan(0);
       } else {
-        expect(['no_pois', 'timeout_or_http']).toContain(result.reason);
+        expect(['no_pois', 'timeout', 'network', 'invalid_schema', 'http_4xx', 'http_5xx', 'unknown_city']).toContain(result.reason);
       }
     });
 

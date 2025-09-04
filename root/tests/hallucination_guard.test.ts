@@ -28,7 +28,7 @@ describe('Hallucination Guard', () => {
 
     // If there are citations, they should be valid sources
     if (citations && citations.length > 0) {
-      const validSources = ['Open-Meteo', 'REST Countries', 'Wikipedia', 'Brave Search'];
+      const validSources = ['Open-Meteo', 'REST Countries', 'OpenTripMap', 'Brave Search'];
       citations.forEach(citation => {
         expect(validSources).toContain(citation);
       });

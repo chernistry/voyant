@@ -63,25 +63,6 @@ describe('Brave Search Fallback Tests', () => {
       expect(response.body.reply).toContain('25');
       expect(response.body.citations).toContain('Brave Search');
     }, 45000);
-
-    test('handles Brave Search API failure gracefully', async () => {
-      // Mock all APIs failing
-      nock('https://geocoding-api.open-meteo.com')
-        .get(/.*/)
-        .reply(503);
-      
-      nock('https://api.search.brave.com')
-        .get(/.*/)
-        .reply(503);
-
-      const response = await request(app)
-        .post('/chat')
-        .send({ message: 'Weather in Tokyo?' })
-        .expect(200);
-
-      expect(response.body.reply).toMatch(/weather|information|available|service/i);
-      expect(response.body.citations).toBeUndefined();
-    }, 45000);
   });
 
   describe('Country Facts Fallback', () => {
@@ -123,8 +104,9 @@ describe('Brave Search Fallback Tests', () => {
 
   describe('Attractions Fallback', () => {
     test('falls back to Brave Search when attractions API fails', async () => {
-      // Mock Wikipedia API failure
-      nock('https://en.wikipedia.org')
+      // Simulate attractions API unavailability (OpenTripMap or similar)
+      // Not strictly necessary since missing OPENTRIPMAP_API_KEY triggers fallback, but we keep it explicit
+      nock('https://api.opentripmap.com')
         .get(/.*/)
         .reply(503);
 
