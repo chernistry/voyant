@@ -20,6 +20,7 @@
     "format": "prettier -w ."
   },
   "dependencies": {
+    "brave-search": "^0.9.0",
     "chalk": "^5.6.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

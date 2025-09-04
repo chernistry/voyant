@@ -17,7 +17,16 @@ const CSV_PATH = 'tests/demo_scenario.csv';
 
 // Configure nock similar to e2e_comprehensive_flow: block external except localhost and openrouter
 nock.disableNetConnect();
-nock.enableNetConnect((host) => host.includes('127.0.0.1') || host.includes('localhost') || host.includes('openrouter.ai'));
+nock.enableNetConnect((host) => 
+  host.includes('127.0.0.1') || 
+  host.includes('localhost') || 
+  host.includes('openrouter.ai') ||
+  host.includes('api.search.brave.com') ||
+  host.includes('api.open-meteo.com') ||
+  host.includes('geocoding-api.open-meteo.com') ||
+  host.includes('restcountries.com') ||
+  host.includes('api.opentripmap.com')
+);
 
 const log = pino({ level: process.env.LOG_LEVEL ?? 'debug' });
 

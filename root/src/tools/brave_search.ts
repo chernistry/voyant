@@ -1,21 +1,9 @@
-import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
+import { BraveSearch } from 'brave-search';
 
 interface BraveSearchResult {
   title: string;
   url: string;
   description: string;
-}
-
-interface BraveSearchResponse {
-  web?: {
-    results: BraveSearchResult[];
-  };
-  mixed?: {
-    main: BraveSearchResult[];
-    top: BraveSearchResult[];
-    side: BraveSearchResult[];
-  };
-  results?: BraveSearchResult[]; // Alternative format
 }
 
 type Out = { ok: true; results: BraveSearchResult[] } | { ok: false; reason: string };
@@ -24,75 +12,95 @@ type Out = { ok: true; results: BraveSearchResult[] } | { ok: false; reason: str
  * Search for travel information using Brave Search API
  */
 export async function searchTravelInfo(query: string, log?: any): Promise<Out> {
-  if (!query.trim()) return { ok: false, reason: 'no_query' };
+  if (!query.trim()) {
+    if (log) log.debug(`❌ Brave Search: empty query`);
+    return { ok: false, reason: 'no_query' };
+  }
   
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
-  if (!apiKey) return { ok: false, reason: 'no_api_key' };
+  if (!apiKey) {
+    if (log) log.debug(`❌ Brave Search: no API key configured`);
+    return { ok: false, reason: 'no_api_key' };
+  }
 
   if (log) log.debug(`🔍 Brave Search: query="${query}", apiKey="${apiKey.slice(0, 10)}..."`);
 
-  // More aggressive exponential backoff for 1 req/sec rate limit
-  const delays = [0, 1200, 2500, 5000]; // 0s, 1.2s, 2.5s, 5s
-  
-  for (let attempt = 0; attempt < delays.length; attempt++) {
-    try {
-      // Wait before attempt (except first)
-      if (attempt > 0) {
-        const delay = delays[attempt];
-        if (log) log.debug(`⏳ Rate limit backoff: waiting ${delay}ms before attempt ${attempt + 1}...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-      
-      const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=7`;
-      if (log) log.debug(`🔗 Brave Search URL (attempt ${attempt + 1}): ${url}`);
-      
-      const response = await fetchJSON<BraveSearchResponse>(
-        url,
-        {
-          timeoutMs: 8000, // Longer timeout for retries
-          retries: 0, // Handle retries manually
-          target: 'brave-search',
-          headers: {
-            'X-Subscription-Token': apiKey,
-            'Accept': 'application/json'
-          }
-        }
-      );
-      
-      if (log) log.debug(`✅ Brave Search success on attempt ${attempt + 1}`);
-      
-      // Handle different response structures
-      const results = response?.web?.results || 
-                     response?.mixed?.main || 
-                     response?.results || 
-                     [];
-      if (log) log.debug(`✅ Brave Search success: ${results.length} results`);
-      return { ok: true, results };
-      
-    } catch (e) {
-      if (log) log.debug(`❌ Brave Search error (attempt ${attempt + 1}/${delays.length}):`, e);
-      
-      // Check if it's a rate limit error
-      const isRateLimit = e instanceof ExternalFetchError && 
-                         (e.status === 429 || (e.status && e.status >= 400 && e.status < 500));
-      
-      // If not rate limit, return error immediately
-      if (!isRateLimit) {
-        if (e instanceof ExternalFetchError) {
-          return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : e.status && e.status >= 500 ? 'http_5xx' : 'network' };
-        }
-        return { ok: false, reason: 'network' };
-      }
-      
-      // If last attempt, return rate limit error
-      if (attempt === delays.length - 1) {
-        if (log) log.debug(`❌ Brave Search failed after ${delays.length} attempts due to rate limiting`);
-        return { ok: false, reason: 'rate_limited' };
+  try {
+    const braveSearch = new BraveSearch(apiKey);
+    
+    if (log) log.debug(`🔗 Brave Search: using wrapper for query`);
+    
+    const startTime = Date.now();
+    
+    // Use the wrapper's web search method
+    const response = await braveSearch.webSearch(query, {
+      count: 7,
+      text_decorations: false, // Cleaner text without HTML markup
+      spellcheck: true
+    });
+    
+    const duration = Date.now() - startTime;
+    if (log) log.debug(`✅ Brave Search success after ${duration}ms`);
+    
+    // Extract results from the wrapper response
+    const results: BraveSearchResult[] = [];
+    
+    if (response.web?.results) {
+      for (const result of response.web.results) {
+        results.push({
+          title: result.title || '',
+          url: result.url || '',
+          description: result.description || ''
+        });
       }
     }
+    
+    if (log) {
+      log.debug(`✅ Brave Search success: ${results.length} results`);
+      if (results.length > 0 && results[0]) {
+        log.debug(`📝 First result: "${results[0].title}" - ${results[0].description?.slice(0, 100) || 'No description'}...`);
+      }
+    }
+    
+    return { ok: true, results };
+    
+  } catch (e) {
+    if (log) {
+      log.debug(`❌ Brave Search error:`, {
+        error: e,
+        message: e instanceof Error ? e.message : 'Unknown error',
+        name: e instanceof Error ? e.name : undefined
+      });
+    }
+    
+    // Handle different error types from the wrapper
+    if (e instanceof Error) {
+      const errorMessage = e.message.toLowerCase();
+      
+      if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        if (log) log.debug(`🚫 Brave Search rate limited`);
+        return { ok: false, reason: 'rate_limited' };
+      }
+      
+      if (errorMessage.includes('unauthorized') || errorMessage.includes('401') || errorMessage.includes('403')) {
+        if (log) log.debug(`🔑 Brave Search authentication error`);
+        return { ok: false, reason: 'auth_error' };
+      }
+      
+      if (errorMessage.includes('timeout')) {
+        if (log) log.debug(`⏰ Brave Search timeout`);
+        return { ok: false, reason: 'timeout' };
+      }
+      
+      if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        if (log) log.debug(`🌐 Brave Search network error`);
+        return { ok: false, reason: 'network' };
+      }
+    }
+    
+    if (log) log.debug(`❓ Brave Search unknown error type: ${e?.constructor?.name || typeof e}`);
+    return { ok: false, reason: 'unknown_error' };
   }
-  
-  return { ok: false, reason: 'max_retries' };
 }
 
 /**
