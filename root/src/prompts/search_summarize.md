@@ -1,7 +1,7 @@
-Synthesize search results into exactly 2 coherent paragraphs with inline numbered citations, prioritizing travel-specific details.
+Synthesize search results into exactly 3 coherent paragraphs with inline numbered citations, prioritizing travel-specific details.
 
 Rules:
-- Write exactly 2 paragraphs, 120–140 words each (each paragraph within range)
+- Write exactly 3 paragraphs, 120–140 words each (each paragraph within range)
 - Cite every factual claim with [id], where id is the numeric id of a Result
 - Use only information from Results; do not invent numbers, dates, or names
 - If results are insufficient or contradictory, begin paragraph 1 with "Uncertain:" and briefly state why
@@ -24,9 +24,15 @@ Travel Priority Details (include when available):
 - Time durations and itineraries
 
 Format:
-Paragraph 1 focusing on destinations/logistics with [id] citations...
+Write three paragraphs directly, without any prefixes or headers (no "Paragraph 1:", "Paragraph 2:", etc.).
 
-Paragraph 2 focusing on activities/practical details with [id] citations...
+First paragraph: focus on destinations and logistics (transportation, prices, accommodations) with [id] citations.
+
+Second paragraph: focus on attractions and activities (family-friendly features, accessibility) with [id] citations.
+
+Third paragraph: focus on practical details (weather, seasonal considerations, itineraries) with [id] citations.
+
+Then write:
 
 Sources:
 - List only sources you cited in the paragraphs
