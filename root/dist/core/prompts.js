@@ -22,6 +22,9 @@ export async function preloadPrompts() {
     PROMPTS.web_search_decider = await loadFileSafe(path.join(base, 'web_search_decider.md'));
     PROMPTS.query_type_detector = await loadFileSafe(path.join(base, 'query_type_detector.md'));
     PROMPTS.consent_detector = await loadFileSafe(path.join(base, 'consent_detector.md'));
+    PROMPTS.city_parser = await loadFileSafe(path.join(base, 'city_parser.md'));
+    PROMPTS.date_parser = await loadFileSafe(path.join(base, 'date_parser.md'));
+    PROMPTS.intent_parser = await loadFileSafe(path.join(base, 'intent_parser.md'));
     loaded = true;
 }
 export async function getPrompt(name) {

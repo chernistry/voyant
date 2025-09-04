@@ -9,7 +9,10 @@ type PromptName =
   | 'verify'
   | 'web_search_decider'
   | 'query_type_detector'
-  | 'consent_detector';
+  | 'consent_detector'
+  | 'city_parser'
+  | 'date_parser'
+  | 'intent_parser';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -38,6 +41,15 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.consent_detector = await loadFileSafe(
     path.join(base, 'consent_detector.md'),
+  );
+  PROMPTS.city_parser = await loadFileSafe(
+    path.join(base, 'city_parser.md'),
+  );
+  PROMPTS.date_parser = await loadFileSafe(
+    path.join(base, 'date_parser.md'),
+  );
+  PROMPTS.intent_parser = await loadFileSafe(
+    path.join(base, 'intent_parser.md'),
   );
   loaded = true;
 }

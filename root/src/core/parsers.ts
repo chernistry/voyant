@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { callLLM } from './llm.js';
+import { getPrompt } from './prompts.js';
 
 // Universal parser interface
 export interface ParseRequest {
@@ -64,22 +65,10 @@ export async function parseCity(text: string, context?: Record<string, any>, log
     };
   }
 
-  const prompt = `Task: Extract and normalize city name from text.
-
-Rules:
-- Extract city from phrases: "Weather in Moscow", "Погода в Москве", "Things to do in Paris"
-- Handle prepositions: "in", "в", "to", "для", "from", "из"
-- Handle pronouns with context: "there"→use context city, "here"→use context city
-- Normalize common abbreviations: NYC→New York, SF→San Francisco, LA→Los Angeles
-- Handle multilingual: Москва→Moscow, Питер→Saint Petersburg
-- Return confidence 0.9+ for clear cities, 0.5-0.8 for ambiguous, <0.5 for unclear
-- If NO city is mentioned in the text, return confidence 0.0
-
-Input: "${text}"
-Context: ${context ? JSON.stringify(context) : '{}'}
-
-Output JSON only:
-{"city": "clean_city_name", "normalized": "normalized_name", "confidence": 0.0-1.0}`;
+  const promptTemplate = await getPrompt('city_parser');
+  const prompt = promptTemplate
+    .replace('{text}', text)
+    .replace('{context}', context ? JSON.stringify(context) : '{}');
 
   try {
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
@@ -128,23 +117,10 @@ export async function parseDate(text: string, context?: Record<string, any>, log
     };
   }
 
-  const prompt = `Task: Extract and normalize date/time information from text.
-
-Rules:
-- Support formats: "June 2024", "June 24-28", "next week", "15-20 июня", "March", "March."
-- Handle typos: "Jnne" → June, "Mrch" → March, "Jly" → July
-- Single month names are valid (e.g., "March" → March, "June." → June)
-- Normalize to consistent format
-- Extract month names in any language
-- Return confidence based on specificity
-- If NO dates/months mentioned, return confidence 0.0
-- Do NOT fabricate dates that aren't in the text
-
-Input: "${text}"
-Context: ${context ? JSON.stringify(context) : '{}'}
-
-Output JSON only:
-{"dates": "normalized_date_string", "month": "month_name", "confidence": 0.0-1.0}`;
+  const promptTemplate = await getPrompt('date_parser');
+  const prompt = promptTemplate
+    .replace('{text}', text)
+    .replace('{context}', context ? JSON.stringify(context) : '{}');
 
   try {
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
@@ -203,26 +179,10 @@ export async function parseIntent(text: string, context?: Record<string, any>, l
     ? `Previous context: ${JSON.stringify(context)}. Use this context to fill missing slots.`
     : '';
     
-  const prompt = `Task: Classify intent and extract all slots from user message.
-
-Intents:
-- "weather": temperature, climate, forecast (e.g., "What's the weather in Paris?", "Tokyo in March weather")
-- "destinations": where to go, travel options/recommendations
-- "packing": what to pack/bring/wear
-- "attractions": what to do/see/visit
-- "unknown": unclear or unrelated to travel
-
-Rules:
-- Extract clean slot values (city names without surrounding text)
-- Handle multilingual queries
-- Use previous context to fill missing information
-- Return high confidence for clear intents
-${contextInfo}
-
-Input: "${text}"
-
-Output JSON only:
-{"intent": "weather|destinations|packing|attractions|unknown", "confidence": 0.0-1.0, "slots": {"city": "clean_name", "month": "month", "dates": "dates"}}`;
+  const promptTemplate = await getPrompt('intent_parser');
+  const prompt = promptTemplate
+    .replace('{text}', text)
+    .replace('{contextInfo}', contextInfo);
 
   try {
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
