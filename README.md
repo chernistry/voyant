@@ -12,7 +12,7 @@
 - Plugs directly into your stack
 - Self-evaluates and prevents hallucinations
 - Falls back to Brave web search when APIs fail
-
+- End-to-end tests with actual agent interactions using LLM-based eval
 ## Notes on Prompt Engineering
 
 - **Format Priming**: Enforced JSON/bullet-point schemas ensure structured, parseable outputs while preventing hallucinations
@@ -29,7 +29,6 @@
 - Strong engineering: TS+Zod validation, tests, metrics, structured logs
 
 ## Quick Start
-
 ```bash
 # Install dependencies
 npm install

@@ -162,6 +162,8 @@ export async function runGraphTurn(message, threadId, ctx) {
             return packingNode(routeCtx, mergedSlots, ctx);
         case 'attractions':
             return attractionsNode(routeCtx, mergedSlots, ctx);
+        case 'system':
+            return await systemNode(routeCtx);
         case 'web_search':
             return webSearchNode(routeCtx, mergedSlots, ctx);
         case 'unknown':
@@ -226,6 +228,13 @@ async function attractionsNode(ctx, slots, logger) {
         threadId: ctx.threadId,
     }, logger || { log: pinoLib({ level: 'silent' }) });
     return { done: true, reply, citations };
+}
+async function systemNode(ctx) {
+    return {
+        done: true,
+        reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. Share origin, rough dates, who's traveling, budget, and any constraints (e.g., stroller, flight length).",
+        citations: undefined,
+    };
 }
 async function webSearchNode(ctx, slots, logger) {
     const searchQuery = slots?.search_query || ctx.msg;

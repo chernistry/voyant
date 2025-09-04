@@ -28,7 +28,7 @@ async function detectConsent(
 
 export type NodeCtx = { msg: string; threadId: string };
 export type NodeOut =
-  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'unknown' | 'web_search'; slots?: Record<string, string> }
+  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
 
 export async function runGraphTurn(
@@ -196,6 +196,8 @@ export async function runGraphTurn(
       return packingNode(routeCtx, mergedSlots, ctx);
     case 'attractions':
       return attractionsNode(routeCtx, mergedSlots, ctx);
+    case 'system':
+      return await systemNode(routeCtx);
     case 'web_search':
       return webSearchNode(routeCtx, mergedSlots, ctx);
     case 'unknown':
@@ -294,6 +296,14 @@ async function attractionsNode(
     logger || { log: pinoLib({ level: 'silent' }) },
   );
   return { done: true, reply, citations };
+}
+
+async function systemNode(ctx: NodeCtx): Promise<NodeOut> {
+  return {
+    done: true,
+    reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. Share origin, rough dates, who's traveling, budget, and any constraints (e.g., stroller, flight length).",
+    citations: undefined,
+  };
 }
 
 async function webSearchNode(

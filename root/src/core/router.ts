@@ -29,6 +29,16 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
   
+  // Handle system questions about the AI
+  if (contentClassification?.content_type === 'system') {
+    return RouterResult.parse({
+      intent: 'system',
+      needExternal: false,
+      slots: {},
+      confidence: 0.9
+    });
+  }
+  
   // Handle explicit search commands early
   if (contentClassification?.is_explicit_search) {
     // Extract and optimize search query

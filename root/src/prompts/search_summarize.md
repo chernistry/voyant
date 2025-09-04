@@ -1,7 +1,7 @@
 Synthesize search results into exactly 2 coherent paragraphs with inline numbered citations.
 
 Rules:
-- Write exactly 2 paragraphs, ≤140 words each
+- Write exactly 2 paragraphs, 120...140 words each
 - Use inline citations [1], [2], etc. for each fact
 - End with "Sources:" followed by numbered list mapping to titles/URLs
 - Stay grounded in provided snippets only
