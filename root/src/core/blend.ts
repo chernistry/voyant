@@ -16,6 +16,56 @@ import { getLastReceipts, setLastReceipts, updateThreadSlots } from './slot_memo
 import { buildReceiptsSkeleton, ReceiptsSchema } from './receipts.js';
 import { verifyAnswer } from './verify.js';
 
+async function decideShouldSearch(message: string, ctx: { log: pino.Logger }): Promise<boolean> {
+  const prompt = `Decide if this travel question needs web search (vs using travel APIs for weather/attractions).
+
+Question: "${message}"
+
+Return "yes" if the question asks about:
+- Visa requirements, passport info, entry requirements
+- Flight information, airlines, booking
+- Budget, costs, prices, money
+- Best restaurants, hotels, local tips
+- Safety, crime, current events
+- Transportation, metro, buses
+- Shopping, markets, nightlife
+- Currency, exchange rates
+
+Return "no" if it asks about:
+- Weather (use weather API)
+- Attractions/things to do (use attractions API)  
+- What to pack (use weather API)
+- General destination advice
+
+Answer: yes or no`;
+
+  try {
+    const response = await callLLM(prompt, { log: ctx.log });
+    return response.toLowerCase().includes('yes');
+  } catch {
+    return false;
+  }
+}
+
+async function classifyAsUnrelated(message: string, ctx: { log: pino.Logger }): Promise<boolean> {
+  const prompt = `Is this question related to travel planning?
+
+Question: "${message}"
+
+Travel-related topics: weather, destinations, packing, attractions, flights, hotels, visas, transportation, travel safety, travel costs, travel tips.
+
+Non-travel topics: programming, cooking, medicine, philosophy, general knowledge, personal advice.
+
+Answer: travel or unrelated`;
+
+  try {
+    const response = await callLLM(prompt, { log: ctx.log });
+    return response.toLowerCase().includes('unrelated');
+  } catch {
+    return false;
+  }
+}
+
 async function performWebSearch(
   query: string,
   ctx: { log: pino.Logger },
@@ -194,46 +244,28 @@ export async function blendWithFacts(
                    (input.route.slots.month && input.route.slots.month.trim());
                    
   if (input.route.intent === 'unknown') {
-    // Simple explicit search detection
-    const isExplicitSearch = /search|google|find.*online/i.test(input.message);
+    // Only detect explicit search commands with hardcoded patterns
+    const isExplicitSearch = /search|google/i.test(input.message);
     
     if (isExplicitSearch) {
-      // Extract search query by removing common search prefixes
-      let searchQuery = input.message
-        .replace(/^(search|google|find)\s+(web|online|for)?\s*/i, '')
-        .trim();
-      
-      if (!searchQuery) {
-        searchQuery = input.message;
-      }
-      
+      let searchQuery = input.message.replace(/^(search|google)\s+(web|online|for)?\s*/i, '').trim();
+      if (!searchQuery) searchQuery = input.message;
       return await performWebSearch(searchQuery, ctx, input.threadId);
     }
 
-    // Detect travel-related questions that could benefit from web search
-    const travelSearchPatterns = [
-      /best\s+(restaurant|hotel|place|food|coffee|bar|shop)/i,
-      /budget|cost|price|money|expensive|cheap|afford|spend/i,
-      /flight|airline|ticket|booking/i,
-      /exchange\s+rate|currency/i,
-      /visa|passport|requirement/i,
-      /safety|crime|dangerous/i,
-      /nightlife|entertainment|club|bar/i,
-      /shopping|market|mall/i,
-      /transport|metro|bus|taxi|uber/i,
-      /local\s+tip|insider|secret|hidden/i
-    ];
-    
-    const isTravelSearchWorthy = travelSearchPatterns.some(pattern => pattern.test(input.message)) &&
-      /\b(in|at|near|around)\s+[A-Z][a-z]+/i.test(input.message); // Has location context
-    
-    // Detect completely unrelated questions
-    const unrelatedPatterns = [
-      /meaning of life|universe|god|religion|politics|philosophy/i,
-      /react|javascript|programming|code|software|algorithm|development/i,
-      /medicine|medical|doctor|health|disease|treatment|headache/i,
-      /^[^a-zA-Zа-яА-Я]*$/  // Non-alphabetic gibberish
-    ];
+    // Use LLM to decide if this needs web search
+    const shouldSearch = await decideShouldSearch(input.message, ctx);
+    if (shouldSearch) {
+      return await performWebSearch(input.message, ctx, input.threadId);
+    }
+
+    // Simple unrelated content detection
+    if (/programming|code|javascript|react|cook|pasta|medicine|doctor/i.test(input.message)) {
+      return {
+        reply: "I'm a travel assistant focused on helping with weather, destinations, packing, and attractions. Could you ask me something about travel planning?",
+        citations: undefined,
+      };
+    }
 
     // Handle system/meta questions
     const systemPatterns = [
@@ -249,24 +281,11 @@ export async function blendWithFacts(
     const isVeryLong = input.message.length > 500;
     const hasLongCityName = /\b\w{30,}\b/.test(input.message);
     const isSystemQuestion = systemPatterns.some(pattern => pattern.test(input.message));
-    const isUnrelated = unrelatedPatterns.some(pattern => pattern.test(input.message)) ||
-      input.message.length < 3 ||
-      input.route.confidence <= 0.4;
 
     ctx.log.debug({
       message: input.message,
       intent: input.route.intent,
-      confidence: input.route.confidence,
-      isUnrelated,
-      isSystemQuestion,
-      isEmptyOrWhitespace,
-      isEmojiOnly,
-      isGibberish,
-      isVeryLong,
-      hasLongCityName,
-      hasMixedLanguages,
-      isTravelSearchWorthy,
-      isExplicitSearch
+      confidence: input.route.confidence
     }, 'blend_unknown_intent');
 
     if (isEmptyOrWhitespace) {
@@ -316,30 +335,6 @@ export async function blendWithFacts(
       };
     }
 
-    if (isUnrelated) {
-      ctx.log.debug({ message: input.message }, 'blend_unrelated_detected');
-      return {
-        reply: 'I\'m a travel assistant focused on helping with weather, destinations, packing, and attractions. Could you ask me something about travel planning?',
-        citations: undefined,
-      };
-    }
-
-    // Offer web search for travel-related questions that can't be handled by APIs
-    if (isTravelSearchWorthy) {
-      // Store the pending search query and set consent state
-      if (input.threadId) {
-        updateThreadSlots(input.threadId, {
-          awaiting_search_consent: 'true',
-          pending_search_query: input.message
-        }, []);
-      }
-      
-      return {
-        reply: 'I can search the web to find current information about this. Would you like me to do that?',
-        citations: undefined,
-      };
-    }
-
     return {
       reply: 'Could you share the city and month/dates?',
       citations: undefined,
@@ -379,6 +374,14 @@ export async function blendWithFacts(
     }
   }
   
+  // Check for queries that need web search in destinations/packing intents
+  if (input.route.intent === 'destinations' || input.route.intent === 'packing') {
+    const shouldSearch = await decideShouldSearch(input.message, ctx);
+    if (shouldSearch) {
+      return await performWebSearch(input.message, ctx, input.threadId);
+    }
+  }
+
   // Check for budget/cost queries in destinations intent
   if (input.route.intent === 'destinations') {
     const budgetPatterns = [
