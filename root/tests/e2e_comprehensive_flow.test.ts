@@ -934,7 +934,7 @@ describe('E2E Comprehensive User Journey Tests', () => {
       await expectLLMEvaluation(
         'Mixed English/Russian in one message',
         r.body.reply,
-        'Response should handle mixed languages gracefully, perhaps focusing on one language or asking for clarification'
+        'Response should show a warning about working better with English but still attempt to answer the travel question'
       ).toPass();
     }, 45000);
 
@@ -944,7 +944,7 @@ describe('E2E Comprehensive User Journey Tests', () => {
       await expectLLMEvaluation(
         'Japanese question about Tokyo weather',
         r.body.reply,
-        'Response should handle Japanese input appropriately, either responding in English or asking for clarification in English'
+        'Response should show a warning about working better with English but still attempt to answer the weather question about Tokyo'
       ).toPass();
     }, 45000);
   });

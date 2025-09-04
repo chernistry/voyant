@@ -12,6 +12,27 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     input.logger.log.debug({ message: input.message }, 'router_start');
   }
 
+  // Handle edge cases before LLM processing
+  const trimmedMessage = input.message.trim();
+  if (trimmedMessage.length === 0) {
+    return RouterResult.parse({
+      intent: 'unknown',
+      needExternal: false,
+      slots: {},
+      confidence: 0.1
+    });
+  }
+
+  // Check for extremely long city names
+  if (/\b\w{30,}\b/.test(input.message)) {
+    return RouterResult.parse({
+      intent: 'unknown',
+      needExternal: false,
+      slots: {},
+      confidence: 0.2
+    });
+  }
+
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
 
