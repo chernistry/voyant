@@ -1,0 +1,21 @@
+{
+  "testCase": "long_thread_step8",
+  "timestamp": "2025-09-03T21:38:32.413Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:38:32.413Z",
+      "userMessage": "shorten flight time please",
+      "agentResponse": {
+        "reply": "• To shorten your flight time from New York, consider these nearby destinations:\n  - Boston, MA: 4-hour drive or 1-hour flight.\n  - Philadelphia, PA: 1.5-hour drive or 1-hour flight.\n  - Washington D.C.: 4.5-hour drive or 1-hour flight.",
+        "threadId": "long-thread-ctx-1"
+      },
+      "latencyMs": 13604
+    }
+  ]
+}

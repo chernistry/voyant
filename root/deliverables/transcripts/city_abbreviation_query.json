@@ -1,0 +1,21 @@
+{
+  "testCase": "city_abbreviation_query",
+  "timestamp": "2025-09-03T21:32:48.463Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:32:48.463Z",
+      "userMessage": "Weather in NYC in June?",
+      "agentResponse": {
+        "reply": "- • June in New York is warm; average high 28°C, low 18°C (Open-Meteo)\n- • Pack light clothing, sunglasses, and sunscreen\n- • Destinations: • Statue of Liberty: Iconic NYC symbol • Central Park: Great for picnics and walks • The Metropolitan Museum of Art: Largest art museum in US",
+        "threadId": "asvcsauq"
+      },
+      "latencyMs": 11887
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "testCase": "long_thread_step1",
+  "timestamp": "2025-09-03T21:36:42.108Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:36:42.108Z",
+      "userMessage": "Where to go in June from NYC?",
+      "agentResponse": {
+        "reply": "**Final Answer:**\n\n- **June is a great time for beach getaways:**\n  - **Miami, FL, USA:** Warm (31°C) with family-friendly beaches like South Beach.\n  - **Cancun, Mexico:** Tropical (33°C) with all-inclusive family resorts and nearby Mayan ruins.\n- **For cultural experiences:**\n  - **Barcelona, Spain:** Mild (28°C) with kid-friendly attractions like Park Güell and the Sagrada Familia.\n- **For outdoor adventures:**\n  - **Yellowstone National Park, USA:** Mild (21°C) with family-friendly wildlife viewing and hiking.",
+        "threadId": "long-thread-ctx-1"
+      },
+      "latencyMs": 14278
+    }
+  ]
+}

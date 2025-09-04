@@ -1,0 +1,7 @@
+/references/*
+.idea/*
+assignment/node_modules/*
+/dev/*
+.git.backup/*
+root/node_modules/*
+root/.env

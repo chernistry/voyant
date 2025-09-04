@@ -1,0 +1,21 @@
+{
+  "testCase": "long_thread_step5",
+  "timestamp": "2025-09-03T21:37:49.544Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:37:49.544Z",
+      "userMessage": "shorten flight time please",
+      "agentResponse": {
+        "reply": "- **New York to nearby cities with shorter flight times:**\n  - Boston, MA: 1h 15m flight, known for historic sites and museums.\n  - Philadelphia, PA: 1h 10m flight, famous for Independence Hall and the Liberty Bell.\n  - Washington, D.C.: 1h 15m flight, offers numerous museums and historical monuments.\n  - Charlotte, NC: 1h 45m flight, popular for family-friendly attractions like the U.S. National Whitewater Center.",
+        "threadId": "long-thread-ctx-1"
+      },
+      "latencyMs": 16044
+    }
+  ]
+}

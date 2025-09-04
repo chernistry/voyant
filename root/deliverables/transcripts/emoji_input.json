@@ -1,0 +1,21 @@
+{
+  "testCase": "emoji_input",
+  "timestamp": "2025-09-03T21:36:30.181Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:36:30.181Z",
+      "userMessage": "what to pack for tokyo in march 🤔",
+      "agentResponse": {
+        "reply": "- **Tokyo in March:** Mild, rainy, around 10-18°C.\n  - Pack: Light jacket, raincoat, umbrella, comfortable walking shoes.\n  - Visit: Asakusa (Senso-ji Temple, Tokyo Skytree), Odaiba (teamLab Borderless, Joypolis), Tsukiji Fish Market.\n  - Family-friendly: Tokyo Disneyland/DisneySea, Ueno Zoo, Odaiba's Palette Town.",
+        "threadId": "dwi2udfs"
+      },
+      "latencyMs": 22355
+    }
+  ]
+}

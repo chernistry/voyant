@@ -1,0 +1,21 @@
+{
+  "testCase": "misspelled_city_query",
+  "timestamp": "2025-09-03T21:32:33.305Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:32:33.305Z",
+      "userMessage": "Weather in Lodon?",
+      "agentResponse": {
+        "reply": "• Current weather in London: High 18°C, Low 12°C (Open-Meteo)\n• Pack for London: Light jacket, umbrella, comfortable walking shoes\n• Top attractions: British Museum, Tower of London, Buckingham Palace\n• Family-friendly: London Eye, Hyde Park, Natural History Museum",
+        "threadId": "eogm9086"
+      },
+      "latencyMs": 15692
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "testCase": "intent_switch_weather_to_packing_step2",
+  "timestamp": "2025-09-03T21:34:10.412Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:34:10.412Z",
+      "userMessage": "What should I pack?",
+      "agentResponse": {
+        "reply": "**Answer:**\n\n- • Pack for moderate temperatures: 15-22°C (Open-Meteo)\n- • Comfortable walking shoes for exploring\n- • Raincoat or travel umbrella (Paris rain probability: 11% in average, Open-Meteo)\n- • Casual and formal attire for evenings\n- • Consider a compact travel guidebook or map",
+        "threadId": "test-switch-1"
+      },
+      "latencyMs": 14604
+    }
+  ]
+}

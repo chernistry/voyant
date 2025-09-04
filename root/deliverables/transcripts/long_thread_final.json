@@ -1,0 +1,21 @@
+{
+  "testCase": "long_thread_final",
+  "timestamp": "2025-09-03T21:39:09.652Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:39:09.652Z",
+      "userMessage": "Make it kid-friendly",
+      "agentResponse": {
+        "reply": "**Final Answer:**\n\n- I'm unable to retrieve current data for attractions in New York. Please check the city name and try again.",
+        "threadId": "long-thread-ctx-1"
+      },
+      "latencyMs": 9956
+    }
+  ]
+}

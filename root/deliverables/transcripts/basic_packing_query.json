@@ -1,0 +1,21 @@
+{
+  "testCase": "basic_packing_query",
+  "timestamp": "2025-09-03T21:33:08.479Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:33:08.479Z",
+      "userMessage": "What to pack for Paris in June?",
+      "agentResponse": {
+        "reply": "For Paris in June, pack:\n- Light layers (daytime highs average 23°C, lows 14°C, Open-Meteo)\n- Rain jacket (chance of rain, Open-Meteo)\n- Comfortable walking shoes\n- Sunglasses and sunscreen\n- Consider a compact travel umbrella",
+        "threadId": "oczhd4os"
+      },
+      "latencyMs": 15471
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "testCase": "long_thread_step6",
+  "timestamp": "2025-09-03T21:38:01.048Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:38:01.048Z",
+      "userMessage": "shorten flight time please",
+      "agentResponse": {
+        "reply": "**\"\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\">\" \"\n\n\n10",
+        "threadId": "long-thread-ctx-1"
+      },
+      "latencyMs": 11504
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "hot": [
+    "light breathable clothing",
+    "sunscreen with high SPF",
+    "wide-brimmed hat",
+    "sunglasses",
+    "comfortable walking shoes",
+    "water bottle",
+    "light scarf for sun protection",
+    "moisturizing lotion",
+    "insect repellent",
+    "light rain jacket"
+  ],
+  "mild": [
+    "layered clothing",
+    "light waterproof jacket",
+    "comfortable walking shoes",
+    "umbrella or poncho",
+    "light scarf",
+    "medium-weight sweater",
+    "jeans or comfortable pants",
+    "breathable socks",
+    "daypack or crossbody bag",
+    "travel pillow"
+  ],
+  "cold": [
+    "thermal base layers",
+    "insulated winter jacket",
+    "warm waterproof pants",
+    "wool socks",
+    "thermal gloves",
+    "beanie or winter hat",
+    "scarf and neck gaiter",
+    "warm waterproof boots",
+    "hand warmers",
+    "thermal blanket"
+  ],
+  "special": {
+    "beach": ["swimwear", "flip-flops", "beach towel", "sunscreen"],
+    "business": ["business casual clothes", "dress shoes", "laptop bag", "business cards"],
+    "kids": ["favorite toys", "snacks", "extra clothes", "comfort items", "sunscreen for kids"],
+    "hiking": ["hiking boots", "backpack", "water filter", "first aid kit", "trail map"],
+    "skiing": ["ski jacket", "ski pants", "ski goggles", "ski gloves", "ski boots"]
+  }
+}

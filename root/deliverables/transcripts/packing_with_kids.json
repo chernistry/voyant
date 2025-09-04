@@ -1,0 +1,21 @@
+{
+  "testCase": "packing_with_kids",
+  "timestamp": "2025-09-03T21:33:29.731Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:33:29.731Z",
+      "userMessage": "What to pack for Tokyo if I have kids?",
+      "agentResponse": {
+        "reply": "- **Tokyo, Japan: Packing List for Families**\n  - • Comfortable walking shoes for exploring\n  - • Layers for cooler evenings and indoor air-conditioning\n  - • Rain gear for occasional showers (Apr-Nov)\n  - • Entertainment for kids on long journeys\n  - • Snacks and water for outings",
+        "threadId": "ljwjtoaz"
+      },
+      "latencyMs": 17283
+    }
+  ]
+}

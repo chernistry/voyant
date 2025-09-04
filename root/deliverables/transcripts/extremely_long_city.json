@@ -1,0 +1,21 @@
+{
+  "testCase": "extremely_long_city",
+  "timestamp": "2025-09-03T21:39:21.595Z",
+  "agentVersion": "1.0.0",
+  "environment": {
+    "nodeVersion": "v24.7.0",
+    "jestVersion": "29.7.0"
+  },
+  "conversation": [
+    {
+      "turn": 1,
+      "timestamp": "2025-09-03T21:39:21.595Z",
+      "userMessage": "Weather in VeryLongCityNameThatDoesNotExistAndShouldBeHandledGracefullyInTheSystem?",
+      "agentResponse": {
+        "reply": "Which city are you asking about?",
+        "threadId": "ast1xorm"
+      },
+      "latencyMs": 9859
+    }
+  ]
+}
