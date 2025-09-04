@@ -16,7 +16,10 @@ import { getLastReceipts, setLastReceipts, updateThreadSlots } from './slot_memo
 import { buildReceiptsSkeleton, ReceiptsSchema } from './receipts.js';
 import { verifyAnswer } from './verify.js';
 
-async function decideShouldSearch(message: string, ctx: { log: pino.Logger }): Promise<boolean> {
+async function decideShouldSearch(
+  message: string,
+  ctx: { log: pino.Logger },
+): Promise<boolean> {
   const promptTemplate = await getPrompt('web_search_decider');
   const prompt = promptTemplate.replace('{message}', message);
 
@@ -28,7 +31,10 @@ async function decideShouldSearch(message: string, ctx: { log: pino.Logger }): P
   }
 }
 
-async function detectQueryType(message: string, ctx: { log: pino.Logger }): Promise<'restaurant' | 'budget' | 'flight' | 'none'> {
+async function detectQueryType(
+  message: string,
+  ctx: { log: pino.Logger },
+): Promise<'restaurant' | 'budget' | 'flight' | 'none'> {
   const promptTemplate = await getPrompt('query_type_detector');
   const prompt = promptTemplate.replace('{message}', message);
 

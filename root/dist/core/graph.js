@@ -4,16 +4,11 @@ import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
 import { searchTravelInfo } from '../tools/brave_search.js';
 import { callLLM } from './llm.js';
+import { getPrompt } from './prompts.js';
 import pinoLib from 'pino';
 async function detectConsent(message, ctx) {
-    const prompt = `Is this a positive or negative response to a yes/no question?
-
-Message: "${message}"
-
-Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright
-Negative responses: no, nope, not now, maybe later, skip, don't, never mind
-
-Answer: yes, no, or unclear`;
+    const promptTemplate = await getPrompt('consent_detector');
+    const prompt = promptTemplate.replace('{message}', message);
     try {
         const response = await callLLM(prompt, { log: ctx.log });
         const answer = response.toLowerCase().trim();

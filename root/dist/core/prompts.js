@@ -21,6 +21,7 @@ export async function preloadPrompts() {
     PROMPTS.verify = await loadFileSafe(path.join(base, 'verify.md'));
     PROMPTS.web_search_decider = await loadFileSafe(path.join(base, 'web_search_decider.md'));
     PROMPTS.query_type_detector = await loadFileSafe(path.join(base, 'query_type_detector.md'));
+    PROMPTS.consent_detector = await loadFileSafe(path.join(base, 'consent_detector.md'));
     loaded = true;
 }
 export async function getPrompt(name) {
