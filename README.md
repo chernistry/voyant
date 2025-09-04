@@ -38,6 +38,16 @@ npm run test:transcripts
 - Decision policy: when to call APIs vs rely on model knowledge (never by design)
 - Failure handling: retries, graceful degradation, verifiable answers
 
+## External APIs
+
+The agent connects to several external APIs for real-time travel data, with resilient fallback mechanisms:
+
+- **Open-Meteo API** - Weather forecasts and geocoding (city coordinates resolution)
+- **REST Countries API** - Country information (currency, languages, region, capital)
+- **Wikipedia API** - Tourist attractions and points of interest search  // Currently being refactored to OpenTripMap
+- **Brave Search API** - Fallback search engine for weather, country data, and attractions when primary APIs fail
+- **OpenRouter API** - Free-tier LLM service for natural language processing
+
 ## Testing & Transcripts
 
 Generate conversation transcripts during E2E tests for assignment deliverables:

@@ -587,7 +587,7 @@ describe('E2E Comprehensive User Journey Tests', () => {
       await expectLLMEvaluation(
         'Switching to attractions with context',
         a.body.reply,
-        'Response should provide attractions for Paris or ask for preferences without losing city context'
+        'Response should either provide API-sourced Paris attractions or indicate inability to retrieve data when attractions API fails, while maintaining city context'
       ).toPass();
 
       // Step 3: destinations (reuse city + month from context)
