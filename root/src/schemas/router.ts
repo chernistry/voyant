@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-export const Intent = z.enum(['destinations', 'packing', 'attractions', 'weather', 'unknown']);
+export const Intent = z.enum(['destinations', 'packing', 'attractions', 'weather', 'unknown', 'web_search']);
 
 export const RouterSlots = z.object({
   city: z.string().optional(),
   month: z.string().optional(),
   dates: z.string().optional(),
   travelerProfile: z.string().optional(),
+  search_query: z.string().optional(),
 });
 
 export const RouterResult = z.object({

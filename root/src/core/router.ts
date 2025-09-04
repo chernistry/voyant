@@ -33,6 +33,41 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
+  // Detect explicit search commands early
+  const explicitSearchPatterns = [
+    /search\s+(web|online|internet|google)\s+for/i,
+    /google\s+/i,
+    /find\s+(online|web)\s+/i,
+    /search\s+for\s+/i,
+    /look\s+up\s+online/i,
+    /web\s+search/i
+  ];
+  
+  const isExplicitSearch = explicitSearchPatterns.some(pattern => pattern.test(input.message));
+  
+  if (isExplicitSearch) {
+    // Extract search query from command
+    let searchQuery = input.message
+      .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
+      .replace(/google\s+/i, '')
+      .replace(/find\s+(online|web)\s+/i, '')
+      .replace(/search\s+for\s+/i, '')
+      .replace(/look\s+up\s+online\s+/i, '')
+      .replace(/web\s+search\s+/i, '')
+      .trim();
+    
+    if (!searchQuery) {
+      searchQuery = input.message;
+    }
+    
+    return RouterResult.parse({
+      intent: 'web_search',
+      needExternal: true,
+      slots: { search_query: searchQuery },
+      confidence: 0.9
+    });
+  }
+
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
 

@@ -9,11 +9,69 @@ import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
 import { getAttractions } from '../tools/attractions.js';
+import { searchTravelInfo } from '../tools/brave_search.js';
 import { validateNoCitation } from './citations.js';
 import type { Fact } from './receipts.js';
-import { getLastReceipts, setLastReceipts } from './slot_memory.js';
+import { getLastReceipts, setLastReceipts, updateThreadSlots } from './slot_memory.js';
 import { buildReceiptsSkeleton, ReceiptsSchema } from './receipts.js';
 import { verifyAnswer } from './verify.js';
+
+async function performWebSearch(
+  query: string,
+  ctx: { log: pino.Logger },
+  threadId?: string,
+): Promise<{ reply: string; citations?: string[] }> {
+  ctx.log.debug({ query }, 'performing_web_search');
+  
+  const searchResult = await searchTravelInfo(query);
+  
+  if (!searchResult.ok) {
+    ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
+    return {
+      reply: 'I\'m unable to search the web right now. Could you ask me something about weather, destinations, packing, or attractions instead?',
+      citations: undefined,
+    };
+  }
+  
+  if (searchResult.results.length === 0) {
+    return {
+      reply: 'I couldn\'t find relevant information for your search. Could you try rephrasing your question or ask me about weather, destinations, packing, or attractions?',
+      citations: undefined,
+    };
+  }
+  
+  // Format search results for travel context
+  const results = searchResult.results.slice(0, 3); // Limit to top 3 results
+  const formattedResults = results.map(result => {
+    // Decode HTML entities and clean up description
+    const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+    const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+    const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
+    return `• ${cleanTitle} - ${truncatedDesc}`;
+  }).join('\n');
+  
+  const reply = `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`;
+  
+  // Store search facts for receipts
+  if (threadId) {
+    try {
+      const facts: Fact[] = results.map((result, index) => ({
+        source: 'Brave Search',
+        key: `search_result_${index}`,
+        value: `${result.title}: ${result.description}`,
+      }));
+      const decisions = ['Used web search because user requested search or question couldn\'t be answered by travel APIs.'];
+      setLastReceipts(threadId, facts, decisions, reply);
+    } catch {
+      // ignore
+    }
+  }
+  
+  return {
+    reply,
+    citations: ['Brave Search'],
+  };
+}
 
 export async function handleChat(
   input: ChatInputT,
@@ -135,12 +193,58 @@ export async function blendWithFacts(
                    (input.route.slots.month && input.route.slots.month.trim());
                    
   if (input.route.intent === 'unknown') {
+    // Detect explicit search commands first
+    const explicitSearchPatterns = [
+      /search\s+(web|online|internet|google)\s+for/i,
+      /google\s+/i,
+      /find\s+(online|web)\s+/i,
+      /search\s+for\s+/i,
+      /look\s+up\s+online/i,
+      /web\s+search/i
+    ];
+    
+    const isExplicitSearch = explicitSearchPatterns.some(pattern => pattern.test(input.message));
+    
+    if (isExplicitSearch) {
+      // Extract search query from command
+      let searchQuery = input.message
+        .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
+        .replace(/google\s+/i, '')
+        .replace(/find\s+(online|web)\s+/i, '')
+        .replace(/search\s+for\s+/i, '')
+        .replace(/look\s+up\s+online\s+/i, '')
+        .replace(/web\s+search\s+/i, '')
+        .trim();
+      
+      if (!searchQuery) {
+        searchQuery = input.message;
+      }
+      
+      return await performWebSearch(searchQuery, ctx, input.threadId);
+    }
+
+    // Detect travel-related questions that could benefit from web search
+    const travelSearchPatterns = [
+      /best\s+(restaurant|hotel|place|food|coffee|bar|shop)/i,
+      /budget|cost|price|money|expensive|cheap|afford|spend/i,
+      /flight|airline|ticket|booking/i,
+      /exchange\s+rate|currency/i,
+      /visa|passport|requirement/i,
+      /safety|crime|dangerous/i,
+      /nightlife|entertainment|club|bar/i,
+      /shopping|market|mall/i,
+      /transport|metro|bus|taxi|uber/i,
+      /local\s+tip|insider|secret|hidden/i
+    ];
+    
+    const isTravelSearchWorthy = travelSearchPatterns.some(pattern => pattern.test(input.message)) &&
+      /\b(in|at|near|around)\s+[A-Z][a-z]+/i.test(input.message); // Has location context
+    
     // Detect completely unrelated questions
     const unrelatedPatterns = [
       /meaning of life|universe|god|religion|politics|philosophy/i,
       /react|javascript|programming|code|software|algorithm|development/i,
       /medicine|medical|doctor|health|disease|treatment|headache/i,
-      /cook|recipe|food|restaurant|eat|drink|ingredient/i,
       /^[^a-zA-Zа-яА-Я]*$/  // Non-alphabetic gibberish
     ];
 
@@ -173,7 +277,9 @@ export async function blendWithFacts(
       isGibberish,
       isVeryLong,
       hasLongCityName,
-      hasMixedLanguages
+      hasMixedLanguages,
+      isTravelSearchWorthy,
+      isExplicitSearch
     }, 'blend_unknown_intent');
 
     if (isEmptyOrWhitespace) {
@@ -216,17 +322,6 @@ export async function blendWithFacts(
       };
     }
 
-    if (isVeryLong) {
-      // Extract key travel elements from long messages
-      const hasTravel = /\b(trip|travel|visit|go|pack|weather|destination|city|country|flight|hotel)\b/i.test(input.message);
-      if (hasTravel) {
-        return {
-          reply: 'I see you\'re planning a trip! To help you better, could you ask me a specific question about weather, destinations, packing, or attractions?',
-          citations: undefined,
-        };
-      }
-    }
-
     if (isSystemQuestion) {
       return {
         reply: 'I\'m an AI travel assistant designed to help with weather, destinations, packing advice, and attractions. How can I help with your travel planning?',
@@ -242,11 +337,93 @@ export async function blendWithFacts(
       };
     }
 
+    // Offer web search for travel-related questions that can't be handled by APIs
+    if (isTravelSearchWorthy) {
+      // Store the pending search query and set consent state
+      if (input.threadId) {
+        updateThreadSlots(input.threadId, {
+          awaiting_search_consent: 'true',
+          pending_search_query: input.message
+        }, []);
+      }
+      
+      return {
+        reply: 'I can search the web to find current information about this. Would you like me to do that?',
+        citations: undefined,
+      };
+    }
+
     return {
       reply: 'Could you share the city and month/dates?',
       citations: undefined,
     };
   }
+  
+  // Check for restaurant/food queries in attractions intent
+  if (input.route.intent === 'attractions') {
+    const restaurantPatterns = [
+      /best\s+(restaurant|food|eat|dining|cafe|coffee|bar|pub)/i,
+      /where\s+to\s+(eat|dine|drink)/i,
+      /good\s+(restaurant|food|place\s+to\s+eat)/i,
+      /restaurant\s+recommendation/i
+    ];
+    
+    const budgetPatterns = [
+      /budget|cost|price|money|expensive|cheap|afford|spend/i,
+      /how\s+much/i,
+      /exchange\s+rate|currency/i
+    ];
+    
+    const isRestaurantQuery = restaurantPatterns.some(pattern => pattern.test(input.message));
+    const isBudgetQuery = budgetPatterns.some(pattern => pattern.test(input.message));
+    
+    if ((isRestaurantQuery || isBudgetQuery) && input.threadId) {
+      // Store the pending search query and set consent state
+      updateThreadSlots(input.threadId, {
+        awaiting_search_consent: 'true',
+        pending_search_query: input.message
+      }, []);
+      
+      const searchType = isRestaurantQuery ? 'restaurant recommendations' : 'cost and budget information';
+      return {
+        reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
+        citations: undefined,
+      };
+    }
+  }
+  
+  // Check for budget/cost queries in destinations intent
+  if (input.route.intent === 'destinations') {
+    const budgetPatterns = [
+      /budget|cost|price|money|expensive|cheap|afford|spend/i,
+      /how\s+much/i,
+      /exchange\s+rate|currency/i
+    ];
+    
+    const flightPatterns = [
+      /airline|flight|fly|plane|ticket|booking/i,
+      /what\s+airlines/i,
+      /which\s+airlines/i
+    ];
+    
+    const isBudgetQuery = budgetPatterns.some(pattern => pattern.test(input.message));
+    const isFlightQuery = flightPatterns.some(pattern => pattern.test(input.message));
+    
+    if ((isBudgetQuery || isFlightQuery) && input.threadId) {
+      // Store the pending search query and set consent state
+      updateThreadSlots(input.threadId, {
+        awaiting_search_consent: 'true',
+        pending_search_query: input.message
+      }, []);
+      
+      const searchType = isBudgetQuery ? 'cost and budget information' : 'flight and airline information';
+      return {
+        reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
+        citations: undefined,
+      };
+    }
+  }
+  
   if (input.route.intent === 'weather') {
     if (!cityHint) {
       return { reply: 'Which city?', citations: undefined };

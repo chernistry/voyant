@@ -2,12 +2,13 @@ import { routeIntent } from './router.js';
 import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
+import { searchTravelInfo } from '../tools/brave_search.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
 
 export type NodeCtx = { msg: string; threadId: string };
 export type NodeOut =
-  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'unknown'; slots?: Record<string, string> }
+  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'unknown' | 'web_search'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
 
 export async function runGraphTurn(
@@ -24,6 +25,39 @@ export async function runGraphTurn(
   let budgetDisclaimer = '';
   if (isBudgetQuery) {
     budgetDisclaimer = 'I can\'t help with budget planning or costs, but I can provide travel destination information. ';
+  }
+
+  // Handle consent responses for web search
+  const threadSlots = getThreadSlots(threadId);
+  const awaitingSearchConsent = threadSlots.awaiting_search_consent === 'true';
+  const pendingSearchQuery = threadSlots.pending_search_query;
+  
+  if (awaitingSearchConsent && pendingSearchQuery) {
+    const consentPatterns = [
+      /^(yes|yeah|yep|sure|ok|okay|please|do it|go ahead|search)/i,
+      /^(no|nope|not now|maybe later|skip)/i
+    ];
+    
+    const isConsentResponse = consentPatterns.some(pattern => pattern.test(message.trim()));
+    
+    if (isConsentResponse) {
+      const isPositiveConsent = /^(yes|yeah|yep|sure|ok|okay|please|do it|go ahead|search)/i.test(message.trim());
+      
+      // Clear consent state
+      updateThreadSlots(threadId, { 
+        awaiting_search_consent: '', 
+        pending_search_query: '' 
+      }, []);
+      
+      if (isPositiveConsent) {
+        return await performWebSearchNode(pendingSearchQuery, ctx, threadId);
+      } else {
+        return {
+          done: true,
+          reply: 'No problem! Is there something else about travel planning I can help with?',
+        };
+      }
+    }
   }
 
   const routeCtx: NodeCtx = { msg: message, threadId };
@@ -67,6 +101,30 @@ export async function runGraphTurn(
   if (intent === 'packing' && !hasWhen && !hasImmediateContext && !hasSpecialContext) missing.push('dates');
   // Weather queries do NOT require dates - they can provide current weather
   
+  // Check for flight queries in destinations intent that should trigger web search instead of asking for dates
+  if (intent === 'destinations' && missing.includes('dates')) {
+    const flightPatterns = [
+      /airline|flight|fly|plane|ticket|booking/i,
+      /what\s+airlines/i,
+      /which\s+airlines/i
+    ];
+    
+    const isFlightQuery = flightPatterns.some(pattern => pattern.test(message));
+    
+    if (isFlightQuery) {
+      // Store the pending search query and set consent state
+      updateThreadSlots(threadId, {
+        awaiting_search_consent: 'true',
+        pending_search_query: message
+      }, []);
+      
+      return {
+        done: true,
+        reply: 'I can search the web to find current flight and airline information. Would you like me to do that?',
+      };
+    }
+  }
+  
   if (ctx.log && typeof ctx.log.debug === 'function') {
     ctx.log.debug({ 
       needsCity, hasCity, hasWhen, missing, 
@@ -99,6 +157,8 @@ export async function runGraphTurn(
       return packingNode(routeCtx, mergedSlots, ctx);
     case 'attractions':
       return attractionsNode(routeCtx, mergedSlots, ctx);
+    case 'web_search':
+      return webSearchNode(routeCtx, mergedSlots, ctx);
     case 'unknown':
       return unknownNode(routeCtx, ctx);
     default:
@@ -195,6 +255,58 @@ async function attractionsNode(
     logger || { log: pinoLib({ level: 'silent' }) },
   );
   return { done: true, reply, citations };
+}
+
+async function webSearchNode(
+  ctx: NodeCtx,
+  slots?: Record<string, string>,
+  logger?: { log: pino.Logger },
+): Promise<NodeOut> {
+  const searchQuery = slots?.search_query || ctx.msg;
+  return await performWebSearchNode(searchQuery, logger || { log: pinoLib({ level: 'silent' }) }, ctx.threadId);
+}
+
+async function performWebSearchNode(
+  query: string,
+  ctx: { log: pino.Logger },
+  threadId: string,
+): Promise<NodeOut> {
+  ctx.log.debug({ query }, 'performing_web_search_node');
+  
+  const searchResult = await searchTravelInfo(query);
+  
+  if (!searchResult.ok) {
+    ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
+    return {
+      done: true,
+      reply: 'I\'m unable to search the web right now. Could you ask me something about weather, destinations, packing, or attractions instead?',
+    };
+  }
+  
+  if (searchResult.results.length === 0) {
+    return {
+      done: true,
+      reply: 'I couldn\'t find relevant information for your search. Could you try rephrasing your question or ask me about weather, destinations, packing, or attractions?',
+    };
+  }
+  
+  // Format search results for travel context
+  const results = searchResult.results.slice(0, 3); // Limit to top 3 results
+  const formattedResults = results.map(result => {
+    // Decode HTML entities and clean up description
+    const cleanTitle = result.title.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+    const cleanDesc = result.description.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]*>/g, '');
+    const truncatedDesc = cleanDesc.slice(0, 100) + (cleanDesc.length > 100 ? '...' : '');
+    return `• ${cleanTitle} - ${truncatedDesc}`;
+  }).join('\n');
+  
+  const reply = `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`;
+  
+  return {
+    done: true,
+    reply,
+    citations: ['Brave Search'],
+  };
 }
 
 async function unknownNode(ctx: NodeCtx, logger?: { log: pino.Logger }): Promise<NodeOut> {
