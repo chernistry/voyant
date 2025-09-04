@@ -538,7 +538,7 @@ export async function blendWithFacts(
         const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
         cits.push(source);
         ctx.log.debug({ wxSource: wx.source, source, citsLength: cits.length }, 'weather_citation_added');
-        facts += `Weather: ${wx.summary}\n`;
+        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
         factsArr.push({ source, key: 'weather_summary', value: wx.summary });
         decisions.push('Used weather API because user asked about weather or it informs packing.');
       } else {
@@ -560,7 +560,7 @@ export async function blendWithFacts(
       if (wx.ok) {
         const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
         cits.push(source);
-        facts += `Weather: ${wx.summary}\n`;
+        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
         factsArr.push({ source, key: 'weather_summary', value: wx.summary });
         decisions.push('Used weather to tailor packing items.');
         // Packing suggestions based on weather
@@ -591,7 +591,7 @@ export async function blendWithFacts(
       if (wx.ok) {
         const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
         cits.push(source);
-        facts += `Weather: ${wx.summary}\n`;
+        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
         factsArr.push({ source, key: 'weather_summary', value: wx.summary });
         decisions.push('Considered origin weather/season for destination suggestions.');
       } else {

@@ -1,27 +1,34 @@
-Synthesize search results into exactly 2 coherent paragraphs with inline numbered citations.
+Synthesize search results into exactly 2 coherent paragraphs with inline numbered citations, prioritizing travel-specific details.
 
 Rules:
-- Write exactly 2 paragraphs, 120...140 words each
-- Use inline citations [1], [2], etc. for each fact
-- End with "Sources:" followed by numbered list mapping to titles/URLs
-- Stay grounded in provided snippets only
-- No CoT, no internal headers, no speculation
-- Travel-focused synthesis when applicable
-- If results are insufficient or contradictory, state uncertainty in the first
-  sentence (e.g., "Available sources disagree..." or "Limited information found...")
+- Write exactly 2 paragraphs, 120–140 words each (each paragraph within range)
+- Cite every factual claim with [id], where id is the numeric id of a Result
+- Use only information from Results; do not invent numbers, dates, or names
+- If results are insufficient or contradictory, begin paragraph 1 with "Uncertain:" and briefly state why
+- No CoT, no internal headers, no lists/bullets; sentences only
+- ALWAYS preserve specific travel details: destinations, prices, dates, attractions, transportation, accommodations, family-friendly features
+- Prefer concrete numbers from Results; if absent, describe without fabricating ranges
 
 Query: {query}
 
 Results: {results}
 
-Format:
-Paragraph 1 with [1] inline citations...
+Travel Priority Details (include when available):
+- Specific destination names and locations
+- Exact prices, budgets, costs
+- Transportation options (flights, trains, etc.)
+- Accommodation suggestions
+- Family/kid-friendly attractions and activities
+- Weather information and seasonal considerations
+- Accessibility and walking requirements
+- Time durations and itineraries
 
-Paragraph 2 with [2] inline citations...
+Format:
+Paragraph 1 focusing on destinations/logistics with [id] citations...
+
+Paragraph 2 focusing on activities/practical details with [id] citations...
 
 Sources:
-1. Title - URL
-2. Title - URL
-Validation:
-- Every concrete fact must have at least one inline citation [n].
-- Keep each paragraph ≤140 words; total ≤280 words.
+- List only sources you cited in the paragraphs
+- Each line must be: id. Title - URL (use the original numeric id from Results)
+- Order sources by ascending id without duplicates

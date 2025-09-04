@@ -100,7 +100,19 @@ export async function runGraphTurn(
   // Handle follow-up responses: if intent is unknown but we have prior context, try to infer intent
   let intent = routeResult.next;
   const prior = getThreadSlots(threadId);
-  const slots = { ...prior, ...(routeResult.slots || {}) };
+  
+  // Filter out placeholder values from extracted slots
+  const extractedSlots = routeResult.slots || {};
+  const filteredSlots: Record<string, string> = {};
+  
+  for (const [key, value] of Object.entries(extractedSlots)) {
+    if (typeof value === 'string' && value.trim() && 
+        !['unknown', 'clean_city_name', 'there', 'next week', 'normalized_date_string'].includes(value.toLowerCase())) {
+      filteredSlots[key] = value;
+    }
+  }
+  
+  const slots = { ...prior, ...filteredSlots };
   
   // If intent is unknown but we have context and new slots, infer intent from last interaction
   if (intent === 'unknown' && Object.keys(prior).length > 0 && Object.keys(routeResult.slots || {}).length > 0) {
@@ -217,13 +229,17 @@ async function weatherNode(
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
 ): Promise<NodeOut> {
+  // Use thread slots to ensure we have the latest context
+  const threadSlots = getThreadSlots(ctx.threadId);
+  const mergedSlots = { ...threadSlots, ...(slots || {}) };
+  
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
       route: {
         intent: 'weather',
         needExternal: false,
-        slots: slots || {},
+        slots: mergedSlots,
         confidence: 0.7,
       },
       threadId: ctx.threadId,
@@ -239,13 +255,17 @@ async function destinationsNode(
   logger?: { log: pino.Logger },
   disclaimer?: string,
 ): Promise<NodeOut> {
+  // Use thread slots to ensure we have the latest context
+  const threadSlots = getThreadSlots(ctx.threadId);
+  const mergedSlots = { ...threadSlots, ...(slots || {}) };
+  
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
       route: {
         intent: 'destinations',
         needExternal: true,
-        slots: slots || {},
+        slots: mergedSlots,
         confidence: 0.7,
       },
       threadId: ctx.threadId,
@@ -261,13 +281,17 @@ async function packingNode(
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
 ): Promise<NodeOut> {
+  // Use thread slots to ensure we have the latest context
+  const threadSlots = getThreadSlots(ctx.threadId);
+  const mergedSlots = { ...threadSlots, ...(slots || {}) };
+  
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
       route: {
         intent: 'packing',
         needExternal: false,
-        slots: slots || {},
+        slots: mergedSlots,
         confidence: 0.7,
       },
       threadId: ctx.threadId,

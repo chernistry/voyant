@@ -34,7 +34,7 @@ export async function searchTravelInfo(query: string, log?: any): Promise<Out> {
     
     // Use the wrapper's web search method
     const response = await braveSearch.webSearch(query, {
-      count: 7,
+      count: 20,
       text_decorations: false, // Cleaner text without HTML markup
       spellcheck: true
     });

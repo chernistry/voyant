@@ -56,8 +56,17 @@ export async function routeWithLLM(
       if (dateResult.data.month) cleanSlots.month = dateResult.data.month;
     }
     
-    // Merge with context slots
-    const mergedSlots = { ...contextSlots, ...cleanSlots };
+    // Merge with context slots - prefer more specific values
+    const mergedSlots = { ...contextSlots };
+    if (cleanSlots.city && cleanSlots.city !== 'unknown' && cleanSlots.city !== 'clean_city_name' && cleanSlots.city !== 'there') {
+      mergedSlots.city = cleanSlots.city;
+    }
+    if (cleanSlots.month && cleanSlots.month !== 'unknown' && cleanSlots.month !== 'Unknown' && cleanSlots.month !== 'month_name') {
+      mergedSlots.month = cleanSlots.month;
+    }
+    if (cleanSlots.dates && cleanSlots.dates !== 'unknown' && cleanSlots.dates !== 'normalized_date_string' && cleanSlots.dates !== 'next week') {
+      mergedSlots.dates = cleanSlots.dates;
+    }
     
     // Determine missing slots
     const missingSlots: string[] = [];
