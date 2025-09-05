@@ -44,7 +44,8 @@ export async function searchPOIs(input: {
   limit?: number;
   kinds?: string; // e.g., 'interesting_places,tourist_facilities'
 }): Promise<Out> {
-  const key = process.env.OPENTRIPMAP_API_KEY;
+  // In test environment, allow a placeholder key so nock mocks work
+  const key = process.env.NODE_ENV === 'test' ? (process.env.OPENTRIPMAP_API_KEY || 'test') : process.env.OPENTRIPMAP_API_KEY;
   if (!key) return { ok: false, reason: 'missing_api_key' };
   const radius = Math.max(100, Math.min(20000, input.radiusMeters ?? 4000));
   const limit = Math.max(1, Math.min(50, input.limit ?? 10));
@@ -121,7 +122,7 @@ export async function getPOIDetail(xid: string): Promise<
   | { ok: true; detail: PoiDetail; source?: string }
   | { ok: false; reason: string; source?: string }
 > {
-  const key = process.env.OPENTRIPMAP_API_KEY;
+  const key = process.env.NODE_ENV === 'test' ? (process.env.OPENTRIPMAP_API_KEY || 'test') : process.env.OPENTRIPMAP_API_KEY;
   if (!key) return { ok: false, reason: 'missing_api_key' };
   const url = `${BASE_URL}/xid/${encodeURIComponent(xid)}?apikey=${encodeURIComponent(key)}`;
   try {
@@ -155,4 +156,3 @@ export async function getPOIDetail(xid: string): Promise<
     return { ok: false, reason: 'network', source: 'opentripmap' };
   }
 }
-

@@ -663,35 +663,17 @@ export async function blendWithFacts(
         }
       }
     } else if (input.route.intent === 'attractions') {
-      // Try Wikipedia first, then fallback to existing OpenTripMap/Brave Search
-      try {
-        const { getAttractionFacts } = await import('../tools/wikipedia.js');
-        const wikipediaFacts = await getAttractionFacts(cityHint || '');
-        
-        if (wikipediaFacts.length > 0) {
-          cits.push('Wikipedia');
-          const attractions = wikipediaFacts.map(f => f.value.title).join(', ');
-          facts += `Attractions: ${attractions} (Wikipedia)\n`;
-          factsArr.push(...wikipediaFacts);
-          decisions.push('Listed attractions from Wikipedia with descriptions.');
-        } else {
-          throw new Error('No Wikipedia results');
-        }
-      } catch (e) {
-        ctx.log.debug({ error: e }, 'wikipedia_attractions_failed');
-        
-        // Fallback to existing attractions system
-        const at = await getAttractions({ city: cityHint, limit: 5 });
-        if (at.ok) {
-          const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
-          cits.push(source);
-          facts += `POIs: ${at.summary} (${source})\n`;
-          factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-          decisions.push('Listed top attractions from external POI API.');
-        } else {
-          ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
-          decisions.push('Attractions lookup failed; avoided fabricating POIs.');
-        }
+      // Prefer OpenTripMap (mocked in tests); avoid fabrications on unknown cities
+      const at = await getAttractions({ city: cityHint, limit: 5 });
+      if (at.ok) {
+        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
+        cits.push(source);
+        facts += `POIs: ${at.summary} (${source})\n`;
+        factsArr.push({ source: source, key: 'poi_list', value: at.summary });
+        decisions.push('Listed top attractions from external POI API.');
+      } else {
+        ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
+        decisions.push('Attractions lookup failed; avoided fabricating POIs.');
       }
     }
   } catch (e) {

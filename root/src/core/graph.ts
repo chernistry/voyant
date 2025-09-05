@@ -144,6 +144,14 @@ export async function runGraphTurn(
     }
     intent = lastIntent;
   }
+  // Also treat flight-time refinements as continuation of destinations planning, not a switch to flights search
+  if (/\b(flight time|shorten flight|shorter flight|reduce travel time|quicker flight|shorten travel time|less layover|fewer stops)\b/i.test(message)
+      && lastIntent && lastIntent !== 'unknown') {
+    if (ctx.log && typeof ctx.log.debug === 'function') {
+      ctx.log.debug({ priorIntent: intent, continuing: lastIntent }, 'flight_time_refinement_override');
+    }
+    intent = lastIntent;
+  }
   
   setLastIntent(threadId, intent);
   if (ctx.log && typeof ctx.log.debug === 'function') {

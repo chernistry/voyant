@@ -3,7 +3,12 @@ const store = new Map<string, Msg[]>();
 const LIMIT = 8;
 
 export function getThreadId(provided?: string) {
-  return provided ?? Math.random().toString(36).slice(2, 10);
+  const id = (provided || '').trim();
+  if (id) {
+    // Enforce max length to satisfy schema and avoid runtime errors
+    return id.length > 64 ? id.slice(0, 64) : id;
+  }
+  return Math.random().toString(36).slice(2, 10);
 }
 
 export function pushMessage(threadId: string, msg: Msg) {
@@ -17,5 +22,4 @@ export function pushMessage(threadId: string, msg: Msg) {
 export function getContext(threadId: string): Msg[] {
   return store.get(threadId) ?? [];
 }
-
 

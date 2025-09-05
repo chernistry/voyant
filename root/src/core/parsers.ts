@@ -160,6 +160,19 @@ export async function parseDate(text: string, context?: Record<string, any>, log
     };
   }
 
+  // Quick deterministic month extraction to avoid LLM misreads on long messages
+  const monthRegex = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
+  const m = text.match(monthRegex);
+  if (m) {
+    const month = m[0];
+    return {
+      success: true,
+      data: { dates: month, month, confidence: 0.9 },
+      confidence: 0.9,
+      normalized: month,
+    };
+  }
+
   // LLM-first approach
   try {
     const promptTemplate = await getPrompt('date_parser');
