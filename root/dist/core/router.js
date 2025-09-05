@@ -12,7 +12,7 @@ export async function routeIntent(input) {
     if (typeof input.logger?.log?.info === 'function') {
         input.logger.log.debug({ message: input.message }, 'router_start');
     }
-    // Handle edge cases before LLM processing
+    // Handle edge cases before processing
     const trimmedMessage = input.message.trim();
     if (trimmedMessage.length === 0) {
         return RouterResult.parse({
@@ -24,19 +24,35 @@ export async function routeIntent(input) {
     }
     // Use LLM for content classification first
     const contentClassification = await classifyContent(input.message, input.logger?.log);
-    // Detect complex multi-constraint queries and request deep research consent (flagged)
+    // COMPLEXITY CHECK FIRST - before any routing
     if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
-        const complexity = await detectComplexQuery(input.message, input.logger?.log);
-        // Feature: ask consent for rich, multi-constraint planning regardless of phrasing
-        const looksLikeDestinationDiscovery = /\b(where to go|where can i travel|destinations?|go from|travel from)\b/i.test(input.message);
-        const forceDeepResearch = /budget|afford|cost|price/i.test(input.message) && /kids?|children|family/i.test(input.message) && /June|July|August|January|February|March|April|May|September|October|November|December|summer|winter|spring|fall|autumn|week|month/i.test(input.message);
-        if ((forceDeepResearch || !looksLikeDestinationDiscovery) && complexity.isComplex && complexity.confidence >= 0.7) {
+        if (typeof input.logger?.log?.debug === 'function') {
+            input.logger.log.debug({
+                deepResearchEnabled: true,
+                message: input.message.substring(0, 100)
+            }, '🔍 COMPLEXITY: Deep research enabled, checking complexity');
+        }
+        const complexity = await detectComplexQueryFast(input.message, input.logger?.log);
+        if (typeof input.logger?.log?.debug === 'function') {
+            input.logger.log.debug({
+                isComplex: complexity.isComplex,
+                confidence: complexity.confidence,
+                reasoning: complexity.reasoning
+            }, '🔍 COMPLEXITY: Detection result');
+        }
+        if (complexity.isComplex && complexity.confidence >= 0.7) {
             if (input.threadId) {
                 updateThreadSlots(input.threadId, {
                     awaiting_deep_research_consent: 'true',
                     pending_deep_research_query: input.message,
                     complexity_reasoning: complexity.reasoning,
                 }, []);
+            }
+            if (typeof input.logger?.log?.debug === 'function') {
+                input.logger.log.debug({
+                    intent: 'system',
+                    reason: 'deep_research_consent_needed'
+                }, '✅ COMPLEXITY: Triggering deep research consent');
             }
             return RouterResult.parse({
                 intent: 'system',
@@ -48,6 +64,10 @@ export async function routeIntent(input) {
                 confidence: 0.9,
             });
         }
+    }
+    // STEP 1: Try Transformers.js NLP first (should be primary method)
+    if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ step: 1, method: 'transformers' }, '🤖 ROUTING_CASCADE: Attempting Transformers.js NLP');
     }
     // Prefer LLM router first for robust NLU and slot extraction
     const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
@@ -111,10 +131,13 @@ export async function routeIntent(input) {
     if (llmIntentResult && llmIntentResult.confidence > 0.5) {
         if (typeof input.logger?.log?.info === 'function') {
             input.logger.log.debug({
+                step: 2,
+                method: 'llm',
                 intent: llmIntentResult.intent,
                 confidence: llmIntentResult.confidence,
-                source: 'llm_intent_classification'
-            }, 'router_llm_intent_result');
+                source: 'llm_intent_classification',
+                success: true
+            }, '✅ ROUTING_CASCADE: LLM intent classification succeeded');
         }
         // Simple weather override for obvious cases
         const isObviousWeather = /weather|temperature|climate/i.test(input.message);
@@ -159,7 +182,15 @@ export async function routeIntent(input) {
         // Coerce to RouterResultT shape (missingSlots ignored by schema)
         const { intent, needExternal, slots, confidence } = viaStrictLLM;
         if (typeof input.logger?.log?.info === 'function') {
-            input.logger.log.debug({ intent, confidence, source: 'strict_llm' }, 'router_strict_llm_result');
+            input.logger.log.debug({
+                step: 2,
+                method: 'llm',
+                submethod: 'strict_llm',
+                intent,
+                confidence,
+                source: 'strict_llm',
+                success: true
+            }, '✅ ROUTING_CASCADE: Strict LLM succeeded');
         }
         // Simple weather override for obvious cases
         const isObviousWeather = /weather|temperature|climate/i.test(input.message);
@@ -191,7 +222,15 @@ export async function routeIntent(input) {
     const viaLLM = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
     if (viaLLM && viaLLM.confidence > 0.5) {
         if (typeof input.logger?.log?.info === 'function') {
-            input.logger.log.debug({ intent: viaLLM.intent, confidence: viaLLM.confidence, source: 'llm' }, 'router_llm_result');
+            input.logger.log.debug({
+                step: 2,
+                method: 'llm',
+                submethod: 'basic_llm',
+                intent: viaLLM.intent,
+                confidence: viaLLM.confidence,
+                source: 'llm',
+                success: true
+            }, '✅ ROUTING_CASCADE: Basic LLM succeeded');
         }
         // Override LLM result if we detected unrelated content via heuristics
         if (isUnrelated) {
@@ -211,6 +250,10 @@ export async function routeIntent(input) {
     // If we have LLM results with good slots but low confidence, preserve the slots
     if (viaStrictLLM?.slots) {
         finalSlots = { ...extractedSlots, ...viaStrictLLM.slots };
+    }
+    // STEP 3: Final fallback to rule-based heuristics
+    if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ step: 3, method: 'rules' }, '🤖 ROUTING_CASCADE: Falling back to rule-based heuristics');
     }
     const base = { needExternal: false, slots: finalSlots, confidence: 0.7 };
     if (typeof input.logger?.log?.info === 'function') {
@@ -349,9 +392,188 @@ function extractJsonObject(text) {
         return undefined;
     }
 }
+async function detectComplexQueryFast(message, log) {
+    const m = message || '';
+    try {
+        // Extract entities using Transformers.js
+        const entities = await extractEntities(m, log);
+        // Count constraint indicators
+        const constraints = new Set();
+        // Entity-based constraints
+        if (entities && entities.length > 0) {
+            entities.forEach(entity => {
+                const type = entity.entity_group?.toUpperCase() || '';
+                if (/LOC|GPE|PLACE/.test(type))
+                    constraints.add('location');
+                if (/PER|PERSON/.test(type))
+                    constraints.add('person');
+                if (/DATE|TIME/.test(type))
+                    constraints.add('time');
+                if (/MONEY|CURRENCY/.test(type))
+                    constraints.add('budget');
+            });
+        }
+        // Text-based constraint detection
+        const lower = m.toLowerCase();
+        if (/[£$€]|\b(budget|cost|price|afford|expensive|cheap|spend|\$\d+)\b/.test(m))
+            constraints.add('budget');
+        if (/\b(kids?|children|family|adults|people|toddler|parents|\d+\s*(year|month)s?\s*old)\b/.test(lower))
+            constraints.add('group');
+        if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?|direct|connecting)\b/.test(lower))
+            constraints.add('special');
+        if (/\b(hotel|accommodation|stay|night|room|airbnb)\b/.test(lower))
+            constraints.add('accommodation');
+        if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower))
+            constraints.add('transport');
+        if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m))
+            constraints.add('time');
+        const entityCount = entities?.length || 0;
+        const constraintCount = constraints.size;
+        // Complexity scoring - multiple strategies
+        const strategies = [
+            // Strategy 1: High entity count (>4 entities = complex)
+            {
+                isComplex: entityCount >= 4,
+                confidence: Math.min(0.7 + (entityCount - 4) * 0.05, 0.95),
+                reason: `high_entity_count: ${entityCount} entities`
+            },
+            // Strategy 2: Multiple constraint types (>=3 = complex)
+            {
+                isComplex: constraintCount >= 3,
+                confidence: Math.min(0.7 + (constraintCount - 3) * 0.1, 0.95),
+                reason: `multiple_constraints: ${Array.from(constraints).join(', ')}`
+            },
+            // Strategy 3: Budget + Group + Location (family travel planning)
+            {
+                isComplex: constraints.has('budget') && constraints.has('group') && constraints.has('location'),
+                confidence: 0.85,
+                reason: 'family_travel_planning: budget+group+location'
+            },
+            // Strategy 4: Long query with multiple locations
+            {
+                isComplex: m.length > 50 && entityCount >= 3 && constraints.has('location'),
+                confidence: 0.8,
+                reason: `detailed_multi_location: ${m.length} chars, ${entityCount} entities`
+            }
+        ];
+        // Find the best matching strategy
+        const complexStrategy = strategies.find(s => s.isComplex);
+        if (complexStrategy) {
+            if (log?.debug) {
+                log.debug({
+                    method: 'fast_transformers',
+                    entities: entityCount,
+                    constraints: Array.from(constraints),
+                    strategy: complexStrategy.reason,
+                    confidence: complexStrategy.confidence
+                }, '🚀 COMPLEXITY: Fast detection - COMPLEX');
+            }
+            return {
+                isComplex: true,
+                confidence: complexStrategy.confidence,
+                reasoning: complexStrategy.reason
+            };
+        }
+        if (log?.debug) {
+            log.debug({
+                method: 'fast_transformers',
+                entities: entityCount,
+                constraints: Array.from(constraints),
+                isComplex: false
+            }, '🚀 COMPLEXITY: Fast detection - SIMPLE');
+        }
+        return { isComplex: false, confidence: 0.6, reasoning: `simple: ${entityCount} entities, ${constraintCount} constraints` };
+    }
+    catch (error) {
+        if (log?.debug) {
+            log.debug({ error: String(error) }, '❌ COMPLEXITY: Fast detection failed');
+        }
+        // Fallback to simple heuristics
+        const lower = m.toLowerCase();
+        const hasMultipleIndicators = [
+            /[£$€]|\$\d+/.test(m),
+            /\b(kids?|children|family|\d+\s*year)/i.test(m),
+            /\b(from|to)\b.*\b(from|to)\b/i.test(m),
+            /\b(budget|cost|price)/i.test(m)
+        ].filter(Boolean).length;
+        return {
+            isComplex: hasMultipleIndicators >= 2,
+            confidence: 0.7,
+            reasoning: `fallback_heuristic: ${hasMultipleIndicators} indicators`
+        };
+    }
+}
 async function detectComplexQuery(message, log) {
     const m = message || '';
-    // Heuristics + Transformers NER signal
+    // Try Transformers.js first for entity-based complexity detection
+    try {
+        const entities = await extractEntities(m, log);
+        if (entities && entities.length > 0) {
+            const categories = [];
+            const entityTypes = new Set();
+            // Analyze entities for complexity indicators
+            entities.forEach(entity => {
+                const type = entity.entity_group?.toUpperCase() || '';
+                entityTypes.add(type);
+                // Money/budget entities
+                if (/MONEY|CURRENCY/.test(type) || /\$|€|£|\d+/.test(entity.text)) {
+                    categories.push('budget');
+                }
+                // Location entities
+                if (/LOC|GPE|PLACE/.test(type)) {
+                    categories.push('location');
+                }
+                // Person/group entities
+                if (/PER|PERSON/.test(type) || /\d+/.test(entity.text)) {
+                    categories.push('group');
+                }
+                // Date/time entities
+                if (/DATE|TIME/.test(type)) {
+                    categories.push('time');
+                }
+            });
+            // Add heuristic categories for missed patterns
+            const lower = m.toLowerCase();
+            if (/[£$€]/.test(m) || /\b(budget|cost|price|afford|expensive|cheap|spend|currency|exchange)\b/.test(lower))
+                categories.push('budget');
+            if (/\b(kids?|children|family|adults|people|toddler|parents)\b/.test(lower) || /\b\d+\b/.test(lower))
+                categories.push('group');
+            if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower))
+                categories.push('special');
+            const uniqueCategories = Array.from(new Set(categories));
+            const entityDiversity = entityTypes.size;
+            const totalEntities = entities.length;
+            // Complexity scoring based on Transformers analysis
+            const categoryScore = Math.max(0, uniqueCategories.length - 2);
+            const entityScore = Math.min(entityDiversity * 0.2, 0.4);
+            const densityScore = Math.min(totalEntities * 0.1, 0.3);
+            const confidence = Math.min(0.6 + categoryScore * 0.1 + entityScore + densityScore, 0.95);
+            const isComplex = uniqueCategories.length >= 3 || (uniqueCategories.length >= 2 && totalEntities >= 4);
+            if (log?.debug) {
+                log.debug({
+                    method: 'transformers',
+                    entities: entities.length,
+                    entityTypes: Array.from(entityTypes),
+                    categories: uniqueCategories,
+                    confidence,
+                    isComplex
+                }, '🤖 COMPLEXITY: Transformers-based detection');
+            }
+            if (isComplex) {
+                return {
+                    isComplex,
+                    confidence,
+                    reasoning: `transformers: entities=${totalEntities}, types=${Array.from(entityTypes).join(',')}, constraints=${uniqueCategories.join(', ')}`
+                };
+            }
+        }
+    }
+    catch (error) {
+        if (log?.debug) {
+            log.debug({ error: String(error) }, '❌ COMPLEXITY: Transformers detection failed');
+        }
+    }
+    // Fallback to heuristic + LLM detection
     const categories = [];
     try {
         const lower = m.toLowerCase();
@@ -365,24 +587,25 @@ async function detectComplexQuery(message, log) {
         const od = await parseOriginDestination(m).catch(() => ({ success: false }));
         if (od.success && (od.data?.originCity || od.data?.destinationCity))
             categories.push('origin');
-        try {
-            const ents = await extractEntities(m, log);
-            const hasLoc = Array.isArray(ents) && ents.some((e) => /LOC/i.test(String(e.entity_group || '')));
-            if (hasLoc)
-                categories.push('location');
-        }
-        catch { }
         if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower))
             categories.push('special');
         const uniq = Array.from(new Set(categories));
         const score = Math.max(0, uniq.length - 2);
         const confidence = Math.min(0.6 + 0.1 * score, 0.95);
         const isComplex = uniq.length >= 3;
+        if (log?.debug) {
+            log.debug({
+                method: 'heuristic',
+                categories: uniq,
+                confidence,
+                isComplex
+            }, '🔍 COMPLEXITY: Heuristic detection');
+        }
         if (isComplex)
-            return { isComplex, confidence, reasoning: `constraints: ${uniq.join(', ')}` };
+            return { isComplex, confidence, reasoning: `heuristic: constraints=${uniq.join(', ')}` };
     }
     catch { }
-    // LLM fallback with JSON
+    // Final LLM fallback with JSON
     try {
         const template = await getPrompt('complexity_assessor');
         const prompt = template.replace('{message}', m);
@@ -390,8 +613,112 @@ async function detectComplexQuery(message, log) {
         const json = JSON.parse(raw);
         const schema = z.object({ isComplex: z.boolean(), confidence: z.number().min(0).max(1), reasoning: z.string() });
         const result = schema.parse(json);
+        if (log?.debug) {
+            log.debug({
+                method: 'llm_fallback',
+                ...result
+            }, '🤖 COMPLEXITY: LLM fallback detection');
+        }
         return result;
     }
     catch { }
     return { isComplex: false, confidence: 0.4, reasoning: 'insufficient_signal' };
+}
+async function tryRouteViaTransformers(message, threadId, log) {
+    try {
+        // Extract entities using Transformers.js NER
+        const entities = await extractEntities(message, log);
+        if (log?.debug) {
+            log.debug({
+                entities: entities.map(e => ({ type: e.entity_group, text: e.text, score: e.score })),
+                count: entities.length
+            }, '🔍 TRANSFORMERS: Extracted entities');
+        }
+        // Get thread context for slot merging
+        const ctxSlots = threadId ? getThreadSlots(threadId) : {};
+        // Extract slots using our parsers (which now use Transformers internally)
+        const extractedSlots = await extractSlots(message, ctxSlots, log);
+        // Simple rule-based intent classification based on entities and patterns
+        const intent = classifyIntentFromEntities(message, entities, extractedSlots, log);
+        if (intent && intent.confidence > 0.7) {
+            return RouterResult.parse({
+                intent: intent.intent,
+                needExternal: intent.needExternal,
+                slots: { ...ctxSlots, ...extractedSlots },
+                confidence: intent.confidence
+            });
+        }
+        return undefined;
+    }
+    catch (error) {
+        if (log?.debug) {
+            log.debug({ error: String(error) }, '❌ TRANSFORMERS: Failed to route via Transformers');
+        }
+        return undefined;
+    }
+}
+function classifyIntentFromEntities(message, entities, slots, log) {
+    const m = message.toLowerCase();
+    // Weather patterns - prioritize explicit weather keywords
+    if (/\b(weather|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) ||
+        /what'?s?\s+(the\s+)?weather/i.test(m)) {
+        const hasLocation = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.city;
+        if (log?.debug) {
+            log.debug({
+                pattern: 'weather',
+                hasLocation,
+                entities: entities.length,
+                confidence: 0.95,
+                reason: 'explicit_weather_keywords'
+            }, '🎯 TRANSFORMERS: Weather intent detected');
+        }
+        return { intent: 'weather', needExternal: true, confidence: 0.95 };
+    }
+    // Attractions with location
+    if (/attraction|do in|what to do|museum|activities/.test(m)) {
+        const hasLocation = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.city;
+        if (log?.debug) {
+            log.debug({
+                pattern: 'attractions',
+                hasLocation,
+                confidence: hasLocation ? 0.8 : 0.6
+            }, '🎯 TRANSFORMERS: Attractions intent detected');
+        }
+        return { intent: 'attractions', needExternal: false, confidence: hasLocation ? 0.8 : 0.6 };
+    }
+    // Packing advice
+    if (/pack|bring|clothes|items|luggage|suitcase|wear/.test(m)) {
+        if (log?.debug) {
+            log.debug({ pattern: 'packing', confidence: 0.8 }, '🎯 TRANSFORMERS: Packing intent detected');
+        }
+        return { intent: 'packing', needExternal: false, confidence: 0.8 };
+    }
+    // Country information queries
+    if (/tell me about.*(?:country|spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia|uk|usa|america)/i.test(m) ||
+        /(?:spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia).*(?:country|as a country)/i.test(m)) {
+        if (log?.debug) {
+            log.debug({ pattern: 'country_info', confidence: 0.9 }, '🎯 TRANSFORMERS: Country information intent detected');
+        }
+        return { intent: 'destinations', needExternal: true, confidence: 0.9 };
+    }
+    // Destinations with origin detection
+    if (/where should i go|destination|where to go|budget|options/.test(m)) {
+        const hasOrigin = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.originCity;
+        if (log?.debug) {
+            log.debug({
+                pattern: 'destinations',
+                hasOrigin,
+                confidence: hasOrigin ? 0.8 : 0.6
+            }, '🎯 TRANSFORMERS: Destinations intent detected');
+        }
+        return { intent: 'destinations', needExternal: false, confidence: hasOrigin ? 0.8 : 0.6 };
+    }
+    if (log?.debug) {
+        log.debug({
+            message: m.substring(0, 50),
+            entityCount: entities.length,
+            reason: 'no_pattern_match'
+        }, '❓ TRANSFORMERS: No intent pattern matched');
+    }
+    return undefined;
 }

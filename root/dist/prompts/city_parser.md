@@ -18,4 +18,4 @@ Output JSON only:
 Few‑shot examples:
 - Input: "Weather in NYC" | Context: {} → {"city":"New York","normalized":"New York","confidence":0.95}
 - Input: "Что делать в Питере?" | Context: {} → {"city":"Saint Petersburg","normalized":"Saint Petersburg","confidence":0.9}
-- Input: "Go there in summer" | Context: {"city":"Berlin"} → {"city":"Berlin","normalized":"Berlin","confidence":0.7}
+- Input: "Go there in summer" | Context: {"city":"Tokyo"} → {"city":"Tokyo","normalized":"Tokyo","confidence":0.7}

@@ -166,7 +166,14 @@ async function performWebSearch(
     }
   }
   
-  const searchResult = await searchTravelInfo(query, ctx.log);
+  // Determine if this needs Crawlee deep research
+  const isComplexQuery = query.length > 50 || 
+                         /detailed|comprehensive|in-depth|analysis|research|study/.test(query) ||
+                         /budget.*plan|itinerary|guide/.test(query);
+  
+  ctx.log.debug({ query, isComplexQuery, queryLength: query.length }, 'complex_query_detection');
+  
+  const searchResult = await searchTravelInfo(query, ctx.log, isComplexQuery);
   
   if (!searchResult.ok) {
     ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
@@ -183,8 +190,19 @@ async function performWebSearch(
     };
   }
   
-  // Use summarization for better results
-  const { reply, citations } = await summarizeSearch(searchResult.results, query, ctx);
+  // Use deep research summary if available, otherwise regular summarization
+  let reply: string;
+  let citations: string[];
+  
+  if (searchResult.deepSummary) {
+    reply = searchResult.deepSummary;
+    citations = ['Brave Search + Deep Research'];
+    ctx.log.debug('using_crawlee_deep_research_summary');
+  } else {
+    const result = await summarizeSearch(searchResult.results, query, ctx);
+    reply = result.reply;
+    citations = result.citations || ['Brave Search'];
+  }
   
   // Store search facts for receipts
   if (threadId) {
@@ -681,7 +699,7 @@ export async function blendWithFacts(
         if (isCountryQuery) {
           // Extract country name from the message
           const countryMatch = input.message.match(/(?:tell me about|about)\s+([a-z\s]+?)(?:\s+(?:as a|country)|$)/i);
-          if (countryMatch) {
+          if (countryMatch && countryMatch[1]) {
             countryTarget = countryMatch[1].trim();
           }
         }

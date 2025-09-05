@@ -1,10 +1,11 @@
 import { BraveSearch } from 'brave-search';
 import { getPrompt } from '../core/prompts.js';
 import { callLLM } from '../core/llm.js';
+import { deepResearchPages } from './crawlee_research.js';
 /**
  * Search for travel information using Brave Search API
  */
-export async function searchTravelInfo(query, log) {
+export async function searchTravelInfo(query, log, deepResearch = false) {
     if (!query.trim()) {
         if (log)
             log.debug(`❌ Brave Search: empty query`);
@@ -49,7 +50,35 @@ export async function searchTravelInfo(query, log) {
                 log.debug(`📝 First result: "${results[0].title}" - ${results[0].description?.slice(0, 100) || 'No description'}...`);
             }
         }
-        return { ok: true, results };
+        // Perform deep research if requested
+        let deepSummary;
+        if (deepResearch && results.length > 0) {
+            if (log)
+                log.debug(`🔍 Starting deep research on ${Math.min(results.length, parseInt(process.env.CRAWLEE_MAX_PAGES || '8'))} pages`);
+            try {
+                const maxPages = parseInt(process.env.CRAWLEE_MAX_PAGES || '8');
+                const urls = results.slice(0, maxPages).map(r => r.url);
+                const crawlResult = await deepResearchPages(urls, query);
+                if (crawlResult.ok && crawlResult.summary) {
+                    deepSummary = crawlResult.summary;
+                    if (log)
+                        log.debug(`📊 Deep research completed: ${deepSummary.slice(0, 100)}...`);
+                }
+                else {
+                    if (log)
+                        log.debug(`❌ Deep research failed: ${crawlResult.ok ? 'no summary' : 'crawl failed'}`);
+                }
+            }
+            catch (error) {
+                if (log)
+                    log.debug(`❌ Deep research error: ${error}`);
+            }
+        }
+        else {
+            if (log)
+                log.debug(`⏭️ Skipping deep research: deepResearch=${deepResearch}, results=${results.length}`);
+        }
+        return { ok: true, results, deepSummary };
     }
     catch (e) {
         if (log) {

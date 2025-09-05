@@ -8,8 +8,9 @@ import { searchTravelInfo } from '../tools/brave_search.js';
 export async function performDeepResearch(query, context = {}, log) {
     const optimized = await optimizeQueries(query, context, log).catch(() => [query]);
     const queries = Array.isArray(optimized) && optimized.length > 0 ? optimized.slice(0, 6) : [query];
-    // Execute searches in parallel
-    const settled = await Promise.allSettled(queries.map((q) => searchTravelInfo(q, log)));
+    // Execute searches in parallel with deep research enabled
+    const settled = await Promise.allSettled(queries.map((q) => searchTravelInfo(q, log, true)) // Enable deep research
+    );
     const aggregate = [];
     for (const s of settled) {
         if (s.status === 'fulfilled' && s.value?.ok && Array.isArray(s.value.results)) {

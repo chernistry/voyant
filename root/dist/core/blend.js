@@ -137,7 +137,12 @@ async function performWebSearch(query, ctx, threadId) {
             ctx.log.warn({ e: e instanceof Error ? e.message : String(e) }, 'deep_research_failed_fallback_single_search');
         }
     }
-    const searchResult = await searchTravelInfo(query, ctx.log);
+    // Determine if this needs Crawlee deep research
+    const isComplexQuery = query.length > 50 ||
+        /detailed|comprehensive|in-depth|analysis|research|study/.test(query) ||
+        /budget.*plan|itinerary|guide/.test(query);
+    ctx.log.debug({ query, isComplexQuery, queryLength: query.length }, 'complex_query_detection');
+    const searchResult = await searchTravelInfo(query, ctx.log, isComplexQuery);
     if (!searchResult.ok) {
         ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
         return {
@@ -151,8 +156,19 @@ async function performWebSearch(query, ctx, threadId) {
             citations: undefined,
         };
     }
-    // Use summarization for better results
-    const { reply, citations } = await summarizeSearch(searchResult.results, query, ctx);
+    // Use deep research summary if available, otherwise regular summarization
+    let reply;
+    let citations;
+    if (searchResult.deepSummary) {
+        reply = searchResult.deepSummary;
+        citations = ['Brave Search + Deep Research'];
+        ctx.log.debug('using_crawlee_deep_research_summary');
+    }
+    else {
+        const result = await summarizeSearch(searchResult.results, query, ctx);
+        reply = result.reply;
+        citations = result.citations || ['Brave Search'];
+    }
     // Store search facts for receipts
     if (threadId) {
         try {
@@ -599,7 +615,21 @@ export async function blendWithFacts(input, ctx) {
                         };
                     }
                 }
-                const cf = await getCountryFacts({ city: originCity });
+                // Check if this is a country information query
+                const isCountryQuery = /tell me about.*(?:country|spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia|uk|usa|america)/i.test(input.message) ||
+                    /(?:spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia).*(?:country|as a country)/i.test(input.message);
+                let countryTarget = originCity;
+                if (isCountryQuery) {
+                    // Extract country name from the message
+                    const countryMatch = input.message.match(/(?:tell me about|about)\s+([a-z\s]+?)(?:\s+(?:as a|country)|$)/i);
+                    if (countryMatch && countryMatch[1]) {
+                        countryTarget = countryMatch[1].trim();
+                    }
+                }
+                const cf = await getCountryFacts({
+                    city: isCountryQuery ? undefined : originCity,
+                    country: isCountryQuery ? countryTarget : undefined
+                });
                 if (cf.ok) {
                     const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
                     cits.push(source);

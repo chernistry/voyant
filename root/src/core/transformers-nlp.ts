@@ -19,9 +19,24 @@ async function loadPipeline(log?: pino.Logger): Promise<(text: string) => Promis
       log.debug({ model, hasToken: !!process.env.HF_TOKEN }, '🤖 TRANSFORMERS: Loading NER pipeline');
     }
     
+    // Suppress console output from transformers.js if LOG_LEVEL is info or higher
+    const originalConsole = { ...console };
+    const shouldSuppressConsole = process.env.LOG_LEVEL === 'info' || process.env.LOG_LEVEL === 'warn' || process.env.LOG_LEVEL === 'error';
+    
+    if (shouldSuppressConsole) {
+      console.log = () => {};
+      console.warn = () => {};
+      console.info = () => {};
+    }
+    
     const ner = await pipeline('token-classification', model as any, {
       // Remove quantization requirement - use default model format
     } as any);
+    
+    // Restore console
+    if (shouldSuppressConsole) {
+      Object.assign(console, originalConsole);
+    }
 
     if (log?.debug) {
       log.debug({ model }, '✅ TRANSFORMERS: NER pipeline loaded successfully');

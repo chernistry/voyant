@@ -5,3 +5,4 @@ assignment/node_modules/*
 .git.backup/*
 root/node_modules/*
 root/.env
+root/storage/*

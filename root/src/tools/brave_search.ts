@@ -1,6 +1,7 @@
 import { BraveSearch } from 'brave-search';
 import { getPrompt } from '../core/prompts.js';
 import { callLLM } from '../core/llm.js';
+import { deepResearchPages } from './crawlee_research.js';
 
 interface BraveSearchResult {
   title: string;
@@ -8,12 +9,12 @@ interface BraveSearchResult {
   description: string;
 }
 
-type Out = { ok: true; results: BraveSearchResult[] } | { ok: false; reason: string };
+type Out = { ok: true; results: BraveSearchResult[]; deepSummary?: string } | { ok: false; reason: string };
 
 /**
  * Search for travel information using Brave Search API
  */
-export async function searchTravelInfo(query: string, log?: any): Promise<Out> {
+export async function searchTravelInfo(query: string, log?: any, deepResearch = false): Promise<Out> {
   if (!query.trim()) {
     if (log) log.debug(`❌ Brave Search: empty query`);
     return { ok: false, reason: 'no_query' };
@@ -64,7 +65,30 @@ export async function searchTravelInfo(query: string, log?: any): Promise<Out> {
       }
     }
     
-    return { ok: true, results };
+    // Perform deep research if requested
+    let deepSummary: string | undefined;
+    if (deepResearch && results.length > 0) {
+      if (log) log.debug(`🔍 Starting deep research on ${Math.min(results.length, parseInt(process.env.CRAWLEE_MAX_PAGES || '8'))} pages`);
+      
+      try {
+        const maxPages = parseInt(process.env.CRAWLEE_MAX_PAGES || '8');
+        const urls = results.slice(0, maxPages).map(r => r.url);
+        const crawlResult = await deepResearchPages(urls, query);
+        
+        if (crawlResult.ok && crawlResult.summary) {
+          deepSummary = crawlResult.summary;
+          if (log) log.debug(`📊 Deep research completed: ${deepSummary.slice(0, 100)}...`);
+        } else {
+          if (log) log.debug(`❌ Deep research failed: ${crawlResult.ok ? 'no summary' : 'crawl failed'}`);
+        }
+      } catch (error) {
+        if (log) log.debug(`❌ Deep research error: ${error}`);
+      }
+    } else {
+      if (log) log.debug(`⏭️ Skipping deep research: deepResearch=${deepResearch}, results=${results.length}`);
+    }
+    
+    return { ok: true, results, deepSummary };
     
   } catch (e) {
     if (log) {

@@ -23,9 +23,9 @@ export async function performDeepResearch(
   const optimized = await optimizeQueries(query, context, log).catch(() => [query]);
   const queries = Array.isArray(optimized) && optimized.length > 0 ? optimized.slice(0, 6) : [query];
 
-  // Execute searches in parallel
+  // Execute searches in parallel with deep research enabled
   const settled = await Promise.allSettled(
-    queries.map((q) => searchTravelInfo(q, log))
+    queries.map((q) => searchTravelInfo(q, log, true)) // Enable deep research
   );
 
   // Collect results
