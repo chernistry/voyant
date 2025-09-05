@@ -535,17 +535,13 @@ export async function blendWithFacts(
       /how\s+much/i,
       /exchange\s+rate|currency/i
     ];
-    
-    const queryType = await detectQueryType(input.message, ctx);
-    
-    // Only propose web search for flights; for budget, stay catalog-based
-    if ((queryType === 'flight') && input.threadId) {
-      // Store the pending search query and set consent state
+    // Be conservative: only trigger flight search if user explicitly mentions flight terms
+    const explicitFlight = /\b(airline|flight|fly|plane|ticket|booking|which\s+airlines|what\s+airlines)\b/i.test(input.message);
+    if (explicitFlight && input.threadId) {
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
       }, []);
-      
       const searchType = 'flight and airline information';
       return {
         reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,

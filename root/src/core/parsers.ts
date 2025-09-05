@@ -153,10 +153,39 @@ function parseCityWithNLP(text: string): ParseResponse<z.infer<typeof CityParseR
   try {
     const doc = nlp.readDoc(text);
     
-    // Skip naive entity-first acceptance to avoid false positives like "Hey" or generic nouns
-    // keep heuristics only as last resort (handled in parseCity)
+    // 1) Try lightweight entity-like detection by capitalized token sequences anywhere
+    //    Guard against temporal words and generic greetings.
+    const tokensAny = doc.tokens().out() as string[];
+    const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay']);
+    for (let i = 0; i < tokensAny.length; i++) {
+      const t = tokensAny[i] || '';
+      if (!t) continue;
+      if (/^[A-Z][a-z]+$/.test(t) && !TEMPORAL_WORDS.includes(t.toLowerCase()) && !stoplist.has(t.toLowerCase())) {
+        // Build up to 3-token proper-noun sequence
+        let city: string = t;
+        for (let j = i + 1; j < Math.min(i + 3, tokensAny.length); j++) {
+          const nxt = tokensAny[j] || '';
+          if (nxt && /^[A-Z][a-z]+$/.test(nxt) && !TEMPORAL_WORDS.includes(nxt.toLowerCase())) {
+            city += ' ' + nxt;
+          } else {
+            break;
+          }
+        }
+        // Exclude trailing punctuation artefacts
+        const splitCity = String(city || '').split(/[.,!?]/)[0];
+        city = (splitCity ? splitCity : '').trim();
+        if (/^[A-Z][A-Za-z\- ]+$/.test(city)) {
+          return {
+            success: true,
+            data: { city, normalized: city, confidence: 0.66 },
+            confidence: 0.66,
+            normalized: city,
+          };
+        }
+      }
+    }
 
-    // Fallback to capitalized words after prepositions
+    // 2) Fallback to capitalized words after prepositions (e.g., "in Boston")
     const tokens = doc.tokens();
     const tokenArray = tokens.out();
     
@@ -295,19 +324,18 @@ function parseDateWithNLP(text: string): ParseResponse<z.infer<typeof DateParseR
   try {
     const doc = nlp.readDoc(text);
     
-    // Extract temporal entities
-    const entities = doc.entities();
-    if (entities.length() > 0) {
-      const entityItems = entities.itemAt(0);
-      if (entityItems) {
-        const dateStr = entityItems.out();
-        return {
-          success: true,
-          data: { dates: dateStr, month: dateStr, confidence: 0.7 },
-          confidence: 0.7,
-          normalized: dateStr,
-        };
-      }
+    // Extract temporal-like tokens only if they resemble months or dates
+    const monthRegex = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
+    const textHasMonth = monthRegex.test(text);
+    if (textHasMonth) {
+      const m = text.match(monthRegex)!;
+      const dateStr = m[0];
+      return {
+        success: true,
+        data: { dates: dateStr, month: dateStr, confidence: 0.7 },
+        confidence: 0.7,
+        normalized: dateStr,
+      };
     }
     
     // Fallback to month name extraction
@@ -543,7 +571,6 @@ export async function extractSlots(text: string, context?: Record<string, any>, 
   if (originDestResult.success && originDestResult.data) {
     if (originDestResult.data.originCity) {
       slots.originCity = originDestResult.data.originCity;
-      slots.city = originDestResult.data.originCity; // Backward compatibility
     }
     if (originDestResult.data.destinationCity) {
       slots.city = originDestResult.data.destinationCity;

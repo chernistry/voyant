@@ -2,10 +2,15 @@ import { RouterResult, RouterResultT } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
 import { z } from 'zod';
 import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
+import winkNLP from 'wink-nlp';
+import model from 'wink-eng-lite-web-model';
+import { parseDate, parseOriginDestination } from './parsers.js';
 import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
 import type pino from 'pino';
+
+const nlp = winkNLP(model);
 
 export async function routeIntent(input: { message: string; threadId?: string; logger?: { log: pino.Logger } }): Promise<RouterResultT> {
   if (typeof input.logger?.log?.info === 'function') {
@@ -28,10 +33,11 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   
   // Detect complex multi-constraint queries and request deep research consent (flagged)
   if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
-    const complexity = detectComplexQuery(input.message);
-    // Destination discovery with known constraints should prefer catalog, not deep research
-    const looksLikeDestinationDiscovery = /\b(where to go|where can i travel|destinations?|go from|travel from|trip|ideas?)\b/i.test(input.message);
-    if (!looksLikeDestinationDiscovery && complexity.isComplex && complexity.confidence >= 0.7) {
+    const complexity = await detectComplexQuery(input.message, input.logger?.log);
+    // Feature: ask consent for rich, multi-constraint planning regardless of phrasing
+    const looksLikeDestinationDiscovery = /\b(where to go|where can i travel|destinations?|go from|travel from)\b/i.test(input.message);
+    const forceDeepResearch = /budget|afford|cost|price/i.test(input.message) && /kids?|children|family/i.test(input.message) && /June|July|August|January|February|March|April|May|September|October|November|December|summer|winter|spring|fall|autumn|week|month/i.test(input.message);
+    if ((forceDeepResearch || !looksLikeDestinationDiscovery) && complexity.isComplex && complexity.confidence >= 0.7) {
       if (input.threadId) {
         updateThreadSlots(input.threadId, {
           awaiting_deep_research_consent: 'true',
@@ -388,21 +394,35 @@ function extractJsonObject(text: string): unknown | undefined {
   }
 }
 
-function detectComplexQuery(message: string): { isComplex: boolean; confidence: number; reasoning: string } {
+async function detectComplexQuery(message: string, log?: any): Promise<{ isComplex: boolean; confidence: number; reasoning: string }> {
   const m = message || '';
+  // NLP-first using our parsers and light tokenization
   const categories: string[] = [];
-  const hasOrigin = /\b(from|leaving|out of|ex)\s+[A-Z][A-Za-z]/.test(m);
-  if (hasOrigin) categories.push('origin');
-  const hasBudget = /(budget|cost|price|afford|cheap|expensive|\$\s*\d|£\s*\d|€\s*\d)/i.test(m);
-  if (hasBudget) categories.push('budget');
-  const hasGroup = /(\d+\s*(kids?|children|people|adults|family)|family|kids?)/i.test(m);
-  if (hasGroup) categories.push('group');
-  const hasTime = /(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|next\s+week|this\s+month|in\s+\w+)/i.test(m);
-  if (hasTime) categories.push('time');
-  const hasSpecial = /(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)/i.test(m);
-  if (hasSpecial) categories.push('special');
-  const score = Math.max(0, categories.length - 2);
-  const confidence = Math.min(0.6 + 0.1 * score, 0.95);
-  const isComplex = categories.length >= 3;
-  return { isComplex, confidence, reasoning: `constraints: ${categories.join(', ')}` };
+  try {
+    const doc = nlp.readDoc(m);
+    const lower = m.toLowerCase();
+    if (/[£$€]/.test(m) || /\b(budget|cost|price|afford|expensive|cheap|spend|currency|exchange)\b/.test(lower)) categories.push('budget');
+    if (/\b(kids?|children|family|adults|people|toddler|parents)\b/.test(lower) || /\b\d+\b/.test(lower)) categories.push('group');
+    const date = await parseDate(m).catch(() => ({ success: false } as const));
+    if ((date as any).success) categories.push('time');
+    const od = await parseOriginDestination(m).catch(() => ({ success: false } as const));
+    if ((od as any).success && ((od as any).data?.originCity || (od as any).data?.destinationCity)) categories.push('origin');
+    if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower)) categories.push('special');
+    const uniq = Array.from(new Set(categories));
+    const score = Math.max(0, uniq.length - 2);
+    const confidence = Math.min(0.6 + 0.1 * score, 0.95);
+    const isComplex = uniq.length >= 3;
+    if (isComplex) return { isComplex, confidence, reasoning: `constraints: ${uniq.join(', ')}` };
+  } catch {}
+  // LLM fallback with JSON
+  try {
+    const template = await getPrompt('complexity_assessor');
+    const prompt = template.replace('{message}', m);
+    const raw = await callLLM(prompt, { responseFormat: 'json', log });
+    const json = JSON.parse(raw);
+    const schema = z.object({ isComplex: z.boolean(), confidence: z.number().min(0).max(1), reasoning: z.string() });
+    const result = schema.parse(json);
+    return result;
+  } catch {}
+  return { isComplex: false, confidence: 0.4, reasoning: 'insufficient_signal' };
 }

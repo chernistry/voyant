@@ -184,7 +184,12 @@ export async function runGraphTurn(
     }
   }
   // Treat short refinement messages as continuations of the previous intent
-  if (/\b(kids?|children|family|make it kid|kid-friendly|kid friendly)\b/i.test(message) && lastIntent && lastIntent !== 'unknown') {
+  // But DO NOT override if the user explicitly asks about attractions/what to do
+  // or clearly introduces a new city (e.g., "Let's say Boston", "in Boston").
+  const mentionsKidContext = /\b(kids?|children|family|make it kid|kid-friendly|kid friendly|toddler|3\s*-?\s*year|stroller)\b/i.test(message);
+  const explicitlyAsksAttractions = /\b(attractions?|what to do|what should we do|do in|museum|activities)\b/i.test(message);
+  const introducesNewCity = /\b(let'?s\s+say|in|to)\s+[A-Z][A-Za-z\- ]+/.test(message);
+  if (mentionsKidContext && lastIntent && lastIntent !== 'unknown' && !explicitlyAsksAttractions && !introducesNewCity) {
     if (ctx.log && typeof ctx.log.debug === 'function') {
       ctx.log.debug({ priorIntent: intent, continuing: lastIntent }, 'refinement_intent_override');
     }

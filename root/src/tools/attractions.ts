@@ -53,13 +53,18 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
     
     // First pass with kinds tuned to profile
     const baseKinds = 'museums,monuments,historic,cultural,interesting_places,tourist_facilities,urban_environment,natural';
-    const kidKinds = 'amusements,theme_parks,playgrounds,zoo,aquarium,urban_environment,parks,gardens,museums';
-    const pois = await searchPOIs({ 
+    // Use only kinds known to OpenTripMap; avoid unknowns that cause 400s.
+    const kidKinds = 'amusements,aquarium,zoo,museums,gardens,urban_environment,natural,tourist_facilities';
+    let pois = await searchPOIs({ 
       lat: first.latitude, 
       lon: first.longitude, 
       limit,
       kinds: profile === 'kid_friendly' ? kidKinds : baseKinds
     });
+    // If kid-specific kinds caused a 4xx, retry with base kinds
+    if (!pois.ok && profile === 'kid_friendly' && pois.reason === 'http_4xx') {
+      pois = await searchPOIs({ lat: first.latitude, lon: first.longitude, limit, kinds: baseKinds });
+    }
     if (pois.ok && pois.pois.length >= 3) {
       // Enrich with short descriptions when we have ample results (helps E2E expectations)
       const top = pois.pois.slice(0, Math.max(3, Math.min(limit, 5)));

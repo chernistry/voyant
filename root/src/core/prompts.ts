@@ -23,7 +23,8 @@ type PromptName =
   | 'search_query_optimizer'
   | 'search_extract_weather'
   | 'search_extract_country'
-  | 'search_extract_attractions';
+  | 'search_extract_attractions'
+  | 'complexity_assessor';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -95,6 +96,9 @@ export async function preloadPrompts(): Promise<void> {
   PROMPTS.search_extract_attractions = await loadFileSafe(
     path.join(base, 'search_extract_attractions.md'),
   );
+  PROMPTS.complexity_assessor = await loadFileSafe(
+    path.join(base, 'complexity_assessor.md'),
+  );
   loaded = true;
 }
 
@@ -102,5 +106,3 @@ export async function getPrompt(name: PromptName): Promise<string> {
   if (!loaded) await preloadPrompts();
   return PROMPTS[name] ?? '';
 }
-
-

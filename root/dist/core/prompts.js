@@ -36,6 +36,7 @@ export async function preloadPrompts() {
     PROMPTS.search_extract_weather = await loadFileSafe(path.join(base, 'search_extract_weather.md'));
     PROMPTS.search_extract_country = await loadFileSafe(path.join(base, 'search_extract_country.md'));
     PROMPTS.search_extract_attractions = await loadFileSafe(path.join(base, 'search_extract_attractions.md'));
+    PROMPTS.complexity_assessor = await loadFileSafe(path.join(base, 'complexity_assessor.md'));
     loaded = true;
 }
 export async function getPrompt(name) {
