@@ -1,7 +1,7 @@
 Optimize user queries for web search engines using best practices.
 
 Rules:
-- Generate ≤7 words maximum
+- Generate 4-8 words
 - Use specific keywords, avoid filler words
 - Include location/time when relevant
 - Preserve core search intent
