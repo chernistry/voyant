@@ -101,11 +101,13 @@ RECORD_TRANSCRIPTS=true npm test -- tests/e2e_comprehensive_flow.test.ts
 
 ## Agent Decision Flow
 
-🔗 [View Interactive Flow Diagram](https://mermaidchart.com/play#pako:eNq1WFtT2zgU_itnPLNDmAIhFy5Jd9qBQIEWaJuEAIFOR7GVWIsteSWZkAIzfdr33f2H_SV7JDm2Q9lZXpYXkHzul-8cce_5IqBe27vm40hM_ZBIDf29aw74s3N17Z0pKuGEKkUm9Nr7Aqurb2AX70PCg4h2QqIry3jvGHbt5879tdelPmWJVhCj-LdQqU7DGQgJMrtHnkfH0zE8D5dUPUC3hoKPBQkgIkrntDCWIgYVCQ0xjYWc5fq6NauwW0e-UcqiYK62d0MjqgUv2datO9oG0t5SycazHa6mVFaWoXJ8fALvex9PS9QNR928Mr7oVPLcnFXBoxmekqgwxDlxKh5gDxmSVIVZyCo6lJQER0Ehes9K3kc6mfIDSZKwj-IrsWNYgUUOx_PLL_BJ0lUpUs34BPyQ-jeqDb7ginINE6KpI9y3wt-hcB9jqNDLjuAaaTI3l9ugZwlqoXdJxHymQVEi_XAFYnZHTeD5JEUzVG7uOyvxAHO6MyXMqncsc-1v81QeFKk8MKkMqKa-7jiywoAZVVUuqin3IxSUKzqwyXyYGfZDwy4SzWL2jfasus8plbNSPg9d7g9N7hMqx0LG53TkaE-x6Mqk9YyUIK1K45jIXGyXqjTCGrO2wY8__nKZhVeAwSGaofFwtbQryS0Fx7H05anJHPN-2LCVgqxtOBWQSDGKaLy2tlYQ5zVyZHKPqaRHNjUla_Nsd7NMY5fZylfuy5F15P0if2W5_etIvlmFJyk3PmQ3jtA56WjpnZbE1z0jGyro66waYBVBQiR2vMqoTGNYTRKFjUkUjYh_AyFNJVOa-UWVvLeGfcAqOWGo0RSJkfy2JFqBTCNa6vwPRbkc1-Yd3ImI6U2UgAlXJv7zBjW5mZtQ5PbYlcFxvWhUoz6ioImcYAEG8HsmKOf5kGfixBQE1ccIN_NYvkaQQUZn_2tIE2N73_akDdbTTGWhVVOm_dDdnliTTjEY7mPu8alVPKVEh1Q-wGfUnh1cDVgfsW54cM50-A7zo0pl7LgD4wx3lYmQadusuHm5nATDiIF6gJ5pIHd4OTfRtnycEX2UULp4uZQpHX11YPIAZzYYzzewo1YzpWmMBl8ak93pWcKU33Ax5Q8wQLrs8F9G5fnM4ArEeIx9AIwrFlD8ZRKZdWHf5re_gwmWGHuSSsJ1dZQGWG-m2uSswMT-TlHl_Z2OqzcgGZRm3n-dA_krSNC20gcr7TUQdZODvRaAccpAOPc802OKur9u4B8xgPGUFhPNDbRdNHocsUn4bwZ3d0sDeff_MzjTYwzu_mRwng2bIpcxi4UIW1RyEqFQEWXp-Gw9OzcQgv6cu4aCyke07Mf3P08QA8QCeIBF8-XsDuXnNvUySZmF688eG05PR6Rcy5kzsNLd7_XBXTFEupepm0s0SwZuFyKO0c29UjcjehJNIjHBOC9qeE5c34nrm0CcsxuW0IARKDXmczxugo0Ji6o0TvQMy8dAqQleX7LkhCTPOPNEUJ6t8zzNOEd0hoZn1qqLmq0k861vRERHfCyg4mKTm3Ph0PyibldIO5mLyryoF5V50cjFfc0n-nzBqP34_nfDTDIyMeuVAsTmEK74FzPTMTuvoCdS6eNfEY6xQrnb-S4Wdr4X7wKZdaaeLzaKXcAXaRTwJQ1jhuUrcS29RbBAPBmLxdidOZzKkAbsfo195b4PrGWDGoZlf3FxM0s1pzRQpR4rQjaoFSE7W7gydg5MmM84GoUjLqj2LKJW9xEVwCeKlkI_cM7ltMhb2neOlmIgoG1awSwciInoAq5k80uDCqy0VGbyegWiL9zvx-I3Vj1goxGyqbC6byqzOkBkgUiYmTUwOdpBjDE6CNhFkpa1LQ78TOxHAwxTpqhZOBYgP06EoiZFiCzEPgvcx3NXj5eu5T_hOyTRFTd5qr5ACDXA5HrRxw7B8st1nrtqusxOzfKpX1s41cunQflwaQ9D0zu3JGJmFTkVnawYS3Nv6AQOTUJtX2LdRREu3zQokjgs9c-wUWw-80fTM2-VoXNiuGnCnRioB8FxN7Ltg4sSN3YAG-PrwW59BWPRDcPN7GrTydqyS-LCY6Nk41bJxm3Uis-eMbuDKZF8Qf5WIb-FZLhy_0SynQVvvehnl2HX1ZVyW6MLhM9KjrfmzAvDyIGgWnhrzS9Ry-F8MYb5S82-Fach5XaVTjm5RaQlWDZVfG2bCTnG7YL7Zup5K95EssBra5nSFQ-30JiYo3dv1F17WLwx0rXBbHxjgth4ja_2R2RLCB8KEc85Ufck9NoI2QpPboHdYwYL4_xWYiqptOPEa282W1aI17737rz2ar3eWGtubNW3axu1za2NZqO54s3wvtFqrjXqza3aZmu7XttotZqPK943q7m2tlnfarY2ttbrjcZGbb21seLh-NFCnrj_L9h_Mzz-A9xQUpQ@index.html)
+🔗 [View Interactive Flow Diagram](https://www.mermaidchart.com/play#pako:eNq1V91SGzcUfpUzzHQw0ybmL3-kk4wxjoEASWxjwCHDyLuyvY1W2qy0GDdkJled3rZ9iL5XnqTnSPJqDWRKL8oNs_LR0Xe-8_95KVIxX9paOpcjoabRhOUGejvnEvCv8f586VjzHA651mzMz5c-wIMHL6Cx-vl8qZVmZlbnqfolqY-T4ZDniZ68PF_64u-ukuj1GdfX0FhDRR2eidkWNPRHGKkcGESCsxxMzi65gE8F1yZREp9YuH-krmEbb0-YjAVvTpiprZQy2xZN8zMpj3iSGQ0pWvMSavXpZAb4Su7PV0pczQCrQ7AOFItBMG1KWRjlKgUtlIEUzctn5XudNftgZx3vDYtExPNnux-54EbJCrbOupPdQNlL5GY0a0g95XltBWoHB4ew331zVJHecNKblihT5LKE80BJMcMvZK8Ub5bc7OCFrNAT76GameScxXtxUL1jNbdQLi9kO2fZpIfqa6m78BMs3nB3fvgBmkpqLg2MmeEahhx9xiFXhUnk2Am1rOI2st-YsoTOYcqHoNGr0QQidz8ERDsQ3ybiY254ZPwznpWVLZhxXZeqXkgbHqUVbUv99Yyu79J1lZkkTX7lXfvcu4Lnswr7u85Tu-SpjOcIPj3hQyd7hCFSFV33ogxldZGmLC_VdrguBEbEt9_-dB6AHyFKDKNI1fB-eZuCF5zs8oebYCX6Z3cjhP6RgixXQ8HThw8fBuHSl-3NKpcx5xk--l06Nyt8PvrvfD4KfLYfB5Z28NWOf_QGUe3HzuFPQowuYrzF0M3XiJD2U7z-igkxZNHHLRtRHDIuY7L5E7kRLhPmzitwN0uW9iiS6dc9adDSCsgydjsuTAFrhs1jDTWn7yFVAiu1Z23ZX9RVW9n6eZi_eICliWmNKYts0jnZ5E-coCPXyfIrLGGR6bp30PZZPWZkE8uxdGovpU2eRAYo8x0UG1NDppPIHtoIKwQPnO07hFRqd1qttxedVrfV6DR3L1pHje2D1g58-_1vDIs0E_wqhMV-pezuU550uQHmY-qC_HUx99eFjym0boH_58CwRs9_rE0TQ65lWkkUCeGwHwr0a8R4mCA_qMLy_bJChHZ2hQq877LDgoICObqGlvvldcB-sDavsU3BqHqi7ne-R8xLKHE28pEUcB241D9YD2FKwAQHw_IxJkl8u9m8Lk05pCLAzQE2hHlMPMc2gBdhlAj0G_ch9RyKjMzr2fJpvX8zDH2saGQQs8P6WyDR1JeMUkI7wUML9wgpdPIlT0cW1JQzMyGO3iEy_-FiPmg8QRe9whjUlWx1t2MyVLpsxIZny0Q4ub-eDClGEq-hS6XCfdz_NjM2RRyIHmqoHNxfCzaXCxe513Bsybi7oDtpPdOGpwj4jCC7rzsFC_lRqqm8hj7K-Y9_A3WrS6rRCHMdEqmTmOM_ciRWA3s5FJ2edXWvgb7GJDSsyBnetUkXMrjXCFnQazRdPIYU_l7uzn-4I4WNqjTm0nr_DgV9bxVfQWl8oOBhJnEjyTai5VeZSDCjYSSS8eQW5M52Zaja_v8g-3cIcucW5NIn1lE-1agDYIHmuWSimnTvrG0nVGSwJJy4tILaG0T27esfh1gl1EJ5AdvpV_wZ6i8xdb0mj3D1zs8N905TFdLkMwewhgW9B-4o4fqez8010qCIE6JKUzRzp5LTWHmZYUKNkefFF-5S13PqelQsyfhenmSHLLsDzI3LJdsnYeTLkMV5p62HbPXp4HPg2D54umaDhH7u2QVgT44U1JzZJbpTV8pP1-2Eb0exEHSn6yHoTjdKdRflCDefgNa-ff1rg9oxG9P0q5GYriryCDkXiTbhNTeDny7M4Pee-Twcis3TR2Hmi1QhYrmMmZNgKOa4JlxSzido7iKPx67yeLLA7jvUT2_WkL4F2V-jDWyelc7yQE1_LVBzvHBE8PpE57FELNi-4nrXlsZ6K8YWFzHNKxT3nU2lLN6tjLN7yylucX5_o-kIKxoip-UuLHUUeCVHXl83lOaF85bdJdvzXbLuNsw-jYRCUfPpk2tuLJD8-yukV_uGcnuaaE5TxULtTjOlqa9TcWB2O7tF94kLwTOXwG9xM8xMzXWTeqRM3Yq7zIowXzDiyudPXDyd-a_N6ldvvfrVr36c2Y8BJcglEwnNGEeq6QOw0r0GDtmAvGnzEmNNCFwBeBw8OKgkyWAjzDbzxfWOfXHgYA9oKWhkmR1YJAdtUwZHIUk4IBlB6ia-cDFkwOCxP3Irw-CJHRCvOG3aclzg3lmJssGTCkbaDt7mfJRcwZTlckH_k6D_GYrhOnVL5KknbzXksHOvy-RaNZXRBCZnFcOfzS8vNBNXBHV1bSgP8ZVdXmCwGhzj_XIMdl-fTri0g30h2SVLBMNAqQs1pQ43whlBRtS1lr78A3_5tkk)
 
 ```mermaid
 flowchart TD
-    A["User Message"] --> B["handleChat()"]
+    A["User Message"] --> A0{"Empty/emoji/gibberish?"}
+    A0 -->|Yes| A1["Reply: Ask for a clear travel question"]
+    A0 -->|No| B["handleChat()"]
     B --> C{"Receipts mode? (/why or receipts)"}
     C -->|Yes| R1["Load last receipts from slot memory"]
     R1 --> R2["buildReceiptsSkeleton()"]
@@ -114,24 +116,31 @@ flowchart TD
     C -->|No| D["pushMessage(threadId)"]
     D --> E["runGraphTurn(message, threadId)"]
 
-    %% Pre-routing checks: consent gate
-    E --> F["classifyContent() (LLM): type, explicit search, mixed languages"]
-    F --> G{"Awaiting search consent?"}
+    %% Consent gates before routing
+    E --> G{"Awaiting web search consent?"}
     G -->|Yes| G1["detectConsent() (LLM): yes/no/unclear"]
     G1 -->|yes| H1["optimizeSearchQuery()"]
     H1 --> H2["performWebSearchNode()"]
-    H2 --> H2a["summarizeSearchResults (LLM) → reply + citations ['Brave Search']"]
+    H2 --> H2a["summarizeSearchResults → reply + citations ['Brave Search']"]
     G1 -->|no| H3["Reply: No problem..."]
-    G -->|No| I["routeIntentNode()"]
+    G -->|No| G4{"Awaiting deep research consent?"}
+    G4 -->|Yes| G5["detectConsent() (LLM): yes/no/unclear"]
+    G5 -->|yes| G6["performDeepResearchNode()"]
+    G6 --> G7["Return deep research reply + citations"]
+    G5 -->|no| G8["Fallback: route pending query via router"]
+    G4 -->|No| I["routeIntentNode()"]
 
-    %% Routing and slots
-    I --> J["routeIntent():<br>- classifyContent + classifyIntent (LLM)<br>- extractSlots (city/date parsers)<br>- LLM router + fallback heuristics"]
-    J --> K{"Missing slots? (city/dates rules)"}
+    %% Routing and slots (router.ts)
+    I --> J["routeIntent():<br>- classifyContent + classifyIntent (LLM)<br>- extractSlots (city/date parsers)<br>- strict LLM router → basic LLM → rules"]
+    J --> J0{"DEEP_RESEARCH_ENABLED ∧ complex?"}
+    J0 -->|Yes| J1["Set awaiting_deep_research_consent + pending query; ask consent (with reasoning)"]
+    J0 -->|No| K{"Missing slots? (city/dates rules)"}
+    J1 -->|await user| E
     K -->|Yes| L1["buildClarifyingQuestion() (LLM → fallback)"]
     L1 --> L2["Return single targeted question"]
-    K -->|No| M["setLastIntent(); merge slots; updateThreadSlots()"]
+    K -->|No| M["setLastIntent(); merge filtered slots; updateThreadSlots()"]
 
-    %% Intent switch
+    %% Intent switch → blend or tools
     M --> N{"Intent"}
     N -->|weather| Q["weatherNode() → blendWithFacts()"]
     N -->|destinations| R["destinationsNode() → blendWithFacts()"]
@@ -141,11 +150,11 @@ flowchart TD
     N -->|system| SYS["systemNode()"]
     N -->|unknown| V["unknownNode() → blendWithFacts()"]
 
-    %% Consent offers inside intents
-    T --> TA{"restaurant/budget query?"}
+    %% Consent offers inside intents (blend.ts)
+    T --> TA{"restaurant query?"}
     TA -->|Yes| TAC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
     TA -->|No| T0["continue"]
-    R --> RB{"flight/budget query?"}
+    R --> RB{"explicit flight query?"}
     RB -->|Yes| RBC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
     RB -->|No| R0["continue"]
 
@@ -155,18 +164,17 @@ flowchart TD
     R0 --> W1
     R0 --> W3["getCountryFacts (REST Countries → fallback Brave) → facts"]
     R0 --> W4["recommendDestinations (catalog + REST Countries) → facts"]
-    T0 --> T1["Wikipedia attractions → facts"]
-    T1 -->|fail/empty| T2["OpenTripMap → fallback Brave → facts"]
+    T0 --> T2["OpenTripMap → fallback Brave → facts"]
 
-    %% Web search path
+    %% Web search path (router/web_search intent)
     U --> X1["searchTravelInfo (Brave)"]
     X1 --> X2{"Results?"}
-    X2 -->|Yes| X3["search_summarize (LLM): 1–3 paragraphs with [n] cites + Sources list"]
+    X2 -->|Yes| X3["search_summarize (LLM): 1–3 paragraphs + Sources list"]
     X3 --> X4["Return reply + citations ['Brave Search']"]
     X2 -->|No| X5["Reply: couldn't find relevant info"]
 
-    %% Unknown intent handling
-    V --> V1{"Explicit search or needs web search?"}
+    %% Unknown intent handling (blend.ts)
+    V --> V1{"Explicit search?"}
     V1 -->|Yes| U
     V1 -->|No| V2{"Unrelated/System/Edge cases?"}
     V2 -->|Unrelated| V3["Reply: I'm a travel assistant for travel queries"]
@@ -174,11 +182,10 @@ flowchart TD
     V2 -->|Emoji/Gibberish/Empty/Very long| V4["Ask for a clearer travel question"]
     V2 -->|Otherwise| L1
 
-    %% Compose final answer
+    %% Compose final answer (blend.ts)
     W1 --> Y["getPrompt(system/cot/blend) → callLLM"]
     W3 --> Y
     W4 --> Y
-    T1 --> Y
     T2 --> Y
     V --> Y
     Y --> Z1["validateNoCitation()"]
@@ -193,7 +200,7 @@ flowchart TD
     Z9 --> Z10
 
     %% Fallbacks
-    E --> Fallbacks["Heuristic routing only when LLM unavailable/low confidence"]
+    I --> Fallbacks["Heuristic routing only when LLM unavailable/low confidence"]
 ```
 
 ## Usage
