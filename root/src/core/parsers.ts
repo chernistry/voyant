@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import { callLLM } from './llm.js';
 import { getPrompt } from './prompts.js';
-import winkNLP from 'wink-nlp';
-import model from 'wink-eng-lite-web-model';
-
-// Initialize wink-nlp once
-const nlp = winkNLP(model);
+import type pino from 'pino';
 
 // Confidence thresholds (tunable)
 const CITY_NLP_MIN = 0.65;
@@ -71,7 +67,7 @@ const OriginDestinationParseResult = z.object({
 });
 
 /**
- * LLM-first city parser with wink-nlp NER fallback
+ * Transformers-first city parser (NER), then LLM, then heuristics.
  */
 export async function parseCity(
   text: string,
@@ -83,12 +79,36 @@ export async function parseCity(
     return { success: false, data: null, confidence: 0 };
   }
 
-  // NLP-first
-  const nlpCandidate = parseCityWithNLP(text);
-  if (nlpCandidate.success && (nlpCandidate.confidence ?? 0) >= CITY_NLP_MIN && nlpCandidate.data?.normalized) {
-    if (logger?.debug) logger.debug({ nlpCandidate }, 'city_nlp_accepted');
-    return nlpCandidate;
-  }
+  // Transformers.js NER
+  try {
+    const { extractEntities } = await import('./transformers-nlp.js');
+    const spans = await extractEntities(text, logger as pino.Logger, { timeoutMs: 800 });
+    // Prefer LOC spans; simple filters to avoid months and placeholders
+    const locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
+    const stop = new Set(['today','tomorrow','now','month','week']);
+    const cand = locs.find(s => {
+      const t = (s.text || '').trim();
+      if (!t) return false;
+      const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
+      const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
+      return looksProper && !isTemporal && !stop.has(t.toLowerCase());
+    });
+    if (cand && typeof cand.text === 'string' && cand.text.length > 0) {
+      const tval = String(cand.text || '');
+      const parts = String(tval || '').split(/[.,!?]/);
+      const firstPart = (parts.shift() ?? '');
+      const normalized = firstPart.trim();
+      if (normalized) {
+        if (logger?.debug) logger.debug({ ner: cand }, 'city_transformers_accepted');
+        return {
+          success: true,
+          data: { city: normalized, normalized, confidence: 0.72 },
+          confidence: 0.72,
+          normalized,
+        };
+      }
+    }
+  } catch {}
 
   // LLM fallback
   try {
@@ -109,7 +129,6 @@ export async function parseCity(
     if (isPlaceholder) {
       throw new Error('Low confidence or placeholder city');
     }
-    if (logger?.debug && nlpCandidate.success) logger.debug({ nlpCandidate, llm: result }, 'city_llm_override_nlp');
     return {
       success: true,
       data: result,
@@ -117,10 +136,11 @@ export async function parseCity(
       normalized: result.normalized,
     };
   } catch (error) {
-    // Heuristics last-resort: only after NLP and LLM failed
+    // Heuristics last-resort: only after NER and LLM failed
     const heuristicPatterns: Array<RegExp> = [
       /\b(?:let'?s\s+say|lets\s+say|say|how\s+about|maybe|consider)\s+([A-Z][A-Za-z\- ]+)/i,
       /\b([A-Z][A-Za-z\- ]+)\s+with\s+(?:a|the)\s+kid/i,
+      /\b(?:in|to)\s+([A-Z][A-Za-z\- ]+)/,
     ];
     for (const rx of heuristicPatterns) {
       const m = text.match(rx);
@@ -140,91 +160,14 @@ export async function parseCity(
         };
       }
     }
-    // Rules-last: if NLP produced a candidate with any signal, return it; else fail
-    if (nlpCandidate.success) return nlpCandidate;
     return { success: false, data: null, confidence: 0 };
   }
 }
 
-/**
- * Wink-NLP based city extraction fallback
- */
-function parseCityWithNLP(text: string): ParseResponse<z.infer<typeof CityParseResult>> {
-  try {
-    const doc = nlp.readDoc(text);
-    
-    // 1) Try lightweight entity-like detection by capitalized token sequences anywhere
-    //    Guard against temporal words and generic greetings.
-    const tokensAny = doc.tokens().out() as string[];
-    const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay','what','where','when','why','how','which','who']);
-    for (let i = 0; i < tokensAny.length; i++) {
-      const t = tokensAny[i] || '';
-      if (!t) continue;
-      if (/^[A-Z][a-z]+$/.test(t) && !TEMPORAL_WORDS.includes(t.toLowerCase()) && !stoplist.has(t.toLowerCase())) {
-        // Build up to 3-token proper-noun sequence
-        let city: string = t;
-        for (let j = i + 1; j < Math.min(i + 3, tokensAny.length); j++) {
-          const nxt = tokensAny[j] || '';
-          if (nxt && /^[A-Z][a-z]+$/.test(nxt) && !TEMPORAL_WORDS.includes(nxt.toLowerCase())) {
-            city += ' ' + nxt;
-          } else {
-            break;
-          }
-        }
-        // Exclude trailing punctuation artefacts
-        const splitCity = String(city || '').split(/[.,!?]/)[0];
-        city = (splitCity ? splitCity : '').trim();
-        if (/^[A-Z][A-Za-z\- ]+$/.test(city)) {
-          return {
-            success: true,
-            data: { city, normalized: city, confidence: 0.66 },
-            confidence: 0.66,
-            normalized: city,
-          };
-        }
-      }
-    }
-
-    // 2) Fallback to capitalized words after prepositions (e.g., "in Boston")
-    const tokens = doc.tokens();
-    const tokenArray = tokens.out();
-    
-    for (let i = 0; i < tokenArray.length - 1; i++) {
-      const token = tokenArray[i];
-      const nextToken = tokenArray[i + 1];
-      
-      if (token && nextToken && 
-          /^(from|to|in|at|for|out|leaving|ex)$/i.test(token) && 
-          /^[A-Z][a-z]+/.test(nextToken) &&
-          !TEMPORAL_WORDS.includes(nextToken.toLowerCase())) {
-        // Look ahead for multi-word city names
-        let city = nextToken;
-        for (let j = i + 2; j < Math.min(i + 4, tokenArray.length); j++) {
-          const laterToken = tokenArray[j];
-          if (laterToken && /^[A-Z][a-z]+/.test(laterToken) && !TEMPORAL_WORDS.includes(laterToken.toLowerCase())) {
-            city += ' ' + laterToken;
-          } else {
-            break;
-          }
-        }
-        
-        return {
-          success: true,
-          data: { city, normalized: city, confidence: 0.6 },
-          confidence: 0.6,
-          normalized: city,
-        };
-      }
-    }
-    
-    return { success: false, data: null, confidence: 0 };
-  } catch (error) {
-    return { success: false, data: null, confidence: 0 };
-  }
-}
+// wink-based city fallback removed
 
 /**
- * LLM-first date parser with wink-nlp temporal extraction fallback
+ * Date parser without wink/compromise: immediate terms → regex months → LLM.
  */
 export async function parseDate(
   text: string,
@@ -243,33 +186,34 @@ export async function parseDate(
     };
   }
 
-  // Optional Compromise fast-path behind flag
-  if (process.env.USE_COMPROMISE_DATES === 'true') {
-    try {
-      const nlpMod = (await import('compromise')).default as any;
-      const datesMod = (await import('compromise-dates')).default as any;
-      const n = nlpMod.extend(datesMod);
-      const doc = n(text);
-      const found = doc?.dates()?.get?.()?.[0]?.text || '';
-      if (found) {
-        if (logger?.debug) logger.debug({ found }, 'date_compromise_accepted');
+  // Transformers.js NER for DATE/TIME entities (preferred)
+  try {
+    const { extractEntities } = await import('./transformers-nlp.js');
+    const spans: Array<{ entity_group: string; text: string }> = await extractEntities(text, logger);
+    const dateLike = (spans || []).filter(s => /DATE|TIME/i.test(String(s.entity_group || '')));
+    const picked = dateLike[0];
+    if (picked && typeof picked.text === 'string' && picked.text.trim().length > 0) {
+      // Normalize via LLM date parser to keep logic consistent
+      const snippet = picked.text.trim();
+      const promptTemplate = await getPrompt('date_parser');
+      const prompt = promptTemplate
+        .replace('{text}', snippet)
+        .replace('{context}', context ? JSON.stringify(context) : '{}');
+
+      const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
+      const json = JSON.parse(raw);
+      const result = DateParseResult.parse(json);
+      if (result.confidence >= 0.5 && result.dates) {
         return {
           success: true,
-          data: { dates: found, month: found, confidence: 0.75 },
-          confidence: 0.75,
-          normalized: found,
+          data: result,
+          confidence: result.confidence,
+          normalized: result.dates,
         };
       }
-    } catch {
-      // ignore missing deps or runtime errors
     }
-  }
-
-  // NLP-first via wink-nlp
-  const nlpCandidate = parseDateWithNLP(text);
-  if (nlpCandidate.success && (nlpCandidate.confidence ?? 0) >= DATE_NLP_MIN && nlpCandidate.data?.dates) {
-    if (logger?.debug) logger.debug({ nlpCandidate }, 'date_nlp_accepted');
-    return nlpCandidate;
+  } catch {
+    // ignore and continue to LLM fallback
   }
 
   // LLM fallback
@@ -291,7 +235,6 @@ export async function parseDate(
     ) {
       throw new Error('Low confidence or placeholder result');
     }
-    if (logger?.debug && nlpCandidate.success) logger.debug({ nlpCandidate, llm: result }, 'date_llm_override_nlp');
     return {
       success: true,
       data: result,
@@ -311,59 +254,11 @@ export async function parseDate(
         normalized: month,
       };
     }
-    // If NLP produced any signal, return it as last resort
-    if (nlpCandidate.success) return nlpCandidate;
     return { success: false, data: null, confidence: 0 };
   }
 }
 
-/**
- * Wink-NLP based date extraction fallback
- */
-function parseDateWithNLP(text: string): ParseResponse<z.infer<typeof DateParseResult>> {
-  try {
-    const doc = nlp.readDoc(text);
-    
-    // Extract temporal-like tokens only if they resemble months or dates
-    const monthRegex = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
-    const textHasMonth = monthRegex.test(text);
-    if (textHasMonth) {
-      const m = text.match(monthRegex)!;
-      const dateStr = m[0];
-      return {
-        success: true,
-        data: { dates: dateStr, month: dateStr, confidence: 0.7 },
-        confidence: 0.7,
-        normalized: dateStr,
-      };
-    }
-    
-    // Fallback to month name extraction
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June', 'July',
-      'August', 'September', 'October', 'November', 'December', 'Jan', 'Feb',
-      'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    
-    const tokens = doc.tokens();
-    const tokenArray = tokens.out();
-    
-    for (const token of tokenArray) {
-      if (token && monthNames.some(month => month.toLowerCase() === token.toLowerCase())) {
-        return {
-          success: true,
-          data: { dates: token, month: token, confidence: 0.6 },
-          confidence: 0.6,
-          normalized: token,
-        };
-      }
-    }
-    
-    return { success: false, data: null, confidence: 0 };
-  } catch (error) {
-    return { success: false, data: null, confidence: 0 };
-  }
-}
+// wink-based date fallback removed
 
 /**
  * LLM-first origin/destination parser
@@ -373,13 +268,6 @@ export async function parseOriginDestination(
   context?: Record<string, any>,
   logger?: any,
 ): Promise<ParseResponse<z.infer<typeof OriginDestinationParseResult>>> {
-  // NLP-first
-  const nlpCandidate = parseOriginDestinationWithNLP(text);
-  if (nlpCandidate.success && (nlpCandidate.confidence ?? 0) >= OD_NLP_MIN) {
-    if (logger?.debug) logger.debug({ nlpCandidate }, 'od_nlp_accepted');
-    return nlpCandidate;
-  }
-
   // LLM fallback
   try {
     const prompt = `Extract origin and destination cities from this text. Return JSON with originCity and destinationCity fields (null if not found) and confidence (0-1).
@@ -396,7 +284,6 @@ Return only valid JSON.`;
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
     const json = JSON.parse(raw);
     const result = OriginDestinationParseResult.parse(json);
-    if (logger?.debug && nlpCandidate.success) logger.debug({ nlpCandidate, llm: result }, 'od_llm_override_nlp');
     if (result.confidence > 0.5) {
       return {
         success: true,
@@ -406,8 +293,15 @@ Return only valid JSON.`;
     }
     throw new Error('Low confidence result');
   } catch (error) {
-    // Rules-last: if NLP produced a candidate with any signal, return it; else fail
-    if (nlpCandidate.success) return nlpCandidate;
+    // Regex as last resort
+    const mFrom = text.match(/\bfrom\s+([A-Z][A-Za-z\- ]+)/i);
+    const mTo = text.match(/\bto\s+([A-Z][A-Za-z\- ]+)/i);
+    const mIn = text.match(/\bin\s+([A-Z][A-Za-z\- ]+)/i);
+    const originCity = mFrom?.[1]?.trim();
+    const destinationCity = (mTo?.[1] || mIn?.[1])?.trim();
+    if (originCity || destinationCity) {
+      return { success: true, data: { originCity: originCity || undefined, destinationCity: destinationCity || undefined, confidence: 0.6 }, confidence: 0.6 };
+    }
     return { success: false, data: null, confidence: 0 };
   }
 }
@@ -415,73 +309,7 @@ Return only valid JSON.`;
 /**
  * NLP-enhanced origin/destination parsing fallback
  */
-function parseOriginDestinationWithNLP(text: string): ParseResponse<z.infer<typeof OriginDestinationParseResult>> {
-  try {
-    const doc = nlp.readDoc(text);
-    const tokens = doc.tokens();
-    const tokenArray = tokens.out();
-    
-    let originCity: string | undefined;
-    let destinationCity: string | undefined;
-    
-    // Look for origin patterns
-    for (let i = 0; i < tokenArray.length - 1; i++) {
-      const token = tokenArray[i];
-      if (token && ['from', 'leaving', 'out'].includes(token.toLowerCase())) {
-        // Extract city name after preposition
-        let city = '';
-        for (let j = i + 1; j < Math.min(i + 4, tokenArray.length); j++) {
-          const nextToken = tokenArray[j];
-          if (nextToken && /^[A-Z][a-z]+/.test(nextToken) && !TEMPORAL_WORDS.includes(nextToken.toLowerCase())) {
-            city += (city ? ' ' : '') + nextToken;
-          } else if (nextToken && ['of', 'the'].includes(nextToken.toLowerCase())) {
-            continue; // Skip articles
-          } else {
-            break;
-          }
-        }
-        if (city) {
-          originCity = city;
-          break;
-        }
-      }
-    }
-    
-    // Look for destination patterns (but avoid temporal words)
-    for (let i = 0; i < tokenArray.length - 1; i++) {
-      const token = tokenArray[i];
-      if (token && ['to', 'at'].includes(token.toLowerCase())) { // Removed 'in' to avoid "in August"
-        let city = '';
-        for (let j = i + 1; j < Math.min(i + 4, tokenArray.length); j++) {
-          const nextToken = tokenArray[j];
-          if (nextToken && /^[A-Z][a-z]+/.test(nextToken) && !TEMPORAL_WORDS.includes(nextToken.toLowerCase())) {
-            city += (city ? ' ' : '') + nextToken;
-          } else if (nextToken && ['the'].includes(nextToken.toLowerCase())) {
-            continue;
-          } else {
-            break;
-          }
-        }
-        if (city && city !== originCity) {
-          destinationCity = city;
-          break;
-        }
-      }
-    }
-    
-    if (originCity || destinationCity) {
-      return {
-        success: true,
-        data: { originCity, destinationCity, confidence: 0.7 },
-        confidence: 0.7,
-      };
-    }
-    
-    return { success: false, data: null, confidence: 0 };
-  } catch (error) {
-    return { success: false, data: null, confidence: 0 };
-  }
-}
+// wink-based OD fallback removed
 
 /**
  * LLM-first intent parser
@@ -566,20 +394,20 @@ function parseIntentWithPatterns(text: string, context?: Record<string, any>): P
 export async function extractSlots(text: string, context?: Record<string, any>, logger?: any): Promise<Record<string, string>> {
   const slots: Record<string, string> = {};
   
-  // Parse origin/destination cities first (most specific)
+  // NLP-first: extract city via Transformers NER
+  const cityResult = await parseCity(text, context, logger);
+  if (cityResult.success && cityResult.data?.normalized && cityResult.confidence > 0.5) {
+    slots.city = cityResult.data.normalized;
+  }
+
+  // Then parse origin/destination; do not overwrite an already-detected city
   const originDestResult = await parseOriginDestination(text, context, logger);
   if (originDestResult.success && originDestResult.data) {
     if (originDestResult.data.originCity) {
       slots.originCity = originDestResult.data.originCity;
     }
-    if (originDestResult.data.destinationCity) {
+    if (!slots.city && originDestResult.data.destinationCity) {
       slots.city = originDestResult.data.destinationCity;
-    }
-  } else {
-    // Fallback to regular city parsing
-    const cityResult = await parseCity(text, context, logger);
-    if (cityResult.success && cityResult.data?.normalized && cityResult.confidence > 0.5) {
-      slots.city = cityResult.data.normalized;
     }
   }
   

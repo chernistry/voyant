@@ -2,13 +2,12 @@ import { RouterResult } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
 import { z } from 'zod';
 import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
-import winkNLP from 'wink-nlp';
-import model from 'wink-eng-lite-web-model';
+import { extractEntities } from './transformers-nlp.js';
 import { parseDate, parseOriginDestination } from './parsers.js';
 import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
-const nlp = winkNLP(model);
+// No winkNLP; use regex + transformers signals
 export async function routeIntent(input) {
     if (typeof input.logger?.log?.info === 'function') {
         input.logger.log.debug({ message: input.message }, 'router_start');
@@ -352,10 +351,9 @@ function extractJsonObject(text) {
 }
 async function detectComplexQuery(message, log) {
     const m = message || '';
-    // NLP-first using our parsers and light tokenization
+    // Heuristics + Transformers NER signal
     const categories = [];
     try {
-        const doc = nlp.readDoc(m);
         const lower = m.toLowerCase();
         if (/[£$€]/.test(m) || /\b(budget|cost|price|afford|expensive|cheap|spend|currency|exchange)\b/.test(lower))
             categories.push('budget');
@@ -367,6 +365,13 @@ async function detectComplexQuery(message, log) {
         const od = await parseOriginDestination(m).catch(() => ({ success: false }));
         if (od.success && (od.data?.originCity || od.data?.destinationCity))
             categories.push('origin');
+        try {
+            const ents = await extractEntities(m, log);
+            const hasLoc = Array.isArray(ents) && ents.some((e) => /LOC/i.test(String(e.entity_group || '')));
+            if (hasLoc)
+                categories.push('location');
+        }
+        catch { }
         if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower))
             categories.push('special');
         const uniq = Array.from(new Set(categories));
