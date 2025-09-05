@@ -33,6 +33,9 @@ export async function preloadPrompts() {
     PROMPTS.nlp_content_classification = await loadFileSafe(path.join(base, 'nlp_content_classification.md'));
     PROMPTS.search_summarize = await loadFileSafe(path.join(base, 'search_summarize.md'));
     PROMPTS.search_query_optimizer = await loadFileSafe(path.join(base, 'search_query_optimizer.md'));
+    PROMPTS.search_extract_weather = await loadFileSafe(path.join(base, 'search_extract_weather.md'));
+    PROMPTS.search_extract_country = await loadFileSafe(path.join(base, 'search_extract_country.md'));
+    PROMPTS.search_extract_attractions = await loadFileSafe(path.join(base, 'search_extract_attractions.md'));
     loaded = true;
 }
 export async function getPrompt(name) {

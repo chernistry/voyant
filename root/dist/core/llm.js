@@ -25,13 +25,13 @@ export async function callLLM(prompt, _opts = {}) {
     const preferredModel = process.env.LLM_MODEL ?? models[0];
     if (baseUrl && apiKey && preferredModel) {
         // Try preferred model first
-        const result = await tryModel(baseUrl, apiKey, preferredModel, prompt, format, log || undefined);
+        const result = await tryModel(baseUrl, apiKey, preferredModel, prompt, format, log || undefined, _opts.timeoutMs);
         if (result)
             return result;
         // Fallback to other models
         for (const model of models) {
             if (model !== preferredModel) {
-                const result = await tryModel(baseUrl, apiKey, model, prompt, format, log || undefined);
+                const result = await tryModel(baseUrl, apiKey, model, prompt, format, log || undefined, _opts.timeoutMs);
                 if (result)
                     return result;
             }
@@ -41,7 +41,7 @@ export async function callLLM(prompt, _opts = {}) {
     const openrouterKey = process.env.OPENROUTER_API_KEY;
     if (openrouterKey) {
         for (const model of models) {
-            const result = await tryModel('https://openrouter.ai/api/v1', openrouterKey, model, prompt, format, log || undefined);
+            const result = await tryModel('https://openrouter.ai/api/v1', openrouterKey, model, prompt, format, log || undefined, _opts.timeoutMs);
             if (result)
                 return result;
         }
@@ -50,11 +50,13 @@ export async function callLLM(prompt, _opts = {}) {
         log.warn('All LLM providers failed, using stub');
     return stubSynthesize(prompt);
 }
-async function tryModel(baseUrl, apiKey, model, prompt, format, log) {
+async function tryModel(baseUrl, apiKey, model, prompt, format, log, timeoutMs = 2500) {
     try {
         if (log?.debug)
             log.debug(`🔗 Trying model: ${model} at ${baseUrl}`);
         const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(new Error('llm_timeout')), Math.max(500, timeoutMs));
         const res = await undiciFetch(url, {
             method: 'POST',
             headers: {
@@ -68,7 +70,9 @@ async function tryModel(baseUrl, apiKey, model, prompt, format, log) {
                 max_tokens: 2000,
                 ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
             }),
+            signal: controller.signal,
         });
+        clearTimeout(timer);
         if (!res.ok) {
             const errorText = await res.text();
             if (log?.debug)
@@ -90,6 +94,21 @@ async function tryModel(baseUrl, apiKey, model, prompt, format, log) {
         if (log?.debug)
             log.debug(`❌ Model ${model} error: ${String(e)}`);
         return null;
+    }
+}
+/**
+ * Try to extract a JSON object from an LLM response safely.
+ * Returns undefined if no valid JSON object can be found.
+ */
+export function safeExtractJson(text) {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m)
+        return undefined;
+    try {
+        return JSON.parse(m[0]);
+    }
+    catch {
+        return undefined;
     }
 }
 function stubSynthesize(prompt) {

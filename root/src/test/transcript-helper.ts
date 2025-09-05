@@ -1,6 +1,7 @@
-import request from 'supertest';
 import { Express } from 'express';
+import pino from 'pino';
 import { TranscriptRecorder } from './transcript-recorder.js';
+import { handleChat } from '../core/blend.js';
 
 export async function recordedRequest(
   app: Express,
@@ -12,8 +13,10 @@ export async function recordedRequest(
   const startTime = Date.now();
   const payload: any = { message };
   if (threadId) payload.threadId = threadId;
-  
-  const response = await request(app).post('/chat').send(payload).expect(200);
+  // Direct invocation without binding to a TCP port (works in sandboxed CI)
+  const log = pino({ level: process.env.LOG_LEVEL ?? 'silent' });
+  const body = await handleChat(payload, { log });
+  const response = { body } as { body: any };
   const latencyMs = Date.now() - startTime;
 
   if (transcriptRecorder) {

@@ -17,4 +17,5 @@ export default {
   testTimeout: 45000,
   forceExit: true,
   detectOpenHandles: true,
+  testSequencer: '<rootDir>/tests/custom-sequencer.js',
 };

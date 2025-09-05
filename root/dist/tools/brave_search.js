@@ -1,4 +1,6 @@
 import { BraveSearch } from 'brave-search';
+import { getPrompt } from '../core/prompts.js';
+import { callLLM } from '../core/llm.js';
 /**
  * Search for travel information using Brave Search API
  */
@@ -153,6 +155,69 @@ export function extractAttractionsFromResults(results, city) {
     }
     if (attractions.length > 0) {
         return `Popular attractions in ${city} include: ${attractions.slice(0, 3).join(', ')}`;
+    }
+    return null;
+}
+/**
+ * LLM-first extraction: Weather summary from search results (fallback to heuristics elsewhere)
+ */
+export async function llmExtractWeatherFromResults(results, city, log) {
+    try {
+        const tpl = await getPrompt('search_extract_weather');
+        const prompt = tpl
+            .replace('{city}', city)
+            .replace('{results}', JSON.stringify(results, null, 2));
+        const raw = await callLLM(prompt, { responseFormat: 'json', log });
+        const parsed = JSON.parse(raw || '{}');
+        const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+        if (summary)
+            return summary;
+    }
+    catch (e) {
+        if (log)
+            log.debug?.('LLM weather extraction failed', { error: e instanceof Error ? e.message : String(e) });
+    }
+    return null;
+}
+/**
+ * LLM-first extraction: Country facts summary from search results
+ */
+export async function llmExtractCountryFromResults(results, country, log) {
+    try {
+        const tpl = await getPrompt('search_extract_country');
+        const prompt = tpl
+            .replace('{country}', country)
+            .replace('{results}', JSON.stringify(results, null, 2));
+        const raw = await callLLM(prompt, { responseFormat: 'json', log });
+        const parsed = JSON.parse(raw || '{}');
+        const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+        if (summary)
+            return summary;
+    }
+    catch (e) {
+        if (log)
+            log.debug?.('LLM country extraction failed', { error: e instanceof Error ? e.message : String(e) });
+    }
+    return null;
+}
+/**
+ * LLM-first extraction: Attractions list from search results
+ */
+export async function llmExtractAttractionsFromResults(results, city, log) {
+    try {
+        const tpl = await getPrompt('search_extract_attractions');
+        const prompt = tpl
+            .replace('{city}', city)
+            .replace('{results}', JSON.stringify(results, null, 2));
+        const raw = await callLLM(prompt, { responseFormat: 'json', log });
+        const parsed = JSON.parse(raw || '{}');
+        const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+        if (summary)
+            return summary;
+    }
+    catch (e) {
+        if (log)
+            log.debug?.('LLM attractions extraction failed', { error: e instanceof Error ? e.message : String(e) });
     }
     return null;
 }

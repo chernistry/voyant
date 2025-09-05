@@ -91,23 +91,36 @@ export async function runGraphTurn(message, threadId, ctx) {
             }
         }
     }
+    // Merge slots with priority: prior context + new filtered slots
     const slots = { ...prior, ...filteredSlots };
-    // If intent is unknown but we have context and new slots, infer intent from last interaction
-    if (intent === 'unknown' && Object.keys(prior).length > 0 && Object.keys(routeResult.slots || {}).length > 0) {
-        const lastIntent = getLastIntent(threadId);
-        if (lastIntent && lastIntent !== 'unknown') {
+    // Preserve originCity context if available
+    if (prior.originCity && !filteredSlots.originCity) {
+        slots.originCity = prior.originCity;
+    }
+    // If intent is unknown but we have prior context, infer intent from last interaction
+    const lastIntent = getLastIntent(threadId);
+    if (intent === 'unknown') {
+        if (lastIntent && lastIntent !== 'unknown' && Object.keys(prior).length > 0) {
             intent = lastIntent;
             if (ctx.log && typeof ctx.log.debug === 'function') {
                 ctx.log.debug({ originalIntent: 'unknown', inferredIntent: intent, prior, newSlots: routeResult.slots }, 'intent_inference');
             }
         }
     }
+    // Treat short refinement messages as continuations of the previous intent
+    if (/\b(kids?|children|family|make it kid|kid-friendly|kid friendly)\b/i.test(message) && lastIntent && lastIntent !== 'unknown') {
+        if (ctx.log && typeof ctx.log.debug === 'function') {
+            ctx.log.debug({ priorIntent: intent, continuing: lastIntent }, 'refinement_intent_override');
+        }
+        intent = lastIntent;
+    }
     setLastIntent(threadId, intent);
     if (ctx.log && typeof ctx.log.debug === 'function') {
         ctx.log.debug({ prior, extracted: routeResult.slots, merged: slots, intent }, 'slot_merge');
     }
     const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather';
-    const hasCity = typeof slots.city === 'string' && slots.city.trim().length > 0;
+    const hasCity = (typeof slots.city === 'string' && slots.city.trim().length > 0) ||
+        (typeof slots.originCity === 'string' && slots.originCity.trim().length > 0);
     const hasWhen = (typeof slots.dates === 'string' && slots.dates.trim().length > 0)
         || (typeof slots.month === 'string' && slots.month.trim().length > 0);
     // Check if message has immediate time context that doesn't require date clarification
@@ -257,7 +270,7 @@ async function attractionsNode(ctx, slots, logger) {
 async function systemNode(ctx) {
     return {
         done: true,
-        reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. Share origin, rough dates, who's traveling, budget, and any constraints (e.g., stroller, flight length).",
+        reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. If you meant my previous reply, tell me what to clarify or ask a more specific travel question.",
         citations: undefined,
     };
 }

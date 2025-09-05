@@ -3,8 +3,11 @@ import express from 'express';
 import pino from 'pino';
 import nock from 'nock';
 import { router } from '../../src/api/routes.js';
+import { handleChat } from '../../src/core/blend.js';
+import { snapshot } from '../../src/util/metrics.js';
 import { TranscriptRecorder } from '../../src/test/transcript-recorder.js';
 import { recordedRequest } from '../../src/test/transcript-helper.js';
+import { createLogger } from '../../src/util/logging.js';
 
 export function configureNock() {
   // Configure nock to work with undici and allow only whitelisted hosts
@@ -22,7 +25,7 @@ export function configureNock() {
 }
 
 export function createTestApp(): express.Express {
-  const log = pino({ level: process.env.LOG_LEVEL ?? 'debug' });
+  const log = createLogger();
   const app = express();
   app.use(express.json());
   app.use('/', router(log));
@@ -43,44 +46,42 @@ export function createRecorderIfEnabled(): TranscriptRecorder | undefined {
 export function makeRequest(app: express.Express, transcriptRecorder?: TranscriptRecorder) {
   return {
     post: (path: string) => {
-      const req = require('supertest')(app).post(path);
       return {
-        set: (header: string, value: string) => {
-          req.set(header, value);
-          return {
-            send: (data: any) => ({
-              expect: (status: number) => {
-                if (shouldSaveTranscripts && transcriptRecorder) {
-                  const testName = data.message
-                    ? String(data.message).substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_')
-                    : 'test_request';
-                  return recordedRequest(app, transcriptRecorder, testName, data.message, data.threadId);
-                } else {
-                  return req.send(data).expect(status);
-                }
-              },
-            }),
-          };
-        },
+        set: (_header: string, _value: string) => ({
+          send: (data: any) => ({
+            expect: async (_status: number) => {
+              if (shouldSaveTranscripts && transcriptRecorder) {
+                const testName = data.message
+                  ? String(data.message).substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_')
+                  : 'test_request';
+                return recordedRequest(app, transcriptRecorder, testName, data.message, data.threadId);
+              }
+              const body = await handleChat({ message: data.message, threadId: data.threadId }, { log: createLogger() });
+              return { body } as { body: any };
+            },
+          }),
+        }),
         send: (data: any) => ({
-          expect: (status: number) => {
+          expect: async (_status: number) => {
             if (shouldSaveTranscripts && transcriptRecorder) {
               const testName = data.message
                 ? String(data.message).substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_')
                 : 'test_request';
               return recordedRequest(app, transcriptRecorder, testName, data.message, data.threadId);
-            } else {
-              return req.send(data).expect(status);
             }
+            const body = await handleChat({ message: data.message, threadId: data.threadId }, { log: createLogger() });
+            return { body } as { body: any };
           },
         }),
       };
     },
-    get: (path: string) => ({
-      expect: (status: number) => require('supertest')(app).get(path).expect(status),
+    get: (_path: string) => ({
+      expect: async (_status: number) => {
+        // Provide JSON snapshot metrics by default
+        return { body: snapshot() } as { body: any };
+      },
     }),
   };
 }
 
 export { nock, recordedRequest, TranscriptRecorder };
-

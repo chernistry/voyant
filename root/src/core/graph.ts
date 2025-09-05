@@ -119,7 +119,13 @@ export async function runGraphTurn(
     }
   }
   
+  // Merge slots with priority: prior context + new filtered slots
   const slots = { ...prior, ...filteredSlots };
+  
+  // Preserve originCity context if available
+  if (prior.originCity && !filteredSlots.originCity) {
+    slots.originCity = prior.originCity;
+  }
   
   // If intent is unknown but we have prior context, infer intent from last interaction
   const lastIntent = getLastIntent(threadId);
@@ -145,7 +151,8 @@ export async function runGraphTurn(
   }
   
   const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather';
-  const hasCity = typeof slots.city === 'string' && slots.city.trim().length > 0;
+  const hasCity = (typeof slots.city === 'string' && slots.city.trim().length > 0) ||
+                  (typeof slots.originCity === 'string' && slots.originCity.trim().length > 0);
   const hasWhen = (typeof slots.dates === 'string' && slots.dates.trim().length > 0)
     || (typeof slots.month === 'string' && slots.month.trim().length > 0);
   

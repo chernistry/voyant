@@ -1,11 +1,32 @@
 {
   "name": "voyant-travel-assistant",
-  "private": true,
+  "version": "1.0.0",
+  "description": "AI-powered travel assistant for planning trips with weather, attractions, and packing recommendations",
+  "main": "dist/index.js",
+  "bin": {
+    "voyant": "dist/cli.js"
+  },
   "type": "module",
+  "keywords": [
+    "travel",
+    "assistant",
+    "ai",
+    "weather",
+    "attractions",
+    "planning"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/voyant-travel-assistant"
+  },
+  "homepage": "https://github.com/yourusername/voyant-travel-assistant#readme",
   "scripts": {
     "dev": "tsx src/api/server.ts",
     "cli": "tsx src/cli.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && cp -r src/prompts dist/",
+    "prepublishOnly": "npm run build",
     "test": "jest --runInBand",
     "test:transcripts": "RECORD_TRANSCRIPTS=true jest --runInBand",
     "test:weather": "jest --runInBand --testNamePattern=\"weather|misspelled|abbreviation\"",
@@ -35,6 +56,8 @@
     "markdown-it": "^14.1.0",
     "pino": "^9.0.0",
     "undici": "^6.19.8",
+    "wink-eng-lite-web-model": "^1.8.1",
+    "wink-nlp": "^2.4.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

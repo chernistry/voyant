@@ -4,7 +4,6 @@ import { expectLLMEvaluation } from '../../src/test/llm-evaluator.js';
 import express from 'express';
 
 configureNock();
-process.env.LOG_LEVEL = 'debug';
 process.env.NODE_ENV = 'test';
 
 describe('E2E: Input Variance & CoT Safety', () => {

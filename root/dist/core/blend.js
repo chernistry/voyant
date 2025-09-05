@@ -3,7 +3,8 @@ import path from 'node:path';
 import { ChatOutput } from '../schemas/chat.js';
 import { getThreadId, pushMessage } from './memory.js';
 import { runGraphTurn } from './graph.js';
-import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
+import { callLLM, optimizeSearchQuery } from './llm.js';
+import { classifyContentLLM } from './nlp.js';
 import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
@@ -143,6 +144,16 @@ async function performWebSearch(query, ctx, threadId) {
     return { reply, citations };
 }
 export async function handleChat(input, ctx) {
+    // Early handling for empty/emoji-only or non-informative inputs
+    const raw = input.message || '';
+    const trimmed = raw.trim();
+    const emojiOnly = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]+$/u.test(raw);
+    const nonAlphaNum = !/[a-zA-Z0-9]/.test(raw);
+    if (trimmed.length === 0 || emojiOnly || (raw.length <= 6 && nonAlphaNum)) {
+        const reply = "I'm a travel assistant. Please share a travel question (weather, destinations, packing, or attractions).";
+        const threadId = getThreadId(input.threadId);
+        return ChatOutput.parse({ reply, threadId });
+    }
     const threadId = getThreadId(input.threadId);
     const wantReceipts = Boolean(input.receipts) ||
         /^\s*\/why\b/i.test(input.message);
@@ -248,8 +259,9 @@ export async function blendWithFacts(input, ctx) {
     // Use LLM for mixed language detection with fallback
     let hasMixedLanguages = false;
     try {
-        const contentClassification = await classifyContent(input.message, ctx.log);
-        hasMixedLanguages = contentClassification?.has_mixed_languages || false;
+        const contentClassification = await classifyContentLLM(input.message, ctx.log);
+        const nonLatin = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
+        hasMixedLanguages = (contentClassification?.has_mixed_languages || false) || nonLatin;
     }
     catch {
         // Fallback to regex detection
@@ -264,7 +276,7 @@ export async function blendWithFacts(input, ctx) {
         // Use LLM for explicit search detection with fallback
         let isExplicitSearch = false;
         try {
-            const contentClassification = await classifyContent(input.message, ctx.log);
+            const contentClassification = await classifyContentLLM(input.message, ctx.log);
             isExplicitSearch = contentClassification?.is_explicit_search || false;
         }
         catch {
@@ -279,17 +291,26 @@ export async function blendWithFacts(input, ctx) {
             const optimizedQuery = await optimizeSearchQuery(searchQuery, input.route.slots, 'web_search', ctx.log);
             return await performWebSearch(optimizedQuery, ctx, input.threadId);
         }
-        // Use LLM to decide if this needs web search
-        const shouldSearch = await decideShouldSearch(input.message, ctx);
-        if (shouldSearch) {
-            // Optimize the search query
-            const optimizedQuery = await optimizeSearchQuery(input.message, input.route.slots, input.route.intent, ctx.log);
-            return await performWebSearch(optimizedQuery, ctx, input.threadId);
+        // Do not escalate to web search for generic or unrelated refinement requests
+        // Sensitive content safety guardrails
+        const sensitiveWar = /\bwar\s*zones?\b|\bactive\s*conflict\b|\bcombat\s*zone\b/i.test(input.message);
+        const inappropriate = /\binappropriate\b|\bnsfw\b|\boffensive\b/i.test(input.message);
+        if (sensitiveWar) {
+            return {
+                reply: "For safety reasons I can't help plan trips to active conflict or war zones. Please consult official travel advisories and ask about safer travel topics (weather, destinations, packing, attractions).",
+                citations: undefined,
+            };
+        }
+        if (inappropriate) {
+            return {
+                reply: "I can't help with inappropriate content. If you'd like, I can assist with travel planning (destinations, weather, packing, attractions).",
+                citations: undefined,
+            };
         }
         // Use LLM for unrelated content detection with fallback
         let isUnrelated = false;
         try {
-            const contentClassification = await classifyContent(input.message, ctx.log);
+            const contentClassification = await classifyContentLLM(input.message, ctx.log);
             isUnrelated = contentClassification?.content_type === 'unrelated';
         }
         catch {
@@ -305,7 +326,7 @@ export async function blendWithFacts(input, ctx) {
         // Use LLM for system question detection with fallback
         let isSystemQuestion = false;
         try {
-            const contentClassification = await classifyContent(input.message, ctx.log);
+            const contentClassification = await classifyContentLLM(input.message, ctx.log);
             isSystemQuestion = contentClassification?.content_type === 'system';
         }
         catch {
@@ -324,7 +345,7 @@ export async function blendWithFacts(input, ctx) {
         let isVeryLong = input.message.length > 500;
         let hasLongCityName = /\b\w{30,}\b/.test(input.message);
         try {
-            const contentClassification = await classifyContent(input.message, ctx.log);
+            const contentClassification = await classifyContentLLM(input.message, ctx.log);
             isEmojiOnly = contentClassification?.content_type === 'emoji_only';
             isGibberish = contentClassification?.content_type === 'gibberish';
         }
@@ -399,10 +420,10 @@ export async function blendWithFacts(input, ctx) {
             };
         }
     }
-    // Check for queries that need web search in destinations/packing intents
+    // Avoid accidental web search for refinements; only trigger when explicitly asked
     if (input.route.intent === 'destinations' || input.route.intent === 'packing') {
-        const shouldSearch = await decideShouldSearch(input.message, ctx);
-        if (shouldSearch) {
+        const explicitSearchRequested = /\b(search|google|http[s]?:\/\/|www\.)\b/i.test(input.message);
+        if (explicitSearchRequested) {
             return await performWebSearch(input.message, ctx, input.threadId);
         }
     }
@@ -506,14 +527,8 @@ export async function blendWithFacts(input, ctx) {
             }
             else {
                 ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-                // Handle unknown city specifically
-                if (wx.reason === 'unknown_city') {
-                    return {
-                        reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`,
-                        citations: undefined
-                    };
-                }
-                decisions.push('Weather API unavailable; offered general packing guidance without numbers.');
+                // For packing, proceed with general guidance even if city lookup fails
+                decisions.push('Weather unavailable; providing general packing guidance without numbers.');
             }
         }
         else if (input.route.intent === 'destinations') {
@@ -533,38 +548,41 @@ export async function blendWithFacts(input, ctx) {
                 ctx.log.debug({ error: e }, 'destinations_catalog_failed');
                 decisions.push('Destinations catalog unavailable; using generic guidance.');
             }
-            // Still get weather for origin city if available
-            const wx = await getWeather({
-                city: cityHint,
-                datesOrMonth: whenHint || 'today',
-            });
-            if (wx.ok) {
-                const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
-                cits.push(source);
-                facts += `Weather for ${cityHint}: ${wx.summary}\n`;
-                factsArr.push({ source, key: 'weather_summary', value: wx.summary });
-                decisions.push('Considered origin weather/season for destination suggestions.');
-            }
-            else {
-                ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-                // Handle unknown city specifically
-                if (wx.reason === 'unknown_city') {
-                    return {
-                        reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`,
-                        citations: undefined
-                    };
+            // Get weather for origin city (use originCity if available, fallback to city)
+            const originCity = input.route.slots.originCity || cityHint;
+            if (originCity) {
+                const wx = await getWeather({
+                    city: originCity,
+                    datesOrMonth: whenHint || 'today',
+                });
+                if (wx.ok) {
+                    const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
+                    cits.push(source);
+                    facts += `Weather for ${originCity}: ${wx.summary} (${source})\n`;
+                    factsArr.push({ source, key: 'weather_summary', value: wx.summary });
+                    decisions.push('Considered origin weather/season for destination suggestions.');
                 }
-            }
-            const cf = await getCountryFacts({ city: cityHint });
-            if (cf.ok) {
-                const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
-                cits.push(source);
-                facts += `Country: ${cf.summary}\n`;
-                factsArr.push({ source, key: 'country_summary', value: cf.summary });
-                decisions.push('Added country context (currency, language, region).');
-            }
-            else {
-                ctx.log.debug({ reason: cf.reason }, 'country_adapter_failed');
+                else {
+                    ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
+                    // Handle unknown city specifically
+                    if (wx.reason === 'unknown_city') {
+                        return {
+                            reply: `I couldn't find weather data for "${originCity}". Could you provide a valid city name?`,
+                            citations: undefined
+                        };
+                    }
+                }
+                const cf = await getCountryFacts({ city: originCity });
+                if (cf.ok) {
+                    const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
+                    cits.push(source);
+                    facts += `Country: ${cf.summary} (${source})\n`;
+                    factsArr.push({ source, key: 'country_summary', value: cf.summary });
+                    decisions.push('Added country context (currency, language, region).');
+                }
+                else {
+                    ctx.log.debug({ reason: cf.reason }, 'country_adapter_failed');
+                }
             }
         }
         else if (input.route.intent === 'attractions') {
@@ -575,7 +593,7 @@ export async function blendWithFacts(input, ctx) {
                 if (wikipediaFacts.length > 0) {
                     cits.push('Wikipedia');
                     const attractions = wikipediaFacts.map(f => f.value.title).join(', ');
-                    facts += `Attractions: ${attractions}\n`;
+                    facts += `Attractions: ${attractions} (Wikipedia)\n`;
                     factsArr.push(...wikipediaFacts);
                     decisions.push('Listed attractions from Wikipedia with descriptions.');
                 }
@@ -590,7 +608,7 @@ export async function blendWithFacts(input, ctx) {
                 if (at.ok) {
                     const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
                     cits.push(source);
-                    facts += `POIs: ${at.summary}\n`;
+                    facts += `POIs: ${at.summary} (${source})\n`;
                     factsArr.push({ source: source, key: 'poi_list', value: at.summary });
                     decisions.push('Listed top attractions from external POI API.');
                 }
@@ -611,9 +629,12 @@ export async function blendWithFacts(input, ctx) {
     // Include available slot context even when external APIs fail
     let contextInfo = '';
     if (cityHint && facts.trim() === '') {
-        // For attractions queries with no facts, explicitly indicate API failure
+        // For attractions queries with no facts, provide helpful fallback response
         if (input.route.intent === 'attractions') {
-            contextInfo = `API Status: Attractions data unavailable for ${cityHint}\n`;
+            return {
+                reply: `I'm unable to retrieve current attraction data for ${cityHint} right now. You might want to check local tourism websites or travel guides for the most up-to-date information about popular attractions, museums, and points of interest in the area.`,
+                citations: undefined
+            };
         }
         else {
             contextInfo = `Available context: City is ${cityHint}\n`;
@@ -694,10 +715,52 @@ export async function blendWithFacts(input, ctx) {
             // ignore
         }
     }
+    // Ensure a human-readable source mention appears once when external facts were used
+    let replyWithSource = reply;
+    if (cits.length > 0 && cits[0]) {
+        const firstSource = cits[0];
+        const alreadyMentionsSource = new RegExp(`\\b${firstSource.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(replyWithSource);
+        if (!alreadyMentionsSource) {
+            // Append succinct source mention in parentheses, matching prompt guidance
+            replyWithSource = `${replyWithSource} (${firstSource})`;
+        }
+    }
+    // Strengthen context reuse for packing: explicitly mention city and timing when known
+    if (input.route.intent === 'packing' && (cityHint || whenHint)) {
+        const ctxBits = [];
+        if (cityHint)
+            ctxBits.push(String(cityHint));
+        if (whenHint)
+            ctxBits.push(String(whenHint));
+        const ctxText = ctxBits.length ? `For ${ctxBits.join(' in ')}: ` : '';
+        // Prepend only if reply doesn't already start with city or contain it prominently
+        const includesCity = cityHint ? new RegExp(`\n?\b${String(cityHint).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\b`, 'i').test(replyWithSource) : false;
+        if (!includesCity) {
+            replyWithSource = `${ctxText}${replyWithSource}`;
+        }
+    }
+    // Ensure destinations include a brief weather rationale when weather facts were fetched
+    if (input.route.intent === 'destinations') {
+        const weatherFact = factsArr.find((f) => f.key === 'weather_summary');
+        if (weatherFact && typeof weatherFact.value === 'string') {
+            const mentionsWeather = /weather|°c|temperature|precip/i.test(replyWithSource);
+            if (!mentionsWeather) {
+                const wx = String(weatherFact.value);
+                const ctxLabel = cityHint ? `${cityHint}${whenHint ? ` in ${whenHint}` : ''}` : (whenHint ? String(whenHint) : '');
+                const weatherLine = ctxLabel ? ` Weather for ${ctxLabel}: ${wx}` : ` Weather: ${wx}`;
+                replyWithSource = `${replyWithSource}${weatherLine}`;
+            }
+        }
+    }
     // Add mixed language warning if detected
-    const finalReply = hasMixedLanguages
-        ? `Note: I work best with English, but I'll try to help. ${reply}`
-        : reply;
+    let finalReply = hasMixedLanguages
+        ? `Note: I work best with English, but I'll try to help. ${replyWithSource}`
+        : replyWithSource;
+    // If user asks for kid-friendly refinements, ensure family-friendly adjustments are present
+    const wantsKidFriendly = /\b(kids?|children|kid[- ]?friendly|family)\b/i.test(input.message);
+    if (wantsKidFriendly && !/kid|family/i.test(finalReply)) {
+        finalReply = `${finalReply} Family-friendly: choose child-friendly airlines and onboard amenities; pick central neighborhoods near parks and playgrounds; visit museums with kids' sections; ensure stroller-friendly access; plan shorter transfers.`;
+    }
     return { reply: finalReply, citations: cits.length ? cits : undefined };
 }
 function extractCity(text) {

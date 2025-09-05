@@ -25,7 +25,7 @@ export async function getAttractions(input: {
   return primaryResult; // Return original error
 }
 
-async function tryOpenTripMap(city: string, limit = 5): Promise<Out> {
+async function tryOpenTripMap(city: string, limit = 7): Promise<Out> {
   // Resolve city to coordinates via Open-Meteo Geocoding API
   type GeoItem = {
     name?: string;
@@ -44,15 +44,18 @@ async function tryOpenTripMap(city: string, limit = 5): Promise<Out> {
     if (!first || typeof first.latitude !== 'number' || typeof first.longitude !== 'number') {
       return { ok: false, reason: 'unknown_city' };
     }
+    
+    // First pass with wider kinds
     const pois = await searchPOIs({ 
       lat: first.latitude, 
       lon: first.longitude, 
       limit,
-      kinds: 'museums,monuments,historic,cultural'
+      kinds: 'museums,monuments,historic,cultural,interesting_places,tourist_facilities,architecture,urban_environment,natural'
     });
-    if (pois.ok) {
+    
+    if (pois.ok && pois.pois.length >= 3) {
       // Try to enrich with short descriptions using POI detail endpoint
-      const top = pois.pois.slice(0, Math.max(1, Math.min(limit, 5)));
+      const top = pois.pois.slice(0, Math.max(3, Math.min(limit, 5)));
       const details = await Promise.all(
         top.map(async (p) => {
           const d = await getPOIDetail(p.xid);
@@ -67,9 +70,44 @@ async function tryOpenTripMap(city: string, limit = 5): Promise<Out> {
         })
       );
       const items = details.filter(Boolean).map(String);
-      if (items.length > 0) {
+      if (items.length >= 3) {
         return { ok: true, summary: items.join('; '), source: 'opentripmap' };
       }
+    }
+    
+    // Second pass with city center radius if first pass yielded <3 results
+    if (pois.ok && pois.pois.length < 3) {
+      const poisRadius = await searchPOIs({ 
+        lat: first.latitude, 
+        lon: first.longitude, 
+        limit: limit + 2,
+        kinds: 'interesting_places,tourist_facilities,architecture,urban_environment,natural,museums,monuments,historic,cultural',
+        radiusMeters: 5000 // 5km radius
+      });
+      
+      if (poisRadius.ok && poisRadius.pois.length > 0) {
+        const top = poisRadius.pois.slice(0, Math.max(3, Math.min(limit, 5)));
+        const details = await Promise.all(
+          top.map(async (p) => {
+            const d = await getPOIDetail(p.xid);
+            if (d.ok) {
+              const name = d.detail.name || p.name || '';
+              const desc = (d.detail.description || '').replace(/\s+/g, ' ').trim();
+              if (name && desc) return `${name}: ${desc}`;
+              if (name) return name;
+            }
+            const fallback = (p.name || '').trim();
+            return fallback;
+          })
+        );
+        const items = details.filter(Boolean).map(String);
+        if (items.length > 0) {
+          return { ok: true, summary: items.join('; '), source: 'opentripmap' };
+        }
+      }
+    }
+    
+    if (pois.ok) {
       return { ok: false, reason: 'no_pois', source: 'opentripmap' };
     }
     return { ok: false, reason: pois.reason, source: pois.source || 'opentripmap' };

@@ -26,7 +26,7 @@ function countTokens(text: string): number {
 
 export async function callLLM(
   prompt: string,
-  _opts: { responseFormat?: ResponseFormat; log?: any } = {},
+  _opts: { responseFormat?: ResponseFormat; log?: any; timeoutMs?: number } = {},
 ): Promise<string> {
   const jsonHint = /strict JSON|Return strict JSON|Output \(strict JSON only\)/i.test(prompt);
   const format: ResponseFormat = _opts.responseFormat ?? (jsonHint ? 'json' : 'text');
@@ -50,13 +50,13 @@ export async function callLLM(
 
   if (baseUrl && apiKey && preferredModel) {
     // Try preferred model first
-    const result = await tryModel(baseUrl, apiKey, preferredModel, prompt, format, log || undefined);
+    const result = await tryModel(baseUrl, apiKey, preferredModel, prompt, format, log || undefined, _opts.timeoutMs);
     if (result) return result;
     
     // Fallback to other models
     for (const model of models) {
       if (model !== preferredModel) {
-        const result = await tryModel(baseUrl, apiKey, model, prompt, format, log || undefined);
+        const result = await tryModel(baseUrl, apiKey, model, prompt, format, log || undefined, _opts.timeoutMs);
         if (result) return result;
       }
     }
@@ -66,7 +66,7 @@ export async function callLLM(
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   if (openrouterKey) {
     for (const model of models) {
-      const result = await tryModel('https://openrouter.ai/api/v1', openrouterKey, model, prompt, format, log || undefined);
+      const result = await tryModel('https://openrouter.ai/api/v1', openrouterKey, model, prompt, format, log || undefined, _opts.timeoutMs);
       if (result) return result;
     }
   }
@@ -81,11 +81,14 @@ async function tryModel(
   model: string,
   prompt: string,
   format: ResponseFormat,
-  log?: any
+  log?: any,
+  timeoutMs: number = 2500
 ): Promise<string | null> {
   try {
     if (log?.debug) log.debug(`🔗 Trying model: ${model} at ${baseUrl}`);
     const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new Error('llm_timeout')), Math.max(500, timeoutMs));
     const res = await undiciFetch(url, {
       method: 'POST',
       headers: {
@@ -99,7 +102,9 @@ async function tryModel(
         max_tokens: 2000,
         ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
     
     if (!res.ok) {
       const errorText = await res.text();
@@ -123,6 +128,20 @@ async function tryModel(
   } catch (e) {
     if (log?.debug) log.debug(`❌ Model ${model} error: ${String(e)}`);
     return null;
+  }
+}
+
+/**
+ * Try to extract a JSON object from an LLM response safely.
+ * Returns undefined if no valid JSON object can be found.
+ */
+export function safeExtractJson(text: string): unknown | undefined {
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) return undefined;
+  try {
+    return JSON.parse(m[0]);
+  } catch {
+    return undefined;
   }
 }
 

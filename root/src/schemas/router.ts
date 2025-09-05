@@ -4,6 +4,7 @@ export const Intent = z.enum(['destinations', 'packing', 'attractions', 'weather
 
 export const RouterSlots = z.object({
   city: z.string().optional(),
+  originCity: z.string().optional(),
   month: z.string().optional(),
   dates: z.string().optional(),
   travelerProfile: z.string().optional(),

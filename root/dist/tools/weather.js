@@ -1,11 +1,15 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchTravelInfo, extractWeatherFromResults } from './brave_search.js';
+import { searchTravelInfo, extractWeatherFromResults, llmExtractWeatherFromResults } from './brave_search.js';
 export async function getWeather(input) {
     if (!input.city)
         return { ok: false, reason: 'no_city' };
     // Try primary API first
     const primaryResult = await tryPrimaryWeatherAPI(input.city);
     if (primaryResult.ok) {
+        return primaryResult;
+    }
+    // For unknown cities, avoid falling back to generic web search to prevent hallucinations
+    if (!primaryResult.ok && primaryResult.reason === 'unknown_city') {
         return primaryResult;
     }
     // Fallback to Brave Search
@@ -61,6 +65,12 @@ async function tryWeatherFallback(city, datesOrMonth) {
     if (!searchResult.ok) {
         return { ok: false, reason: 'fallback_failed' };
     }
+    // LLM-first extraction
+    const weatherInfoLLM = await llmExtractWeatherFromResults(searchResult.results, city);
+    if (weatherInfoLLM) {
+        return { ok: true, summary: weatherInfoLLM, source: 'brave-search' };
+    }
+    // Heuristic fallback
     const weatherInfo = extractWeatherFromResults(searchResult.results, city);
     if (weatherInfo) {
         return { ok: true, summary: weatherInfo, source: 'brave-search' };

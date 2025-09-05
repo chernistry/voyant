@@ -69,7 +69,14 @@ export async function routeIntent(input) {
         contentClassification?.content_type === 'gibberish';
     // Extract slots early for LLM override logic (use thread context for better parsing)
     const extractedSlots = await extractSlots(input.message, ctxSlots, input.logger?.log);
-    let finalSlots = extractedSlots;
+    let finalSlots = { ...ctxSlots, ...extractedSlots };
+    // If we have prior city context and extracted slots don't have city, preserve prior
+    if (ctxSlots.city && !extractedSlots.city) {
+        finalSlots.city = ctxSlots.city;
+    }
+    if (ctxSlots.originCity && !extractedSlots.originCity) {
+        finalSlots.originCity = ctxSlots.originCity;
+    }
     // Try LLM-based intent classification first
     const llmIntentResult = await classifyIntent(input.message, ctxSlots, input.logger?.log);
     if (llmIntentResult && llmIntentResult.confidence > 0.5) {
@@ -226,8 +233,14 @@ export async function routeIntent(input) {
         return RouterResult.parse({ intent: 'weather', ...base });
     }
     if (/where should i go|destination|where to go|budget|options/.test(m)) {
+        // Check if message has origin preposition to avoid treating origin as destination
+        const hasOriginPreposition = /\b(?:from|out of|leaving|ex)\s+[A-Z]/i.test(input.message);
+        if (hasOriginPreposition && finalSlots.originCity) {
+            // Ensure we use originCity for destinations intent, not as destination
+            finalSlots.city = finalSlots.originCity;
+        }
         if (typeof input.logger?.log?.debug === 'function') {
-            input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_destinations');
+            input.logger.log.debug({ slots: finalSlots, hasOriginPreposition }, 'heuristic_intent_destinations');
         }
         return RouterResult.parse({ intent: 'destinations', ...base });
     }

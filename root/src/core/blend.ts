@@ -4,7 +4,8 @@ import path from 'node:path';
 import { ChatInputT, ChatOutput } from '../schemas/chat.js';
 import { getThreadId, pushMessage } from './memory.js';
 import { runGraphTurn } from './graph.js';
-import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
+import { callLLM, optimizeSearchQuery } from './llm.js';
+import { classifyContentLLM } from './nlp.js';
 import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
@@ -310,7 +311,7 @@ export async function blendWithFacts(
   // Use LLM for mixed language detection with fallback
   let hasMixedLanguages = false;
   try {
-    const contentClassification = await classifyContent(input.message, ctx.log);
+    const contentClassification = await classifyContentLLM(input.message, ctx.log);
     const nonLatin = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
     hasMixedLanguages = (contentClassification?.has_mixed_languages || false) || nonLatin;
   } catch {
@@ -328,7 +329,7 @@ export async function blendWithFacts(
     // Use LLM for explicit search detection with fallback
     let isExplicitSearch = false;
     try {
-      const contentClassification = await classifyContent(input.message, ctx.log);
+      const contentClassification = await classifyContentLLM(input.message, ctx.log);
       isExplicitSearch = contentClassification?.is_explicit_search || false;
     } catch {
       // Fallback to regex patterns
@@ -370,7 +371,7 @@ export async function blendWithFacts(
     // Use LLM for unrelated content detection with fallback
     let isUnrelated = false;
     try {
-      const contentClassification = await classifyContent(input.message, ctx.log);
+      const contentClassification = await classifyContentLLM(input.message, ctx.log);
       isUnrelated = contentClassification?.content_type === 'unrelated';
     } catch {
       // Fallback to simple patterns
@@ -387,7 +388,7 @@ export async function blendWithFacts(
     // Use LLM for system question detection with fallback
     let isSystemQuestion = false;
     try {
-      const contentClassification = await classifyContent(input.message, ctx.log);
+      const contentClassification = await classifyContentLLM(input.message, ctx.log);
       isSystemQuestion = contentClassification?.content_type === 'system';
     } catch {
       // Fallback to regex patterns
@@ -407,7 +408,7 @@ export async function blendWithFacts(
     let hasLongCityName = /\b\w{30,}\b/.test(input.message);
     
     try {
-      const contentClassification = await classifyContent(input.message, ctx.log);
+      const contentClassification = await classifyContentLLM(input.message, ctx.log);
       isEmojiOnly = contentClassification?.content_type === 'emoji_only';
       isGibberish = contentClassification?.content_type === 'gibberish';
     } catch {
@@ -603,14 +604,8 @@ export async function blendWithFacts(
         }
       } else {
         ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-        // Handle unknown city specifically
-        if (wx.reason === 'unknown_city') {
-          return { 
-            reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`, 
-            citations: undefined 
-          };
-        }
-        decisions.push('Weather API unavailable; offered general packing guidance without numbers.');
+        // For packing, proceed with general guidance even if city lookup fails
+        decisions.push('Weather unavailable; providing general packing guidance without numbers.');
       }
     } else if (input.route.intent === 'destinations') {
       // Use destinations catalog for recommendations
@@ -632,37 +627,40 @@ export async function blendWithFacts(
         decisions.push('Destinations catalog unavailable; using generic guidance.');
       }
       
-      // Still get weather for origin city if available
-      const wx = await getWeather({
-        city: cityHint,
-        datesOrMonth: whenHint || 'today',
-      });
-      if (wx.ok) {
-        const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
-        cits.push(source);
-        facts += `Weather for ${cityHint}: ${wx.summary} (${source})\n`;
-        factsArr.push({ source, key: 'weather_summary', value: wx.summary });
-        decisions.push('Considered origin weather/season for destination suggestions.');
-      } else {
-        ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-        // Handle unknown city specifically
-        if (wx.reason === 'unknown_city') {
-          return { 
-            reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`, 
-            citations: undefined 
-          };
+      // Get weather for origin city (use originCity if available, fallback to city)
+      const originCity = input.route.slots.originCity || cityHint;
+      if (originCity) {
+        const wx = await getWeather({
+          city: originCity,
+          datesOrMonth: whenHint || 'today',
+        });
+        if (wx.ok) {
+          const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
+          cits.push(source);
+          facts += `Weather for ${originCity}: ${wx.summary} (${source})\n`;
+          factsArr.push({ source, key: 'weather_summary', value: wx.summary });
+          decisions.push('Considered origin weather/season for destination suggestions.');
+        } else {
+          ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
+          // Handle unknown city specifically
+          if (wx.reason === 'unknown_city') {
+            return { 
+              reply: `I couldn't find weather data for "${originCity}". Could you provide a valid city name?`, 
+              citations: undefined 
+            };
+          }
         }
-      }
-      
-      const cf = await getCountryFacts({ city: cityHint });
-      if (cf.ok) {
-        const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
-        cits.push(source);
-        facts += `Country: ${cf.summary} (${source})\n`;
-        factsArr.push({ source, key: 'country_summary', value: cf.summary });
-        decisions.push('Added country context (currency, language, region).');
-      } else {
-        ctx.log.debug({ reason: cf.reason }, 'country_adapter_failed');
+        
+        const cf = await getCountryFacts({ city: originCity });
+        if (cf.ok) {
+          const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
+          cits.push(source);
+          facts += `Country: ${cf.summary} (${source})\n`;
+          factsArr.push({ source, key: 'country_summary', value: cf.summary });
+          decisions.push('Added country context (currency, language, region).');
+        } else {
+          ctx.log.debug({ reason: cf.reason }, 'country_adapter_failed');
+        }
       }
     } else if (input.route.intent === 'attractions') {
       // Try Wikipedia first, then fallback to existing OpenTripMap/Brave Search
