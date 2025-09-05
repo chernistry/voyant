@@ -775,6 +775,15 @@ function classifyIntentFromEntities(
     return { intent: 'packing', needExternal: false, confidence: 0.8 };
   }
   
+  // Country information queries
+  if (/tell me about.*(?:country|spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia|uk|usa|america)/i.test(m) || 
+      /(?:spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia).*(?:country|as a country)/i.test(m)) {
+    if (log?.debug) {
+      log.debug({ pattern: 'country_info', confidence: 0.9 }, '🎯 TRANSFORMERS: Country information intent detected');
+    }
+    return { intent: 'destinations', needExternal: true, confidence: 0.9 };
+  }
+  
   // Destinations with origin detection
   if (/where should i go|destination|where to go|budget|options/.test(m)) {
     const hasOrigin = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.originCity;

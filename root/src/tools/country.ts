@@ -3,26 +3,69 @@ import { searchTravelInfo, extractCountryFromResults, llmExtractCountryFromResul
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
 
-export async function getCountryFacts(input: { city?: string }): Promise<Out> {
-  if (!input.city) return { ok: false, reason: 'no_city' };
+export async function getCountryFacts(input: { city?: string; country?: string }): Promise<Out> {
+  const target = input.country || input.city;
+  if (!target) return { ok: false, reason: 'no_city' };
   
-  // Try primary API first
-  const primaryResult = await tryPrimaryCountryAPI(input.city);
+  // Check if target is likely a country name
+  const countryNames = ['spain', 'france', 'italy', 'germany', 'japan', 'canada', 'australia', 'brazil', 'mexico', 'india', 'china', 'russia', 'uk', 'usa', 'america', 'united states', 'united kingdom'];
+  const isCountryName = countryNames.some(country => target.toLowerCase().includes(country));
+  
+  if (isCountryName) {
+    // Direct country lookup
+    const directResult = await tryDirectCountryAPI(target);
+    if (directResult.ok) {
+      return directResult;
+    }
+  }
+  
+  // Try primary API first (city-based)
+  const primaryResult = await tryPrimaryCountryAPI(target);
   if (primaryResult.ok) {
     return primaryResult;
   }
 
   // Fallback to Brave Search
-  const fallbackResult = await tryCountryFallback(input.city);
+  const fallbackResult = await tryCountryFallback(target);
   if (fallbackResult.ok) {
     return { 
       ...fallbackResult, 
-      summary: `The country information service is currently unavailable, but here are some web search results: ${fallbackResult.summary}`,
+      summary: `${fallbackResult.summary}`,
       source: 'brave-search' 
     };
   }
 
   return primaryResult; // Return original error
+}
+
+async function tryDirectCountryAPI(countryName: string): Promise<Out> {
+  try {
+    const url = `https://restcountries.com/v3.1/name/${encodeURIComponent(
+      countryName,
+    )}?fields=name,currencies,languages,region,capital`;
+    type Country = {
+      name?: { common?: string };
+      currencies?: Record<string, unknown>;
+      languages?: Record<string, string>;
+      region?: string;
+      capital?: string[];
+    };
+    const res = await fetchJSON<unknown>(url, { target: 'restcountries' });
+    const c: Country | undefined = Array.isArray(res)
+      ? (res as Country[])[0]
+      : (res as Country);
+    const cur = c?.currencies ? Object.keys(c.currencies)[0] : 'N/A';
+    const langs = c?.languages ? Object.values(c.languages) : [];
+    const lang = langs.length > 1 ? langs.join(', ') : langs[0] || 'N/A';
+    const capital = c?.capital?.[0] || 'N/A';
+    const summary = `${c?.name?.common} • Capital: ${capital} • Region: ${c?.region} • Currency: ${cur} • Language: ${lang}`;
+    return { ok: true, summary, source: 'rest-countries' };
+  } catch (e) {
+    if (e instanceof ExternalFetchError) {
+      return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx' };
+    }
+    return { ok: false, reason: 'network' };
+  }
 }
 
 async function tryPrimaryCountryAPI(city: string): Promise<Out> {

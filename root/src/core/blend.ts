@@ -673,7 +673,23 @@ export async function blendWithFacts(
           }
         }
         
-        const cf = await getCountryFacts({ city: originCity });
+        // Check if this is a country information query
+        const isCountryQuery = /tell me about.*(?:country|spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia|uk|usa|america)/i.test(input.message) || 
+                              /(?:spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia).*(?:country|as a country)/i.test(input.message);
+        
+        let countryTarget = originCity;
+        if (isCountryQuery) {
+          // Extract country name from the message
+          const countryMatch = input.message.match(/(?:tell me about|about)\s+([a-z\s]+?)(?:\s+(?:as a|country)|$)/i);
+          if (countryMatch) {
+            countryTarget = countryMatch[1].trim();
+          }
+        }
+        
+        const cf = await getCountryFacts({ 
+          city: isCountryQuery ? undefined : originCity,
+          country: isCountryQuery ? countryTarget : undefined 
+        });
         if (cf.ok) {
           const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
           cits.push(source);

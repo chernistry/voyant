@@ -800,7 +800,7 @@ npm test
                                     <span class="message-author">User</span>
                                 </div>
                                 <div class="message-text">
-                                    Hey - can you actually help plan a short family trip?
+                                    What's the weather like in Barcelona today?
                                 </div>
                             </div>
                         </div>
@@ -812,7 +812,12 @@ npm test
                                     <span class="message-author">AI Assistant</span>
                                 </div>
                                 <div class="message-text">
-                                    Which city and what dates are you planning to travel to?
+                                    <ul>
+                                        <li>The high temperature in Barcelona is 25.5°C.</li>
+                                        <li>The low temperature in Barcelona is 21.2°C.</li>
+                                        <li>The probability of precipitation in Barcelona is 2%.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
                                 </div>
                             </div>
                         </div>
@@ -826,7 +831,7 @@ npm test
                                     <span class="message-author">User</span>
                                 </div>
                                 <div class="message-text">
-                                    From NYC, end of June (last week), 4-5 days. 2 adults + toddler in stroller. Parents mid - 60s; dad dislikes long flights. Budget under $2.5k total. Ideas?
+                                    What should I pack for this weather?
                                 </div>
                             </div>
                         </div>
@@ -838,276 +843,164 @@ npm test
                                     <span class="message-author">AI Assistant</span>
                                 </div>
                                 <div class="message-text">
-                                    <p><strong>Paragraph 1:</strong><br>
-                                    For a budget-friendly trip under $2.5k total, consider affordable family vacations [2]. These can include destinations like the Adirondacks and Acadia National Park, which are both within driving distance from NYC and offer memorable experiences without breaking the bank [5].</p>
+                                    <ul>
+                                        <li>Pack for warm weather: High 25.5°C / Low 21.2°C in Barcelona.</li>
+                                        <li>The probability of precipitation is 2%.</li>
+                                        <li>Consider light clothing, sunglasses, and sunscreen.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <p><strong>Paragraph 2:</strong><br>
-                                    To tackle the challenge of traveling with a toddler, ensure you pack essentials such as a folding stroller, a portable crib, and a portable high chair [6]. For flights, Dr. Young suggests helping toddlers create pressure equilibrium by drinking from a sippy cup, sucking on a lollipop, or blowing bubbles into a cup of water [4].</p>
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What are some must-see attractions in Barcelona?
+                                </div>
+                            </div>
+                        </div>
 
-                                    <p><strong>Paragraph 3:</strong><br>
-                                    If you're planning a week-long trip in late June, consider that spring break season is upon us, and costs may rise [3]. To keep costs under control, consider traveling during the off-peak season or finding budget-friendly accommodations.</p>
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <ul>
+                                        <li>Yamadori</li>
+                                        <li>Charlot Cafè</li>
+                                        <li>Accés</li>
+                                        <li>Cinc Sentits</li>
+                                    </ul>
+                                    <p>(OpenTripMap)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    I need to plan a complex family trip from Tel Aviv to NYC with my four 3-year-old kids on a $4500 budget
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?</p>
+                                    <p><em>Reason: multiple_constraints: location, budget, group, transport</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    No thanks, I'll stick to basic info for now
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    I need more information to help you.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    Actually, I'd like to know about restaurants and nightlife in Barcelona within my budget
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?</p>
+                                    <p><em>Reason: multiple_constraints: location, budget, group, accommodation, time</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    Yes, please search for that information
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p><strong>Short Answer:</strong> For a week-long stay in Rome with dietary restrictions, budget around €170 per day per person, and consider family-friendly, budget hotels in areas like Ludovisi and Trastevere. For dining, try local trattorias like Trattoria Lilli, which offers affordable and delicious options.</p>
+
+                                    <ul>
+                                        <li><strong>Daily Budget:</strong> Expect to spend around €170 per person per day, including food, drinks, and snacks [2].</li>
+                                        <li><strong>Budget Hotels:</strong> Consider areas like Ludovisi for budget-friendly hotels [5].</li>
+                                        <li><strong>Family Restaurants:</strong> Try local trattorias like Trattoria Lilli, known for their affordable and delicious meals [4, 7].</li>
+                                    </ul>
                                 </div>
                                 <div class="sources-section">
                                     <strong>Sources:</strong>
                                     <ul>
-                                        <li>50 Affordable Family Vacation Ideas to Explore on a Budget [2]</li>
-                                        <li>12 Ways to Save on Family Spring Break Travel - The New York Times [3]</li>
-                                        <li>8 Ways to Tackle Long-Haul Flights With Children - The New York Times [4]</li>
-                                        <li>22 Cheap Family Vacations for 2025 | U.S. News Travel [5]</li>
-                                        <li>How to Travel With Babies and Toddlers - The New York Times [6]</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    Make it kid‑friendly and minimize walking.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <strong>Kid-friendly Attractions:</strong>
-                                    <ul>
-                                        <li><strong>British Soldiers' Barracks:</strong> Explore history through interactive exhibits.</li>
-                                        <li><strong>African Burial Ground National Monument:</strong> Learn about African history in America.</li>
-                                        <li><strong>City Hall Park:</strong> A green space for kids to play and enjoy the outdoors.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    Let's say Boston - what should we do with a 3 year old?
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <strong>Boston with a 3-year-old:</strong>
-                                    <ul>
-                                        <li><strong>Kings Chapel Burying Ground:</strong> Explore Boston's oldest cemetery, established in 1630.</li>
-                                        <li><strong>Boston Museum:</strong> Interactive exhibits suitable for kids, learn about the city's history.</li>
-                                        <li><strong>Theatre Comique:</strong> Family-friendly puppet shows and storytelling sessions.</li>
-                                        <li><strong>Rialto Theatre:</strong> Check for children's performances or movies during your visit.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    How's the weather that week?
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <strong>Weather for Boston this week:</strong>
-                                    <ul>
-                                        <li><strong>High:</strong> 26.5°C</li>
-                                        <li><strong>Low:</strong> 10.9°C</li>
-                                        <li><strong>Precipitation probability:</strong> 0%</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    What should we pack?
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <strong>Packing for Boston:</strong>
-                                    <ul>
-                                        <li>Light breathable clothing</li>
-                                        <li>Sunscreen with high SPF</li>
-                                        <li>Wide-brimmed hat and sunglasses</li>
-                                        <li>Comfortable walking shoes</li>
-                                        <li>Water bottle and light scarf for sun protection</li>
-                                        <li>Moisturizing lotion and insect repellent</li>
-                                        <li>Light rain jacket for unexpected showers</li>
-                                        <li>Swimwear and beach towel for water activities</li>
-                                        <li>Portable fan and cooling towel for hot days</li>
-                                        <li>Light blanket for air-conditioned rooms</li>
-                                        <li>Breathable underwear and quick-dry socks</li>
-                                        <li>Hat with ventilation for outdoor activities</li>
-                                        <li>UV-protective clothing for extended sun exposure</li>
-                                        <li>Travel-sized deodorant and lip balm with SPF</li>
-                                        <li>Sunglasses retainer strap to prevent loss</li>
-                                        <li>Mesh laundry bag for easy organization</li>
-                                        <li>Portable phone charger for convenience</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    We'd prefer non‑stop travel and minimal transfers.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <p><strong>Paragraph 1:</strong><br>
-                                    Non-stop travel, where you stay on the same plane for the entire journey, is often preferred for its convenience and reduced risk of delays [3]. This is because there's no second take-off or landing, no transfer security point or passport control, and one less plane lowers the odds of issues delaying or canceling your flight [3].</p>
-
-                                    <p><strong>Paragraph 2:</strong><br>
-                                    Wanderu, a travel booking platform, offers "Multi-Carrier" options that provide travelers with alternative routes and, in some cases, more affordable options to reach their destination. This is particularly useful when the route searched has limited options [1].</p>
-                                </div>
-                                <div class="sources-section">
-                                    <strong>Sources:</strong>
-                                    <ul>
-                                        <li>Direct vs Non-Stop vs Transfer Trip | Wanderu Help Center [1]</li>
-                                        <li>Non-Stop vs Connecting Flights: Which Itinerary Type Is Best For Long-Distance Journeys? [3]</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    Yes, please check nonstop options and rough prices.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <p><strong>Paragraph 1:</strong><br>
-                                    Boston Logan International Airport offers a wide range of international nonstop destinations [1]. With over 150 direct flights to various destinations, passengers can explore a variety of options [2][3].</p>
-
-                                    <p><strong>Paragraph 2:</strong><br>
-                                    Some popular nonstop international flights from Boston include routes to Paris, London, and Frankfurt, among others [1]. These destinations offer a mix of culture, history, and modern attractions.</p>
-                                </div>
-                                <div class="sources-section">
-                                    <strong>Sources:</strong>
-                                    <ul>
-                                        <li>International Nonstop Destinations from Boston Logan | Massport [1]</li>
-                                        <li>Direct (non-stop) flights from Boston Logan (BOS) - FlightsFrom.com [2]</li>
-                                        <li>Flights from Boston (BOS) - FlightConnections.com [3]</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="message-group">
-                        <div class="message user-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">User</span>
-                                </div>
-                                <div class="message-text">
-                                    Please search the web for any festivals or events that week we should plan around.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="message agent-message">
-                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">AI Assistant</span>
-                                </div>
-                                <div class="message-text">
-                                    <p>Boston hosts a variety of festivals throughout the year, including June. One notable event is the <strong>Boston Pizza Festival</strong>, held annually on June 21-22 at City Hall Plaza [1]. This festival transforms the area into a giant picnic ground, offering a wide selection of pizza and entertainment such as pizza tossing shows and live music.</p>
-
-                                    <p>Boston's cultural diversity is celebrated through various cross-cultural festivals [2]. These events showcase the city's vibrant cultural landscape and provide a platform for different communities to share their traditions.</p>
-
-                                    <p>While the provided results do not specify any other festivals in June, Boston is known for its numerous annual events and festivals throughout the year [7]. For a comprehensive list of events happening in Boston, one can refer to the official Boston events calendar [6].</p>
-                                </div>
-                                <div class="sources-section">
-                                    <strong>Sources:</strong>
-                                    <ul>
-                                        <li>Boston Pizza Festival: Dates, Tickets & Info - Boston.com [1]</li>
-                                        <li>Festivals & Events: Boston - Wikipedia [2]</li>
-                                        <li>Boston Events Calendar 2024 - Official Tourism Site [6]</li>
-                                        <li>Fun Events in Boston: What's Happening Now - Time Out Boston [7]</li>
+                                        <li>Rome Travel Cost - Average Price of a Vacation to Rome: Food & Meal Budget, Daily & Weekly Expenses | BudgetYourTrip.com - https://www.budgetyourtrip.com/italy/rome</li>
+                                        <li>Rome in One Week | Essential Budget Travel | What To See, Eat & Do! — Michael & Matt Gay Travel - https://www.michaelandmatt.com/blog/rome-in-one-week-essential-budget-travel</li>
+                                        <li>Where to Stay in Rome for 3 Days: Make the most of your stay! • Meliss Meets World - https://melissmeetsworld.com/where-to-stay-in-rome-for-3-days/</li>
+                                        <li>Where to eat in Rome: a local's guide | Luggage and Life - https://luggageandlife.com/where-to-eat-in-rome/</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1134,19 +1027,22 @@ npm test
                                     <span class="message-author">AI Assistant</span>
                                 </div>
                                 <div class="message-text">
-                                    <p><strong>Paragraph 1:</strong><br>
-                                    U.S. passport holders do not require a visa for stays in Canada of less than 180 days [1]. American citizens, including those with dual nationality, do not need a Canadian visa or an eTA to enter Canada [2]. However, a valid U.S. passport is essential for entry [1, 2, 5].</p>
+                                    <p>U.S. citizens generally do not need a visa to visit Canada for stays of 180 days or less, but they must have a valid passport. A passport is considered the most reliable travel document [2, 4].</p>
 
-                                    <p><strong>Paragraph 2:</strong><br>
-                                    Upon arrival, U.S. citizens can bring a maximum of 10,000 CAD into Canada [1]. Canadian visitors can usually stay in the United States for 6 months without a visa, and must declare their intended duration of stay [4].</p>
+                                    <ul>
+                                        <li>U.S. citizens do not need a visa to visit Canada for stays less than 180 days [2].</li>
+                                        <li>A valid passport is required for entry into Canada [2, 4].</li>
+                                        <li>Biometrics (fingerprints and photo) may be required for some applicants [3].</li>
+                                        <li>While a visa is required for foreign nationals, U.S. citizens typically do not need one for tourism or business [2, 5].</li>
+                                    </ul>
                                 </div>
                                 <div class="sources-section">
                                     <strong>Sources:</strong>
                                     <ul>
-                                        <li>Canada International Travel Information [1]</li>
-                                        <li>I am an American citizen. What do I need to enter Canada? [2]</li>
-                                        <li>Travel advice and advisories for United States (USA) [4]</li>
-                                        <li>Travel and identification documents for entering Canada [5]</li>
+                                        <li>Canada Travel Advisory | Travel.State.gov (http://Travel.State.gov) - https://travel.state.gov/en/international-travel/travel-advisories/canada.html</li>
+                                        <li>Travel and identification documents for entering Canada - https://www.cbsa-asfc.gc.ca/travel-voyage/td-dv-eng.html</li>
+                                        <li>Entry requirements by country or territory - Canada.ca (http://Canada.ca) - https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/entry-requirements-country.html</li>
+                                        <li>Move to Canada from the U.S | Immigration, Work, &amp; Study Visa Options | Canadavisa.com (http://Canadavisa.com) - https://www.canadavisa.com/moving-to-canada-from-the-u-s.html</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1182,11 +1078,11 @@ npm test
                                             </div>
                                             <div class="receipts-item">
                                                 <span class="receipts-label">Decisions:</span>
-                                                <span class="receipts-value">Performed web search for: us passport canada visa</span>
+                                                <span class="receipts-value">Performed web search for: "us passport canada visa requirements"</span>
                                             </div>
                                             <div class="receipts-item">
                                                 <span class="receipts-label">Self-Check:</span>
-                                                <span class="receipts-value">pass (Ensure to always check the latest travel advisories for any changes in entry requirements.)</span>
+                                                <span class="receipts-value">warn (The provided facts state that U.S. citizens do not need a visa for stays less than 180 days, but also state that foreign nationals need a visa. The draft answer does not specify the length of stay for visa requirements., The facts state that a valid passport is required, but do not explicitly state that it is the most reliable travel document.)</span>
                                             </div>
                                             <div class="receipts-item">
                                                 <span class="receipts-label">Budget:</span>
@@ -1194,6 +1090,40 @@ npm test
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What should I pack for Lodon?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>For London in September: Pack layered clothing for London, with a high of 22°C and low of 11.9°C.</p>
+
+                                    <ul>
+                                        <li>Include a light waterproof jacket and an umbrella or poncho, as there's a 0% chance of precipitation.</li>
+                                        <li>Comfortable walking shoes and a daypack or crossbody bag are recommended.</li>
+                                        <li>Don't forget a medium-weight sweater, jeans or comfortable pants, and a light scarf.</li>
+                                        <li>Consider a cardigan or light jacket, breathable windbreaker, and light gloves.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
                                 </div>
                             </div>
                         </div>
