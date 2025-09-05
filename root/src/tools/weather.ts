@@ -25,6 +25,10 @@ export async function getWeather(input: {
   if (primaryResult.ok) {
     return primaryResult;
   }
+  // For unknown cities, avoid falling back to generic web search to prevent hallucinations
+  if (!primaryResult.ok && primaryResult.reason === 'unknown_city') {
+    return primaryResult;
+  }
 
   // Fallback to Brave Search
   const fallbackResult = await tryWeatherFallback(input.city, input.datesOrMonth);
@@ -111,5 +115,4 @@ async function tryWeatherFallback(city: string, datesOrMonth?: string): Promise<
 
   return { ok: false, reason: 'no_weather_data' };
 }
-
 

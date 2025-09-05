@@ -182,6 +182,16 @@ export async function handleChat(
   input: ChatInputT,
   ctx: { log: pino.Logger },
 ) {
+  // Early handling for empty/emoji-only or non-informative inputs
+  const raw = input.message || '';
+  const trimmed = raw.trim();
+  const emojiOnly = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s]+$/u.test(raw);
+  const nonAlphaNum = !/[a-zA-Z0-9]/.test(raw);
+  if (trimmed.length === 0 || emojiOnly || (raw.length <= 6 && nonAlphaNum)) {
+    const reply = "I'm a travel assistant. Please share a travel question (weather, destinations, packing, or attractions).";
+    const threadId = getThreadId(input.threadId);
+    return ChatOutput.parse({ reply, threadId });
+  }
   const threadId = getThreadId(input.threadId);
   const wantReceipts = Boolean((input as { receipts?: boolean }).receipts) ||
     /^\s*\/why\b/i.test(input.message);
@@ -338,20 +348,7 @@ export async function blendWithFacts(
       
       return await performWebSearch(optimizedQuery, ctx, input.threadId);
     }
-
-    // Use LLM to decide if this needs web search
-    const shouldSearch = await decideShouldSearch(input.message, ctx);
-    if (shouldSearch) {
-      // Optimize the search query
-      const optimizedQuery = await optimizeSearchQuery(
-        input.message,
-        input.route.slots,
-        input.route.intent,
-        ctx.log
-      );
-      
-      return await performWebSearch(optimizedQuery, ctx, input.threadId);
-    }
+    // Do not escalate to web search for generic or unrelated refinement requests
 
     // Use LLM for unrelated content detection with fallback
     let isUnrelated = false;
