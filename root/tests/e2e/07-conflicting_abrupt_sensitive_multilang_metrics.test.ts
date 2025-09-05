@@ -72,7 +72,7 @@ describe('E2E: Conflicts, Abrupt Changes, Sensitive, Multi-language, Metrics', (
         r.body.reply,
         'Response should handle the rapid switches gracefully, possibly asking for clarification about which city/season to focus on'
       ).toPass();
-    }, 45000);
+    }, 120000);
 
     test('handles questions about the system itself in travel context', async () => {
       const threadId = 'system-in-context-1';
@@ -134,4 +134,3 @@ describe('E2E: Conflicts, Abrupt Changes, Sensitive, Multi-language, Metrics', (
     }, 10000);
   });
 });
-

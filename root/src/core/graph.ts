@@ -339,7 +339,8 @@ async function attractionsNode(
 async function systemNode(ctx: NodeCtx): Promise<NodeOut> {
   return {
     done: true,
-    reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. Share origin, rough dates, who's traveling, budget, and any constraints (e.g., stroller, flight length).",
+    reply:
+      "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. If you meant my previous reply, tell me what to clarify or ask a more specific travel question.",
     citations: undefined,
   };
 }

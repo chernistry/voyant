@@ -76,11 +76,11 @@ describe('E2E: Citations, Unrelated, Empty Input, System/Meta', () => {
   describe('🤯 Completely Unrelated & Gibberish Queries', () => {
     test('handles completely unrelated questions gracefully', async () => {
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'What is the meaning of life?' }).expect(200);
-      expect(r.body.reply).toBeDefined();
-      expect(typeof r.body.reply).toBe('string');
-      expect(r.body.reply.length).toBeGreaterThan(0);
-      // Should redirect politely to travel topics
-      expect(String(r.body.reply).toLowerCase()).toMatch(/travel assistant|travel planning|weather|destinations|packing|attractions/i);
+      await expectLLMEvaluation(
+        'Completely unrelated question',
+        r.body.reply,
+        'Response should politely decline and redirect to travel topics without asking for specific travel slots'
+      ).toPass();
     }, 45000);
 
     test('handles pure gibberish input', async () => {
@@ -114,12 +114,20 @@ describe('E2E: Citations, Unrelated, Empty Input, System/Meta', () => {
   describe('🚫 Empty & Edge Input Messages', () => {
     test('handles whitespace-only messages', async () => {
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: '   \n\t   ' }).expect(200);
-      expect(String(r.body.reply).toLowerCase()).toMatch(/travel/);
+      await expectLLMEvaluation(
+        'Whitespace-only message',
+        r.body.reply,
+        'Response should ask for actual travel-related content or indicate it needs more information'
+      ).toPass();
     }, 45000);
 
     test('handles emoji-only messages', async () => {
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: '🤔😊🚀🌟' }).expect(200);
-      expect(String(r.body.reply).toLowerCase()).toMatch(/travel/);
+      await expectLLMEvaluation(
+        'Emoji-only message',
+        r.body.reply,
+        'Response should ask for clarification about travel plans or politely indicate it cannot interpret emoji-only messages'
+      ).toPass();
     }, 45000);
 
     test('handles extremely long city names', async () => {
@@ -156,8 +164,11 @@ describe('E2E: Citations, Unrelated, Empty Input, System/Meta', () => {
       const threadId = 'meta-question-1';
       await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Weather in Paris?', threadId }).expect(200);
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'What do you mean?', threadId }).expect(200);
-      const t = String(r.body.reply).toLowerCase();
-      expect(t).toMatch(/travel assistant|help with/);
+      await expectLLMEvaluation(
+        'Meta question about previous response',
+        r.body.reply,
+        'Response should clarify what was meant or ask for more specific questions about the travel topic'
+      ).toPass();
     }, 45000);
   });
 });

@@ -46,20 +46,19 @@ describe('E2E: Intent Switching, Family Refinements & Threads', () => {
     test('destinations → kid-friendly refinement keeps context', async () => {
       const threadId = 'kid-friendly-ctx-1';
       const r1 = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Where should I go in June from NYC?', threadId }).expect(200);
-      // Relaxed semantic check: response mentions June and either weather context or cites an external source used for facts
-      const r1Text = String(r1.body.reply).toLowerCase();
-      expect(r1Text).toContain('june');
-      const r1HasWeather = /weather|°c|temperature|precip/i.test(r1.body.reply);
-      const r1HasCitations = Array.isArray(r1.body.citations) && r1.body.citations.join(',').match(/Open-Meteo|REST Countries|Brave Search/i);
-      expect(Boolean(r1HasWeather || r1HasCitations)).toBe(true);
+      await expectLLMEvaluation(
+        'Initial destinations from NYC in June',
+        r1.body.reply,
+        'Response should offer 2-4 destination options with June weather rationale'
+      ).toPass();
 
       const r2 = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Make it kid-friendly.', threadId }).expect(200);
-      // Relaxed check: ensures context reuse and weather rationale mention rather than strict LLM evaluation
       expect(r2.body.threadId).toBe(threadId);
-      // Accept any clear weather rationale signal: keywords or Open-Meteo citation
-      const hasWeatherKeywords = /weather|°c|temperature|precip/i.test(r2.body.reply);
-      const hasWeatherCitations = Array.isArray(r2.body.citations) && r2.body.citations.join(',').match(/Open-Meteo|REST Countries|Brave Search/i);
-      expect(Boolean(hasWeatherKeywords || hasWeatherCitations)).toBe(true);
+      await expectLLMEvaluation(
+        'Kid-friendly refinement reusing prior context (NYC + June)',
+        r2.body.reply,
+        'Response should keep same thread context and add family/kid-friendly notes to destinations'
+      ).toPass();
     }, 120000);
   });
 
@@ -81,9 +80,11 @@ describe('E2E: Intent Switching, Family Refinements & Threads', () => {
     test('new thread does not inherit old context', async () => {
       await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Where to go in June from NYC?' }).expect(200);
       const b = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Make it kid-friendly' }).expect(200);
-      const bText = String(b.body.reply).toLowerCase();
-      // Should ask for at least one missing slot (city or month/dates)
-      expect(/city|month|date/.test(bText)).toBe(true);
+      await expectLLMEvaluation(
+        'New thread without prior context',
+        b.body.reply,
+        'Response should request missing city or month/budget instead of assuming NYC or June'
+      ).toPass();
     }, 45000);
   });
 });

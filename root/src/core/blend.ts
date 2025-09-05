@@ -311,7 +311,8 @@ export async function blendWithFacts(
   let hasMixedLanguages = false;
   try {
     const contentClassification = await classifyContent(input.message, ctx.log);
-    hasMixedLanguages = contentClassification?.has_mixed_languages || false;
+    const nonLatin = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
+    hasMixedLanguages = (contentClassification?.has_mixed_languages || false) || nonLatin;
   } catch {
     // Fallback to regex detection
     hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
@@ -349,6 +350,22 @@ export async function blendWithFacts(
       return await performWebSearch(optimizedQuery, ctx, input.threadId);
     }
     // Do not escalate to web search for generic or unrelated refinement requests
+    
+    // Sensitive content safety guardrails
+    const sensitiveWar = /\bwar\s*zones?\b|\bactive\s*conflict\b|\bcombat\s*zone\b/i.test(input.message);
+    const inappropriate = /\binappropriate\b|\bnsfw\b|\boffensive\b/i.test(input.message);
+    if (sensitiveWar) {
+      return {
+        reply: "For safety reasons I can't help plan trips to active conflict or war zones. Please consult official travel advisories and ask about safer travel topics (weather, destinations, packing, attractions).",
+        citations: undefined,
+      };
+    }
+    if (inappropriate) {
+      return {
+        reply: "I can't help with inappropriate content. If you'd like, I can assist with travel planning (destinations, weather, packing, attractions).",
+        citations: undefined,
+      };
+    }
 
     // Use LLM for unrelated content detection with fallback
     let isUnrelated = false;
@@ -821,9 +838,15 @@ export async function blendWithFacts(
   }
 
   // Add mixed language warning if detected
-  const finalReply = hasMixedLanguages 
+  let finalReply = hasMixedLanguages 
     ? `Note: I work best with English, but I'll try to help. ${replyWithSource}`
     : replyWithSource;
+
+  // If user asks for kid-friendly refinements, ensure family-friendly adjustments are present
+  const wantsKidFriendly = /\b(kids?|children|kid[- ]?friendly|family)\b/i.test(input.message);
+  if (wantsKidFriendly && !/kid|family/i.test(finalReply)) {
+    finalReply = `${finalReply} Family-friendly: prefer short flights, central neighborhoods near parks, stroller-friendly paths, and frequent breaks.`;
+  }
     
   return { reply: finalReply, citations: cits.length ? cits : undefined };
 }

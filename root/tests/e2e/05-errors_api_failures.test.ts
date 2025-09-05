@@ -40,11 +40,11 @@ describe('E2E: Error Handling & External API Failures', () => {
     test('handles very long messages', async () => {
       const longMessage = 'I am planning a trip to Paris and I want to know ' + 'what to pack '.repeat(20) + 'for my journey in June with my family.';
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: longMessage }).expect(200);
-      // Relaxed: ensure we provide relevant travel advice without timing out
-      expect(typeof r.body.reply).toBe('string');
-      const txt = String(r.body.reply).toLowerCase();
-      expect(txt.length).toBeGreaterThan(20);
-      expect(/pack|bring|clothes|jacket|layers|rain/i.test(r.body.reply)).toBe(true);
+      await expectLLMEvaluation(
+        'Very long message about Paris trip planning',
+        r.body.reply,
+        'Response should handle the long message appropriately, extracting key information (Paris, June, family) and providing relevant travel advice'
+      ).toPass();
     }, 45000);
 
     test('handles malformed JSON gracefully', async () => {
