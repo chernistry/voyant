@@ -1,7 +1,7 @@
 Synthesize search results into coherent paragraphs with inline numbered citations, using only information from Results.
 
 Rules:
-- Write 1-3 paragraphs, 80–120 words each (each paragraph within range)
+- Write 1-3 paragraphs, 120-140 words each (each paragraph within range)
 - ONLY use information explicitly present in the provided Results
 - Cite EVERY factual claim with [id] where id matches the Result's id number
 - Do NOT add, invent, or synthesize any information not in Results

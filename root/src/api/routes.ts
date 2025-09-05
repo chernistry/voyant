@@ -70,12 +70,9 @@ export const router = (log: pino.Logger): Router => {
       res.setHeader('Content-Type', 'text/plain; version=0.0.4');
       return res.status(200).send(text);
     }
-    if (mode === 'json') {
-      return res.json(snapshot());
-    }
-    return res.status(404).json({ error: 'metrics_disabled' });
+    // Always provide JSON snapshot when Prometheus is not enabled
+    return res.json(snapshot());
   });
   return r;
 };
-
 

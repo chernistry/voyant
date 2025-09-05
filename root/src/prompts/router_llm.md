@@ -44,5 +44,8 @@ Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Franci
 Input: "Flights to Paris next weekend under $600?"
 Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.75,"missingSlots":["month"]}
 
+Input: "Where to go from Tel Aviv in August?"
+Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Tel Aviv","month":"August","dates":"August"},"confidence":0.85,"missingSlots":[]}
+
 Input: "Going to LA 10/12–10/15 for a conference—what should I bring?"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"Los Angeles","month":"October","dates":"2025-10-12 to 2025-10-15","travelerProfile":"business"},"confidence":0.85,"missingSlots":[]}
