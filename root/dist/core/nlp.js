@@ -111,7 +111,11 @@ export async function clarifierLLM(missing, context, log) {
             .replace('{context}', JSON.stringify(context));
         const raw = await callLLM(prompt, { log });
         const q = raw.trim();
-        return q.length > 0 ? q : fallbackClarifier(missing);
+        // If response is empty or does not reference missing slots clearly, use deterministic fallback
+        const lower = q.toLowerCase();
+        const slotsCovered = missing.every((m) => lower.includes(m.toLowerCase()));
+        const isProviderError = /technical difficulties|try again|error/i.test(lower);
+        return q.length > 0 && slotsCovered && !isProviderError ? q : fallbackClarifier(missing);
     }
     catch {
         return fallbackClarifier(missing);

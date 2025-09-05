@@ -2,7 +2,7 @@ import { RouterResult } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
 import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
 import { routeWithLLM } from './router.llm.js';
-import { getThreadSlots } from './slot_memory.js';
+import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
 export async function routeIntent(input) {
     if (typeof input.logger?.log?.info === 'function') {
@@ -20,6 +20,28 @@ export async function routeIntent(input) {
     }
     // Use LLM for content classification first
     const contentClassification = await classifyContent(input.message, input.logger?.log);
+    // Detect complex multi-constraint queries and request deep research consent (flagged)
+    if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
+        const complexity = detectComplexQuery(input.message);
+        if (complexity.isComplex && complexity.confidence >= 0.7) {
+            if (input.threadId) {
+                updateThreadSlots(input.threadId, {
+                    awaiting_deep_research_consent: 'true',
+                    pending_deep_research_query: input.message,
+                    complexity_reasoning: complexity.reasoning,
+                }, []);
+            }
+            return RouterResult.parse({
+                intent: 'system',
+                needExternal: false,
+                slots: {
+                    deep_research_consent_needed: 'true',
+                    complexity_score: complexity.confidence.toFixed(2),
+                },
+                confidence: 0.9,
+            });
+        }
+    }
     // Prefer LLM router first for robust NLU and slot extraction
     const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
     // Handle system questions about the AI
@@ -319,4 +341,27 @@ function extractJsonObject(text) {
     catch {
         return undefined;
     }
+}
+function detectComplexQuery(message) {
+    const m = message || '';
+    const categories = [];
+    const hasOrigin = /\b(from|leaving|out of|ex)\s+[A-Z][A-Za-z]/.test(m);
+    if (hasOrigin)
+        categories.push('origin');
+    const hasBudget = /(budget|cost|price|afford|cheap|expensive|\$\s*\d|£\s*\d|€\s*\d)/i.test(m);
+    if (hasBudget)
+        categories.push('budget');
+    const hasGroup = /(\d+\s*(kids?|children|people|adults|family)|family|kids?)/i.test(m);
+    if (hasGroup)
+        categories.push('group');
+    const hasTime = /(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|next\s+week|this\s+month|in\s+\w+)/i.test(m);
+    if (hasTime)
+        categories.push('time');
+    const hasSpecial = /(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)/i.test(m);
+    if (hasSpecial)
+        categories.push('special');
+    const score = Math.max(0, categories.length - 2);
+    const confidence = Math.min(0.6 + 0.1 * score, 0.95);
+    const isComplex = categories.length >= 3;
+    return { isComplex, confidence, reasoning: `constraints: ${categories.join(', ')}` };
 }

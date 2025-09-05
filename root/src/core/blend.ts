@@ -108,8 +108,15 @@ async function summarizeSearch(
       sanitized = truncated;
     }
     
+    // Ensure Sources block with direct links present; if missing, append from our results
+    const hasLinks = /https?:\/\//i.test(sanitized) || /Sources:/i.test(sanitized);
+    let finalText = sanitized;
+    if (!hasLinks) {
+      const sourcesBlock = ['Sources:', ...formattedResults.slice(0, 5).map(r => `${r.id}. ${r.title} - ${r.url}`)].join('\n');
+      finalText = `${sanitized}\n\n${sourcesBlock}`;
+    }
     return {
-      reply: sanitized,
+      reply: finalText,
       citations: ['Brave Search']
     };
   } catch (error) {
@@ -140,6 +147,24 @@ async function performWebSearch(
   threadId?: string,
 ): Promise<{ reply: string; citations?: string[] }> {
   ctx.log.debug({ query }, 'performing_web_search');
+  // Opt-in deep research path
+  if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
+    try {
+      const { performDeepResearch } = await import('./deep_research.js');
+      const research = await performDeepResearch(query, { threadId }, ctx.log);
+      // Verify answer using existing verifier
+      try {
+        const facts = research.citations.map((c, i) => ({ source: c.source, key: `deep_${i}`, value: c.url }));
+        const audit = await verifyAnswer({ reply: research.summary, facts, log: ctx.log });
+        if (audit.verdict === 'fail' && audit.revisedAnswer) {
+          return { reply: audit.revisedAnswer, citations: research.citations.map((c) => c.source) };
+        }
+      } catch {}
+      return { reply: research.summary, citations: research.citations.map((c) => c.source) };
+    } catch (e) {
+      ctx.log.warn({ e: e instanceof Error ? e.message : String(e) }, 'deep_research_failed_fallback_single_search');
+    }
+  }
   
   const searchResult = await searchTravelInfo(query, ctx.log);
   
@@ -663,17 +688,16 @@ export async function blendWithFacts(
         }
       }
     } else if (input.route.intent === 'attractions') {
-      // Prefer OpenTripMap (mocked in tests); avoid fabrications on unknown cities
+      // Prefer OpenTripMap results; avoid listing specific POIs from generic web search
       const at = await getAttractions({ city: cityHint, limit: 5 });
-      if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
-        cits.push(source);
-        facts += `POIs: ${at.summary} (${source})\n`;
-        factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from external POI API.');
+      if (at.ok && at.source === 'opentripmap') {
+        cits.push('OpenTripMap');
+        facts += `POIs: ${at.summary} (OpenTripMap)\n`;
+        factsArr.push({ source: 'OpenTripMap', key: 'poi_list', value: at.summary });
+        decisions.push('Listed top attractions from OpenTripMap.');
       } else {
-        ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
-        decisions.push('Attractions lookup failed; avoided fabricating POIs.');
+        ctx.log.debug({ reason: at.ok ? `unexpected_source_${at.source}` : at.reason }, 'attractions_adapter_failed');
+        decisions.push('Attractions lookup unavailable; avoided fabricating POIs.');
       }
     }
   } catch (e) {
@@ -698,6 +722,17 @@ export async function blendWithFacts(
     }
   }
 
+  // If we have OpenTripMap POIs, format deterministically (no LLM) to avoid fabrications
+  if (input.route.intent === 'attractions' && /POIs:\s*(.+)\s*\(OpenTripMap\)/.test(facts)) {
+    const m = facts.match(/POIs:\s*(.+)\s*\(OpenTripMap\)/);
+    const list = (m?.[1] || '').split(/;\s*/).map(s => s.trim()).filter(Boolean).slice(0, 5);
+    if (list.length > 0) {
+      const bullets = list.map(item => `• ${item}`).join('\n');
+      const reply = `${bullets} (OpenTripMap)`;
+      return { reply, citations: ['OpenTripMap'] };
+    }
+  }
+  
   // Use CoT for main generation flow (hidden from user)
   let reply: string;
   try {

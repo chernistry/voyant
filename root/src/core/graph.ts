@@ -59,6 +59,8 @@ export async function runGraphTurn(
   const threadSlots = getThreadSlots(threadId);
   const awaitingSearchConsent = threadSlots.awaiting_search_consent === 'true';
   const pendingSearchQuery = threadSlots.pending_search_query;
+  const awaitingDeepResearch = threadSlots.awaiting_deep_research_consent === 'true';
+  const pendingDeepResearchQuery = threadSlots.pending_deep_research_query;
   
   if (awaitingSearchConsent && pendingSearchQuery) {
     const consent = await detectConsent(message, ctx);
@@ -92,10 +94,42 @@ export async function runGraphTurn(
     }
   }
 
+  // Handle consent responses for deep research
+  if (awaitingDeepResearch && pendingDeepResearchQuery) {
+    const consent = await detectConsent(message, ctx);
+    const isConsentResponse = consent !== 'unclear';
+    if (isConsentResponse) {
+      const isPositive = consent === 'yes';
+      // Clear consent state
+      updateThreadSlots(threadId, {
+        awaiting_deep_research_consent: '',
+        pending_deep_research_query: '',
+        complexity_reasoning: ''
+      }, []);
+      if (isPositive) {
+        return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
+      } else {
+        // Fall back to standard routing with the pending query
+        const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
+        if ('done' in routeResult) return routeResult;
+        return { next: routeResult.next, slots: routeResult.slots };
+      }
+    }
+  }
+
   const routeCtx: NodeCtx = { msg: message, threadId };
   const routeResult = await routeIntentNode(routeCtx, ctx);
   if ('done' in routeResult) {
     return routeResult;
+  }
+  // If router requests deep research consent, ask the user
+  if (routeResult.slots?.deep_research_consent_needed === 'true') {
+    const slots = getThreadSlots(threadId);
+    const reasoning = slots.complexity_reasoning || 'Multiple constraints detected.';
+    return {
+      done: true,
+      reply: `This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?\n\nReason: ${reasoning}`,
+    };
   }
   // Handle follow-up responses: if intent is unknown but we have prior context, try to infer intent
   let intent = routeResult.next;
@@ -425,6 +459,28 @@ async function performWebSearchNode(
   };
 }
 
+async function performDeepResearchNode(
+  query: string,
+  ctx: { log: pino.Logger },
+  threadId: string,
+): Promise<NodeOut> {
+  try {
+    const { performDeepResearch } = await import('./deep_research.js');
+    const research = await performDeepResearch(query, { threadId }, ctx.log);
+    // Store receipts
+    try {
+      const { setLastReceipts } = await import('./slot_memory.js');
+      const facts = research.citations.map((c, i) => ({ source: c.source, key: `deep_${i}`, value: c.url }));
+      const decisions = [`Deep research performed for: "${query}"`];
+      setLastReceipts(threadId, facts, decisions, research.summary);
+    } catch {}
+    return { done: true, reply: research.summary, citations: research.sources };
+  } catch (error) {
+    ctx.log.error({ error: error instanceof Error ? error.message : String(error) }, 'deep_research_failed');
+    return { done: true, reply: 'I ran into an issue while doing deep research. I can try a standard search instead if you like.' };
+  }
+}
+
 async function summarizeSearchResults(
   results: Array<{ title: string; url: string; description: string }>,
   query: string,
@@ -482,8 +538,15 @@ async function summarizeSearchResults(
       sanitized = truncated;
     }
     
+    // Ensure Sources block with direct links present; if missing, append from our results
+    const hasLinks = /https?:\/\//i.test(sanitized) || /Sources:/i.test(sanitized);
+    let finalText = sanitized;
+    if (!hasLinks) {
+      const sourcesBlock = ['Sources:', ...formattedResults.slice(0, 5).map(r => `${r.id}. ${r.title} - ${r.url}`)].join('\n');
+      finalText = `${sanitized}\n\n${sourcesBlock}`;
+    }
     return {
-      reply: sanitized,
+      reply: finalText,
       citations: ['Brave Search']
     };
   } catch (error) {

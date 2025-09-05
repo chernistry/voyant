@@ -99,15 +99,15 @@ function parseCityWithNLP(text) {
             const entityItems = entities.itemAt(0);
             if (entityItems) {
                 const city = entityItems.out();
-                if (MONTH_WORDS.includes(city.toLowerCase())) {
-                    return { success: false, data: null, confidence: 0 };
+                if (!MONTH_WORDS.includes(city.toLowerCase())) {
+                    return {
+                        success: true,
+                        data: { city, normalized: city, confidence: 0.7 },
+                        confidence: 0.7,
+                        normalized: city,
+                    };
                 }
-                return {
-                    success: true,
-                    data: { city, normalized: city, confidence: 0.7 },
-                    confidence: 0.7,
-                    normalized: city,
-                };
+                // If the top entity is a month, ignore and try heuristic fallback below
             }
         }
         // Fallback to capitalized words after prepositions

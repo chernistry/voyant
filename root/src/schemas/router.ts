@@ -9,6 +9,12 @@ export const RouterSlots = z.object({
   dates: z.string().optional(),
   travelerProfile: z.string().optional(),
   search_query: z.string().optional(),
+  // Deep research consent flow (optional)
+  awaiting_deep_research_consent: z.string().optional(),
+  pending_deep_research_query: z.string().optional(),
+  complexity_reasoning: z.string().optional(),
+  deep_research_consent_needed: z.string().optional(),
+  complexity_score: z.string().optional(),
 });
 
 export const RouterResult = z.object({
