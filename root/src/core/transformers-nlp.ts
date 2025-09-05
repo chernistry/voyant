@@ -58,12 +58,22 @@ async function loadPipeline(log?: pino.Logger): Promise<(text: string) => Promis
 }
 
 export async function extractEntities(text: string, log?: pino.Logger, opts?: { timeoutMs?: number }): Promise<NerSpan[]> {
-  // Skip Transformers.js in test environment to avoid runtime errors
+  // Use IPC worker in test environment to avoid Jest/ORT typed array issues
   if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-    if (log?.debug) {
-      log.debug({ reason: 'test_environment' }, '⏭️ TRANSFORMERS: Skipping in test environment');
+    try {
+      const { nerIPC } = await import('./ner-ipc.js');
+      const spans = await nerIPC(String(text || ''));
+      return Array.isArray(spans) ? spans.map((o: any) => ({
+        entity_group: String(o.entity_group || o.entity || ''),
+        score: Number(o.score || 0),
+        text: String(o.word || o.text || ''),
+      })) : [];
+    } catch (error) {
+      if (log?.debug) {
+        log.debug({ error: String(error) }, '❌ TRANSFORMERS: IPC worker failed');
+      }
+      return [];
     }
-    return [];
   }
   
   if (!nerReady) nerReady = loadPipeline(log);
