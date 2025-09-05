@@ -1228,14 +1228,14 @@ npm test
         <section class="container">
             <div class="roadmap-section">
                 <div class="roadmap-block">
-                    <h3 class="roadmap-title">Roadmap</h3>
+                    <h3 class="roadmap-title">Priority Roadmap</h3>
                     <div class="roadmap-intro">
                         These are the features we would implement next if we continued development beyond this demo.
                     </div>
                     <div class="roadmap-list">
                         <ul class="detail-list">
                             <li><strong>Browser Fallback:</strong> Playwright integration for precise policy parsing with source citations and receipts.</li>
-                            <li><strong>Router Optimization:</strong> Replace monolithic LLM routing with specialized NLP Cloud models - dedicated intent classification model for travel domains, separate embeddings model for semantic slot extraction, and lightweight entity recognition model for city/date parsing. Implement model orchestration layer with fallback chains (NLP Cloud → local wink-NLP → current LLM) for 40-60% latency reduction while maintaining accuracy.</li>
+                            <li><strong>Router Optimization:</strong> Replace monolithic LLM routing with specialized NLP-optimized models (e.g., <a href="https://docs.nlpcloud.com/#models-list" target="_blank">NLP Cloud</a>) - dedicated intent classification for travel domains, separate embeddings for semantic slot extraction, and lightweight entity recognition for cities/dates. Implement orchestration layer with fallback chains for 40-60% latency reduction while maintaining accuracy.</li>
                             <li><strong>Mini-RAG:</strong> Embeddings and passage-level citations for 3-5 seeded policy/waiver documents.</li>
                             <li><strong>Agent Flow Scaling:</strong> Parallelizable nodes and rollback handling for the graph-based orchestrator.</li>
                             <li><strong>Enterprise Observability & Production Readiness:</strong> P95 metrics, intent success rates, OpenAPI schemas, Lambda packaging, and ADRs.</li>

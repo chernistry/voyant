@@ -1,30 +1,26 @@
-Synthesize search results into coherent paragraphs with inline numbered citations, using only information from Results.
+Synthesize the Results into a concise, helpful answer with inline numbered citations.
 
 Rules:
-- Write 1-3 paragraphs, 120-140 words each (each paragraph within range)
-- ONLY use information explicitly present in the provided Results
-- Cite EVERY factual claim with [id] where id matches the Result's id number
-- Do NOT add, invent, or synthesize any information not in Results
-- Do NOT mention destinations, attractions, or details not explicitly in Results
-- If Results lack information for a topic, skip that topic entirely
-- If results are insufficient for 3 paragraphs, write fewer paragraphs
-- No CoT, no internal headers, no lists/bullets; sentences only
-- If Results don't answer the query adequately, state this clearly
+- Output ≤ 180 words total.
+- Start with a 1–2 sentence direct answer to the Query.
+- Then 3–5 bullets with the most relevant facts; end each bullet with [id].
+- ONLY use information explicitly present in Results. No inventions.
+- If Results don’t answer the Query, say so and ask one clarifying question.
+- Keep wording concrete; avoid generic advice.
+- Include a Sources section with the cited ids and direct URLs.
 
 Query: {query}
 
 Results: {results}
 
 Format:
-Write paragraphs directly, using only information from Results. Write as many paragraphs as the Results support (1-3 paragraphs).
+<short answer (1–2 sentences)>
 
-- If Results contain travel details, organize by topic (destinations, attractions, practical details)
-- Cite every factual claim with [id]
-- If Results don't contain enough information, write fewer paragraphs
-
-Then write:
+- <bullet with key fact> [id]
+- <bullet with key fact> [id]
+- <bullet with key fact> [id]
+(3–5 bullets)
 
 Sources:
-- List only sources you cited in the paragraphs
-- Each line must be: id. Title - URL (use the original numeric id from Results)
-- Order sources by ascending id without duplicates
+id. Title - URL
+(list only cited ids; ascending order)

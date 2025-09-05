@@ -129,7 +129,7 @@ export async function parseCity(
         const c = cand!;
         const firstPart = c.split(/[.,!?]/)[0] || '';
         const normalized = firstPart.trim();
-        const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay']);
+        const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay','what','where','when','why','how','which','who']);
         if (!/^[A-Z][A-Za-z\- ]+$/.test(normalized) || stoplist.has(normalized.toLowerCase())) continue;
         if (logger?.debug) logger.debug({ cand: normalized }, 'city_heuristic_last_resort');
         return {
@@ -156,7 +156,7 @@ function parseCityWithNLP(text: string): ParseResponse<z.infer<typeof CityParseR
     // 1) Try lightweight entity-like detection by capitalized token sequences anywhere
     //    Guard against temporal words and generic greetings.
     const tokensAny = doc.tokens().out() as string[];
-    const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay']);
+    const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay','what','where','when','why','how','which','who']);
     for (let i = 0; i < tokensAny.length; i++) {
       const t = tokensAny[i] || '';
       if (!t) continue;

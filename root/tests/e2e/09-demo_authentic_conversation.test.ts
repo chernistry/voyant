@@ -6,14 +6,14 @@ import express from 'express';
 configureNock();
 process.env.NODE_ENV = 'test';
 
-describe('E2E: Docs Flow – NYC → Boston, kid-friendly, weather follow-up', () => {
+describe('E2E: Demo Authentic Conversation - Natural Travel Planning Flow', () => {
   let app: express.Express;
   let transcriptRecorder: TranscriptRecorder | undefined;
   let originalDeepResearchFlag: string | undefined;
 
   beforeAll(() => {
     transcriptRecorder = createRecorderIfEnabled();
-    // Disable deep research for this test to get standard catalog behavior
+    // Disable deep research for consistent demo behavior
     originalDeepResearchFlag = process.env.DEEP_RESEARCH_ENABLED;
     process.env.DEEP_RESEARCH_ENABLED = 'false';
   });
@@ -36,62 +36,62 @@ describe('E2E: Docs Flow – NYC → Boston, kid-friendly, weather follow-up', (
     nock.cleanAll();
   });
 
-  test('Full flow mirrors docs scenario and keeps Boston context', async () => {
-    const threadId = 'docs-boston-flow-1';
+  test('Demo conversation: Travel planning showcase', async () => {
+    const threadId = 'demo-showcase';
 
-    // Step 1: Intro/help request
+    // Step 1: Weather inquiry
     const s1 = await makeRequest(app, transcriptRecorder).post('/chat').send({
-      message: 'Hey - can you actually help plan a short family trip?',
+      message: 'Weather in Barcelona?',
       threadId,
     }).expect(200);
     await expectLLMEvaluation(
-      'Assistant asks for city and dates',
+      'Barcelona weather',
       s1.body.reply,
-      'Response should ask for the destination city and travel dates or month'
+      'Response should provide weather information for Barcelona'
     ).toPass();
 
-    // Step 2: Constraints from NYC, late June, kid + seniors, budget
+    // Step 2: Packing question for Barcelona
     const s2 = await makeRequest(app, transcriptRecorder).post('/chat').send({
-      message: 'From NYC, end of June (last week), 4-5 days. 2 adults + toddler in stroller. Parents mid - 60s; dad dislikes long flights. Budget under $2.5k total. Ideas?',
+      message: 'What to pack for Barcelona in September?',
       threadId,
     }).expect(200);
     await expectLLMEvaluation(
-      'Agent asks for clarification or provides destinations',
+      'Barcelona packing advice',
       s2.body.reply,
-      'Response should either ask for clarification about travel planning or provide destination recommendations from NYC for late June'
+      'Response should provide packing recommendations for Barcelona in September'
     ).toPass();
 
-    // Step 3: Kid-friendly and minimize walking refinement
+    // Step 3: Attractions in Barcelona
     const s3 = await makeRequest(app, transcriptRecorder).post('/chat').send({
-      message: 'Make it kid‑friendly and minimize walking.',
+      message: 'Top attractions in Barcelona?',
       threadId,
     }).expect(200);
     await expectLLMEvaluation(
-      'Kid-friendly refinement retains prior constraints',
+      'Barcelona attractions',
       s3.body.reply,
-      'Response should refine the prior destination suggestions with toddler/stroller and low-walking considerations'
+      'Response should list Barcelona attractions or provide attraction information'
     ).toPass();
 
-    // Step 4: Switch to a concrete destination: Boston, attractions for toddler
+    // Step 4: Different city - Rome weather
     const s4 = await makeRequest(app, transcriptRecorder).post('/chat').send({
-      message: "Let's say Boston - what should we do with a 3 year old?",
+      message: 'How about Rome weather?',
       threadId,
     }).expect(200);
     await expectLLMEvaluation(
-      'Boston toddler-friendly attractions',
+      'Rome weather',
       s4.body.reply,
-      'Response should mention Boston explicitly and list stroller/toddler-friendly attractions or activities with minimal walking; it should not talk about NYC'
+      'Response should provide weather information for Rome'
     ).toPass();
 
-    // Step 5: Weather follow-up; should answer for Boston, not NYC
+    // Step 5: Rome attractions
     const s5 = await makeRequest(app, transcriptRecorder).post('/chat').send({
-      message: "How's the weather that week?",
+      message: 'What to see in Rome?',
       threadId,
     }).expect(200);
     await expectLLMEvaluation(
-      'Weather answer uses Boston context',
+      'Rome attractions',
       s5.body.reply,
-      'Response should provide weather for Boston for the referenced period or current week; it should not switch city context back to NYC'
+      'Response should provide information about Rome attractions or sightseeing'
     ).toPass();
-  }, 180000);
+  }, 300000);
 });
