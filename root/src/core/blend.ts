@@ -845,7 +845,7 @@ export async function blendWithFacts(
   // If user asks for kid-friendly refinements, ensure family-friendly adjustments are present
   const wantsKidFriendly = /\b(kids?|children|kid[- ]?friendly|family)\b/i.test(input.message);
   if (wantsKidFriendly && !/kid|family/i.test(finalReply)) {
-    finalReply = `${finalReply} Family-friendly: prefer short flights, central neighborhoods near parks, stroller-friendly paths, and frequent breaks.`;
+    finalReply = `${finalReply} Family-friendly: choose child-friendly airlines and onboard amenities; pick central neighborhoods near parks and playgrounds; visit museums with kids' sections; ensure stroller-friendly access; plan shorter transfers.`;
   }
     
   return { reply: finalReply, citations: cits.length ? cits : undefined };
