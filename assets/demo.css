@@ -156,6 +156,41 @@ body {
     border-top: 1px solid var(--color-border);
 }
 
+/* Demo Notice card */
+.demo-note {
+    max-width: 800px;
+    margin: 0 auto var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-secondary);
+    font-size: var(--fs-s);
+}
+.demo-note strong { color: var(--color-primary); }
+.demo-note .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: #0b2a4a;
+    color: #9fd1ff;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.demo-note code {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 2px 6px;
+    color: var(--color-primary);
+}
+.demo-note a { color: var(--color-accent); text-decoration: none; }
+.demo-note a:hover { text-decoration: underline; }
+.demo-note__list { margin-top: var(--space-2); display: grid; gap: 6px; }
+.demo-note__foot { margin-top: var(--space-2); opacity: 0.9; }
+
 .chat-messages {
     max-width: 800px;
     margin: 0 auto;
@@ -180,6 +215,7 @@ body {
 .message.user-message {
     align-self: flex-end;
     flex-direction: row-reverse;
+    margin-left: auto; /* ensure right alignment consistency */
 }
 
 .message.agent-message {
@@ -214,7 +250,9 @@ body {
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     padding: var(--space-3) var(--space-4);
-    flex: 1; /* Allow content to grow */
+    /* Prevent the very first short turns from stretching too wide */
+    flex: 0 1 auto;
+    max-width: min(640px, 100%);
 }
 
 .user-message .message-content {

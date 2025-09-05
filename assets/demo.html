@@ -23,26 +23,35 @@
             <h2 class="section-title">Why is it cool?</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <h3 class="feature-card__title">Direct Integration</h3>
-                    <p>Plugs directly into your existing stack with minimal configuration.</p>
+                    <h3 class="feature-card__title">Flow Orchestrator</h3>
+                    <p>Graph-style conversation flow with slot memory, clarifications, and context-aware follow-ups.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-card__title">Self-Evaluation</h3>
-                    <p>Actively prevents hallucinations by self-evaluating responses for factual accuracy.</p>
+                    <h3 class="feature-card__title">Receipts + Self‑Check</h3>
+                    <p>Receipts mode (/why) shows sources and decisions; a second-pass verifier corrects unsupported claims.</p>
                 </div>
                 <div class="feature-card">
                     <h3 class="feature-card__title">Resilient Fallbacks</h3>
-                    <p>Falls back to Brave web search when primary APIs fail, ensuring high availability.</p>
+                    <p>APIs first (Open‑Meteo/REST Countries/OpenTripMap) → Brave Search summarization when providers fail.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-card__title">End-to-End Testing</h3>
-                    <p>Includes end-to-end tests with actual agent interactions using LLM-based evaluation.</p>
+                    <h3 class="feature-card__title">Consent + Optimized Search</h3>
+                    <p>Asks before web search and compresses queries to ≤7 words for high‑signal results.</p>
                 </div>
+                
             </div>
         </section>
 
         <section class="conversation-section">
             <h2 class="section-title">Live Conversation Demo</h2>
+            <div class="demo-note" role="note" aria-label="Demo notice">
+                <strong>Demo Notice:</strong> This page shows a static demonstration of a conversation. The actual assistant runs via a CLI and simple REST API.
+                <div class="demo-note__list">
+                    <div><span class="badge">CLI</span> <code>npm run cli</code></div>
+                    <div><span class="badge">REST</span> <code>POST /chat</code>, <code>GET /healthz</code>, <code>GET /metrics</code></div>
+                </div>
+                <div class="demo-note__foot">Details and examples in <a href="https://github.com/chernistry/voyant/blob/master/README.md" target="_blank" rel="noopener">README.md</a>.</div>
+            </div>
             <div class="chat-messages">
                 <!-- Step 1 -->
                 <div class="message-group">
@@ -377,6 +386,8 @@
                     <li><strong>Few-Shot Prompting:</strong> Curated examples in `router.md` and `cot.md` train accurate intent classification and slot extraction.</li>
                     <li><strong>Chain-of-Thought:</strong> Structured reasoning in `cot.md` and `verify.md` decomposes analysis into verifiable steps.</li>
                     <li><strong>Guardrails:</strong> `blend.md` requires fact-grounding + `verify.md` provides secondary validation of claims.</li>
+                    <li><strong>Consent Detection:</strong> LLM-based yes/no/unclear gating before performing web search.</li>
+                    <li><strong>Query Optimization:</strong> Compresses user search queries to ≤7 words to reduce noise.</li>
                 </ul>
             </div>
             <div class="detail-block">
@@ -385,14 +396,15 @@
                     <li>Anti-hallucination receipts with self-check and sources.</li>
                     <li>Resilient data blend: APIs → search fallback when providers fail.</li>
                     <li>Smart routing + memory for natural multi-turn conversations.</li>
-                    <li>Clean interfaces: interactive CLI and REST API.</li>
-                    <li>Strong engineering: TS+Zod validation, tests, metrics, structured logs.</li>
+                    <li>Optional /metrics endpoint (Prometheus or JSON) and structured logs (PII‑redacted by default).</li>
+                    <li>Security-conscious: host allowlist, timeouts, retries with jitter, and circuit-like backoff.</li>
+                    <li>E2E transcripts and golden tests for the core scenarios.</li>
                 </ul>
             </div>
         </section>
 
         <footer class="footer">
-            <p>Voyant Travel Assistant | A New Standard in AI-Powered Travel</p>
+            <p>Voyant Travel Assistant</p>
         </footer>
     </main>
 </body>

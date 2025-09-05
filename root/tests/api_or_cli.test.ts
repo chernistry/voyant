@@ -72,11 +72,12 @@ describe('API Endpoints', () => {
       .expect(200); // Should still work since extra fields are ignored
   });
 
-  test('GET /metrics returns 404 when disabled', async () => {
-    // Default metrics mode is disabled
-    await request(app)
+  test('GET /metrics returns JSON snapshot by default', async () => {
+    const r = await request(app)
       .get('/metrics')
-      .expect(404);
+      .expect(200);
+    expect(r.body).toHaveProperty('messages_total');
+    expect(typeof r.body.messages_total).toBe('number');
   });
 
   test('GET /healthz endpoint works', async () => {

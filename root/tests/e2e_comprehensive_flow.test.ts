@@ -715,10 +715,10 @@ describe('E2E Comprehensive User Journey Tests', () => {
   });
 
   describe('🧪 Metrics endpoint (default behavior)', () => {
-    test('metrics endpoint returns JSON when METRICS=json', async () => {
+    test('metrics endpoint returns JSON snapshot by default', async () => {
       const r = await makeRequest(app, transcriptRecorder).get('/metrics').expect(200);
-      expect(r.body).toHaveProperty('messages');
-      expect(typeof r.body.messages).toBe('number');
+      expect(r.body).toHaveProperty('messages_total');
+      expect(typeof r.body.messages_total).toBe('number');
     }, 10000);
   });
 
