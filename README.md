@@ -104,29 +104,30 @@ RECORD_TRANSCRIPTS=true npm test -- tests/e2e_comprehensive_flow.test.ts
 ```mermaid
 flowchart TD
     A["User Message"] --> B["handleChat()"]
-    B --> C{"Receipts mode? (/why or receipts flag)"}
+    B --> C{"Receipts mode? (/why or receipts)"}
     C -->|Yes| R1["Load last receipts from slot memory"]
     R1 --> R2["buildReceiptsSkeleton()"]
     R2 --> R3["verifyAnswer() (LLM JSON)"]
-    R3 --> R4["Return ChatOutput with receipts"]
+    R3 --> R4["Return receipts-only reply"]
     C -->|No| D["pushMessage(threadId)"]
-    D --> E["runGraphTurn()"]
+    D --> E["runGraphTurn(message, threadId)"]
 
-    %% Pre-routing LLM checks
+    %% Pre-routing checks: consent gate
     E --> F["classifyContent() (LLM): type, explicit search, mixed languages"]
     F --> G{"Awaiting search consent?"}
     G -->|Yes| G1["detectConsent() (LLM): yes/no/unclear"]
-    G1 -->|yes| H1["optimizeSearchQuery() (LLM)"]
+    G1 -->|yes| H1["optimizeSearchQuery()"]
     H1 --> H2["performWebSearchNode()"]
+    H2 --> H2a["summarizeSearchResults (LLM) → reply + citations ['Brave Search']"]
     G1 -->|no| H3["Reply: No problem..."]
     G -->|No| I["routeIntentNode()"]
 
     %% Routing and slots
-    I --> J["routeIntent():<br>- classifyContent (LLM)<br>- classifyIntent (LLM)<br>- routeWithLLM (LLM+parsers)<br>- extractSlots (LLM parsers)<br>- heuristics fallback"]
+    I --> J["routeIntent():<br>- classifyContent + classifyIntent (LLM)<br>- extractSlots (city/date parsers)<br>- LLM router + fallback heuristics"]
     J --> K{"Missing slots? (city/dates rules)"}
-    K -->|Yes| L1["buildClarifyingQuestion() (LLM with fallback)"]
+    K -->|Yes| L1["buildClarifyingQuestion() (LLM → fallback)"]
     L1 --> L2["Return single targeted question"]
-    K -->|No| M["setLastIntent(); merge slots"]
+    K -->|No| M["setLastIntent(); merge slots; updateThreadSlots()"]
 
     %% Intent switch
     M --> N{"Intent"}
@@ -135,35 +136,62 @@ flowchart TD
     N -->|packing| S["packingNode() → blendWithFacts()"]
     N -->|attractions| T["attractionsNode() → blendWithFacts()"]
     N -->|web_search| U["webSearchNode()"]
+    N -->|system| SYS["systemNode()"]
     N -->|unknown| V["unknownNode() → blendWithFacts()"]
 
+    %% Consent offers inside intents
+    T --> TA{"restaurant/budget query?"}
+    TA -->|Yes| TAC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
+    TA -->|No| T0["continue"]
+    R --> RB{"flight/budget query?"}
+    RB -->|Yes| RBC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
+    RB -->|No| R0["continue"]
+
     %% Facts blend and external tools
-    Q --> W["getWeather (API) → facts"]
-    R --> W
-    S --> W
-    T --> W2["getAttractions (API) → facts"]
-    R --> W3["getCountryFacts (API) → facts"]
+    Q --> W1["getWeather (Open‑Meteo → fallback Brave) → facts"]
+    S --> W1
+    R0 --> W1
+    R0 --> W3["getCountryFacts (REST Countries → fallback Brave) → facts"]
+    R0 --> W4["recommendDestinations (catalog + REST Countries) → facts"]
+    T0 --> T1["Wikipedia attractions → facts"]
+    T1 -->|fail/empty| T2["OpenTripMap → fallback Brave → facts"]
+
+    %% Web search path
     U --> X1["searchTravelInfo (Brave)"]
     X1 --> X2{"Results?"}
-    X2 -->|Yes| X3["search_summarize (LLM): 2 paragraphs + [n] cites + Sources:"]
+    X2 -->|Yes| X3["search_summarize (LLM): 1–3 paragraphs with [n] cites + Sources list"]
     X3 --> X4["Return reply + citations ['Brave Search']"]
     X2 -->|No| X5["Reply: couldn't find relevant info"]
 
+    %% Unknown intent handling
+    V --> V1{"Explicit search or needs web search?"}
+    V1 -->|Yes| U
+    V1 -->|No| V2{"Unrelated/System/Edge cases?"}
+    V2 -->|Unrelated| V3["Reply: I'm a travel assistant for travel queries"]
+    V2 -->|System| SYS
+    V2 -->|Emoji/Gibberish/Empty/Very long| V4["Ask for a clearer travel question"]
+    V2 -->|Otherwise| L1
+
     %% Compose final answer
-    W --> Y["getPrompt(system) + getPrompt(blend) → callLLM"]
-    W2 --> Y
+    W1 --> Y["getPrompt(system/cot/blend) → callLLM"]
     W3 --> Y
+    W4 --> Y
+    T1 --> Y
+    T2 --> Y
     V --> Y
     Y --> Z1["validateNoCitation()"]
-    Z1 --> Z2["setLastReceipts(threadId)"]
-    Z2 --> Z3{"Mixed languages?"}
-    Z3 -->|Yes| Z4["Prefix warning"]
-    Z3 -->|No| Z5["No warning"]
-    Z4 --> Z6["Return Final Reply + citations"]
-    Z5 --> Z6
+    Z1 --> Z2{"facts collected?"}
+    Z2 -->|Yes| Z3["setLastReceipts(threadId)"]
+    Z3 --> Z6["Append one source mention if missing"]
+    Z2 -->|No| Z6
+    Z6 --> Z7{"Mixed languages?"}
+    Z7 -->|Yes| Z8["Prefix warning"]
+    Z7 -->|No| Z9["No warning"]
+    Z8 --> Z10["Return final reply (+ citations if any)"]
+    Z9 --> Z10
 
-    %% Fallbacks and unknowns
-    E --> Fallbacks["Fallback heuristics (regex) only when LLM unavailable"]
+    %% Fallbacks
+    E --> Fallbacks["Heuristic routing only when LLM unavailable/low confidence"]
 ```
 
 ## Usage
