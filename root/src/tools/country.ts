@@ -1,5 +1,5 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchTravelInfo, extractCountryFromResults } from './brave_search.js';
+import { searchTravelInfo, extractCountryFromResults, llmExtractCountryFromResults } from './brave_search.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
 
@@ -88,6 +88,13 @@ async function tryCountryFallback(city: string): Promise<Out> {
     return { ok: false, reason: 'fallback_failed' };
   }
 
+  // LLM-first extraction
+  const countryInfoLLM = await llmExtractCountryFromResults(searchResult.results, country);
+  if (countryInfoLLM) {
+    return { ok: true, summary: countryInfoLLM };
+  }
+
+  // Heuristic fallback
   const countryInfo = extractCountryFromResults(searchResult.results, country);
   if (countryInfo) {
     return { ok: true, summary: countryInfo };

@@ -480,10 +480,10 @@ export async function blendWithFacts(
     }
   }
   
-  // Check for queries that need web search in destinations/packing intents
+  // Avoid accidental web search for refinements; only trigger when explicitly asked
   if (input.route.intent === 'destinations' || input.route.intent === 'packing') {
-    const shouldSearch = await decideShouldSearch(input.message, ctx);
-    if (shouldSearch) {
+    const explicitSearchRequested = /\b(search|google|http[s]?:\/\/|www\.)\b/i.test(input.message);
+    if (explicitSearchRequested) {
       return await performWebSearch(input.message, ctx, input.threadId);
     }
   }
@@ -793,6 +793,33 @@ export async function blendWithFacts(
     if (!alreadyMentionsSource) {
       // Append succinct source mention in parentheses, matching prompt guidance
       replyWithSource = `${replyWithSource} (${firstSource})`;
+    }
+  }
+
+  // Strengthen context reuse for packing: explicitly mention city and timing when known
+  if (input.route.intent === 'packing' && (cityHint || whenHint)) {
+    const ctxBits: string[] = [];
+    if (cityHint) ctxBits.push(String(cityHint));
+    if (whenHint) ctxBits.push(String(whenHint));
+    const ctxText = ctxBits.length ? `For ${ctxBits.join(' in ')}: ` : '';
+    // Prepend only if reply doesn't already start with city or contain it prominently
+    const includesCity = cityHint ? new RegExp(`\n?\b${String(cityHint).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\b`, 'i').test(replyWithSource) : false;
+    if (!includesCity) {
+      replyWithSource = `${ctxText}${replyWithSource}`;
+    }
+  }
+
+  // Ensure destinations include a brief weather rationale when weather facts were fetched
+  if (input.route.intent === 'destinations') {
+    const weatherFact = factsArr.find((f) => f.key === 'weather_summary');
+    if (weatherFact && typeof weatherFact.value === 'string') {
+      const mentionsWeather = /weather|°c|temperature|precip/i.test(replyWithSource);
+      if (!mentionsWeather) {
+        const wx = String(weatherFact.value);
+        const ctxLabel = cityHint ? `${cityHint}${whenHint ? ` in ${whenHint}` : ''}` : (whenHint ? String(whenHint) : '');
+        const weatherLine = ctxLabel ? ` Weather for ${ctxLabel}: ${wx}` : ` Weather: ${wx}`;
+        replyWithSource = `${replyWithSource}${weatherLine}`;
+      }
     }
   }
 

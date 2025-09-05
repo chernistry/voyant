@@ -1,4 +1,4 @@
-import { searchTravelInfo, extractAttractionsFromResults } from './brave_search.js';
+import { searchTravelInfo, extractAttractionsFromResults, llmExtractAttractionsFromResults } from './brave_search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
 
@@ -89,6 +89,13 @@ async function tryAttractionsFallback(city: string): Promise<Out> {
     return { ok: false, reason: 'fallback_failed', source: 'brave-search' };
   }
 
+  // LLM-first extraction
+  const attractionsInfoLLM = await llmExtractAttractionsFromResults(searchResult.results, city);
+  if (attractionsInfoLLM) {
+    return { ok: true, summary: attractionsInfoLLM, source: 'brave-search' };
+  }
+
+  // Heuristic fallback
   const attractionsInfo = extractAttractionsFromResults(searchResult.results, city);
   if (attractionsInfo) {
     return { ok: true, summary: attractionsInfo, source: 'brave-search' };

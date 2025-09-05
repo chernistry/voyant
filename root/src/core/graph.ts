@@ -121,15 +121,22 @@ export async function runGraphTurn(
   
   const slots = { ...prior, ...filteredSlots };
   
-  // If intent is unknown but we have context and new slots, infer intent from last interaction
-  if (intent === 'unknown' && Object.keys(prior).length > 0 && Object.keys(routeResult.slots || {}).length > 0) {
-    const lastIntent = getLastIntent(threadId);
-    if (lastIntent && lastIntent !== 'unknown') {
+  // If intent is unknown but we have prior context, infer intent from last interaction
+  const lastIntent = getLastIntent(threadId);
+  if (intent === 'unknown') {
+    if (lastIntent && lastIntent !== 'unknown' && Object.keys(prior).length > 0) {
       intent = lastIntent;
       if (ctx.log && typeof ctx.log.debug === 'function') {
         ctx.log.debug({ originalIntent: 'unknown', inferredIntent: intent, prior, newSlots: routeResult.slots }, 'intent_inference');
       }
     }
+  }
+  // Treat short refinement messages as continuations of the previous intent
+  if (/\b(kids?|children|family|make it kid|kid-friendly|kid friendly)\b/i.test(message) && lastIntent && lastIntent !== 'unknown') {
+    if (ctx.log && typeof ctx.log.debug === 'function') {
+      ctx.log.debug({ priorIntent: intent, continuing: lastIntent }, 'refinement_intent_override');
+    }
+    intent = lastIntent;
   }
   
   setLastIntent(threadId, intent);

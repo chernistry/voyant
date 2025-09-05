@@ -1,5 +1,5 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchTravelInfo, extractWeatherFromResults } from './brave_search.js';
+import { searchTravelInfo, extractWeatherFromResults, llmExtractWeatherFromResults } from './brave_search.js';
 
 
 type OpenMeteoDaily = {
@@ -97,6 +97,13 @@ async function tryWeatherFallback(city: string, datesOrMonth?: string): Promise<
     return { ok: false, reason: 'fallback_failed' };
   }
 
+  // LLM-first extraction
+  const weatherInfoLLM = await llmExtractWeatherFromResults(searchResult.results, city);
+  if (weatherInfoLLM) {
+    return { ok: true, summary: weatherInfoLLM, source: 'brave-search' };
+  }
+
+  // Heuristic fallback
   const weatherInfo = extractWeatherFromResults(searchResult.results, city);
   if (weatherInfo) {
     return { ok: true, summary: weatherInfo, source: 'brave-search' };

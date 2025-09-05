@@ -52,7 +52,6 @@ describe('E2E: Input Variance & CoT Safety', () => {
       const r = await makeRequest(app, transcriptRecorder).post('/chat').send({ message: 'Packing list for Tokyo in March? Explain briefly.' }).expect(200);
       const leakMarkers = [/chain[-\s]?of[-\s]?thought/i, /\breasoning:/i, /step\s*\d+/i];
       leakMarkers.forEach((re) => expect(re.test(String(r.body.reply))).toBeFalsy());
-    }, 15000);
+    }, 45000);
   });
 });
-

@@ -20,7 +20,10 @@ type PromptName =
   | 'nlp_intent_detection'
   | 'nlp_content_classification'
   | 'search_summarize'
-  | 'search_query_optimizer';
+  | 'search_query_optimizer'
+  | 'search_extract_weather'
+  | 'search_extract_country'
+  | 'search_extract_attractions';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -82,6 +85,15 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.search_query_optimizer = await loadFileSafe(
     path.join(base, 'search_query_optimizer.md'),
+  );
+  PROMPTS.search_extract_weather = await loadFileSafe(
+    path.join(base, 'search_extract_weather.md'),
+  );
+  PROMPTS.search_extract_country = await loadFileSafe(
+    path.join(base, 'search_extract_country.md'),
+  );
+  PROMPTS.search_extract_attractions = await loadFileSafe(
+    path.join(base, 'search_extract_attractions.md'),
   );
   loaded = true;
 }
