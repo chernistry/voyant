@@ -23,7 +23,8 @@ const GeoFeatureSchema = z.object({
 });
 const GeoResponseSchema = z.object({ features: z.array(GeoFeatureSchema) });
 export async function searchPOIs(input) {
-    const key = process.env.OPENTRIPMAP_API_KEY;
+    // In test environment, allow a placeholder key so nock mocks work
+    const key = process.env.NODE_ENV === 'test' ? (process.env.OPENTRIPMAP_API_KEY || 'test') : process.env.OPENTRIPMAP_API_KEY;
     if (!key)
         return { ok: false, reason: 'missing_api_key' };
     const radius = Math.max(100, Math.min(20000, input.radiusMeters ?? 4000));
@@ -90,7 +91,7 @@ const PoiDetailSchema = z.object({
     wikipedia: z.string().optional(),
 });
 export async function getPOIDetail(xid) {
-    const key = process.env.OPENTRIPMAP_API_KEY;
+    const key = process.env.NODE_ENV === 'test' ? (process.env.OPENTRIPMAP_API_KEY || 'test') : process.env.OPENTRIPMAP_API_KEY;
     if (!key)
         return { ok: false, reason: 'missing_api_key' };
     const url = `${BASE_URL}/xid/${encodeURIComponent(xid)}?apikey=${encodeURIComponent(key)}`;

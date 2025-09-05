@@ -9,6 +9,10 @@ export async function getAttractions(input) {
     if (primaryResult.ok) {
         return primaryResult;
     }
+    // For unknown cities, avoid web fallback to prevent fabrications
+    if (!primaryResult.ok && primaryResult.reason === 'unknown_city') {
+        return primaryResult;
+    }
     // Fallback to Brave Search
     const fallbackResult = await tryAttractionsFallback(input.city);
     if (fallbackResult.ok) {

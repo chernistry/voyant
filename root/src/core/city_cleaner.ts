@@ -1,16 +1,12 @@
-import { extractCityWithLLM } from './llm.js';
+import { parseCity } from './parsers.js';
 
 // LLM-powered city name cleaner with regex fallback
 export async function cleanCityName(rawCity: string, log?: any): Promise<string> {
   if (!rawCity) return '';
-  
-  // Try LLM first for better accuracy and multilingual support
-  const llmResult = await extractCityWithLLM(rawCity, log);
-  if (llmResult && llmResult.trim().length > 0) {
-    return llmResult.trim();
-  }
-  
-  // Fallback to regex-based cleaning
+  // NLP-first centralized behavior via parseCity (which includes LLM fallback internally)
+  const parsed = await parseCity(rawCity, {}, log).catch(() => ({ success: false } as const));
+  if (parsed && parsed.success && parsed.data?.normalized) return parsed.data.normalized.trim();
+  // Fallback to regex-based cleaning if parsers fail
   return fallbackCleanCityName(rawCity);
 }
 
@@ -22,12 +18,9 @@ export function extractSeason(text: string): string {
 
 // LLM-powered city extraction with regex fallback
 export async function extractCleanCity(text: string, log?: any): Promise<string> {
-  // Try LLM first for better accuracy
-  const llmResult = await extractCityWithLLM(text, log);
-  if (llmResult && llmResult.trim().length > 0) {
-    return llmResult.trim();
-  }
-  
+  // Reuse centralized parser (NLP-first with consistent normalization)
+  const parsed = await parseCity(text, {}, log).catch(() => ({ success: false } as const));
+  if (parsed && parsed.success && parsed.data?.normalized) return parsed.data.normalized.trim();
   // Fallback to regex patterns
   return fallbackExtractCleanCity(text);
 }
