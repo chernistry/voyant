@@ -125,6 +125,23 @@ body {
     line-height: 1.7;
 }
 
+.hero__link {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+.hero__link a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color var(--transition-speed) ease;
+}
+
+.hero__link a:hover {
+    color: var(--color-accent-2);
+    text-decoration: underline;
+}
+
 /* --- Features Section --- */
 .features-section {
     width: 100%;
@@ -606,6 +623,22 @@ body {
     color: var(--color-secondary);
 }
 
+.footer__link {
+    margin-top: var(--space-2);
+}
+
+.footer__link a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition-speed) ease;
+}
+
+.footer__link a:hover {
+    color: var(--color-accent-2);
+    text-decoration: underline;
+}
+
 /* Reduced motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
     * {
@@ -989,6 +1022,11 @@ body {
             <p class="hero__description">
                 This minimalist, fact-grounded travel assistant employs an LLM-driven approach for NLP tasks (intent classification, slot filling, context-aware generation), pulling verified data from trusted APIs (Open-Meteo/REST Countries/OpenTripMap) with multi-layered hallucination prevention via mandatory citations and secondary verification.
             </p>
+            <p class="hero__link">
+                <a href="https://github.com/chernistry/voyant" target="_blank" rel="noopener noreferrer">
+                    View Source Code on GitHub ↗
+                </a>
+            </p>
         </header>
 
         <section class="features-section">
@@ -1008,7 +1046,7 @@ body {
                 </div>
                 <div class="feature-card">
                     <h3 class="feature-card__title">LLM Search Query Optimization</h3>
-                    <p>Compresses search queries to ≤7 words for high‑signal results.</p>
+                    <p>Compresses search queries for high‑signal results.</p>
                 </div>
                 
             </div>
@@ -1358,7 +1396,7 @@ body {
                     <li><strong>Few-Shot Prompting:</strong> Curated examples in `router.md` and `cot.md` train accurate intent classification and slot extraction.</li>
                     <li><strong>Chain-of-Thought:</strong> Structured reasoning in `cot.md` and `verify.md` decomposes analysis into verifiable steps.</li>
                     <li><strong>Guardrails:</strong> `blend.md` requires fact-grounding + `verify.md` provides secondary validation of claims.</li>
-                    <li><strong>Query Optimization:</strong> Compresses user search queries to ≤7 words to reduce noise.</li>
+                    <li><strong>Query Optimization:</strong> Rewrites user search queries to reduce noise.</li>
                 </ul>
             </div>
             <div class="detail-block">
@@ -1392,6 +1430,11 @@ body {
 
         <footer class="footer">
             <p>Voyant Travel Assistant</p>
+            <p class="footer__link">
+                <a href="https://github.com/chernistry/voyant" target="_blank" rel="noopener noreferrer">
+                    View on GitHub ↗
+                </a>
+            </p>
         </footer>
     </main>
 </body>
