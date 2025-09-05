@@ -35,106 +35,95 @@ export async function callLLM(
   const inputTokens = countTokens(prompt);
   if (log) log.debug(`🤖 LLM Call - Input: ${inputTokens} tokens, Format: ${format}`);
   
+  // Model fallback chain
+  const models = [
+    'mistralai/mistral-nemo',
+    'tngtech/deepseek-r1t2-chimera:free',
+    'meta-llama/llama-3.2-3b-instruct:free',
+    'microsoft/phi-3-mini-128k-instruct:free'
+  ];
+  
   // Try configured provider first
   const baseUrl = process.env.LLM_PROVIDER_BASEURL;
   const apiKey = process.env.LLM_API_KEY;
-  const model = process.env.LLM_MODEL ?? 'mistralai/mistral-nemo';
+  const preferredModel = process.env.LLM_MODEL ?? models[0];
 
-  if (baseUrl && apiKey) {
-    try {
-      if (log) log.debug(`🔗 Using configured provider: ${baseUrl} with model: ${model}`);
-      const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
-      const res = await undiciFetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: format === 'json' ? 0.2 : 0.5,
-          max_tokens: 2000, // Increased from 800
-          ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.warn(`❌ LLM API error: ${res.status} - ${errorText}`);
-        return stubSynthesize(prompt);
+  if (baseUrl && apiKey && preferredModel) {
+    // Try preferred model first
+    const result = await tryModel(baseUrl, apiKey, preferredModel, prompt, format, log || undefined);
+    if (result) return result;
+    
+    // Fallback to other models
+    for (const model of models) {
+      if (model !== preferredModel) {
+        const result = await tryModel(baseUrl, apiKey, model, prompt, format, log || undefined);
+        if (result) return result;
       }
-      const data = (await res.json()) as { 
-        choices?: { message?: { content?: string } }[];
-        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-      };
-      const content = data?.choices?.[0]?.message?.content ?? '';
-      const usage = data?.usage;
-      
-      if (log) log.debug(`✅ LLM Response - Output: ${countTokens(content)} tokens (approx)`);
-      if (usage && log) {
-        log.debug(`📊 Token usage - Prompt: ${usage.prompt_tokens}, Completion: ${usage.completion_tokens}, Total: ${usage.total_tokens}`);
-      }
-      if (log) log.debug(`📝 Full response: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}`);
-      
-      if (typeof content === 'string' && content.trim().length > 0) {
-        return content.trim();
-      }
-      console.warn('⚠️ Empty response from LLM, using stub');
-      return stubSynthesize(prompt);
-    } catch (error) {
-      console.warn('❌ LLM API failed, using stub:', error);
-      return stubSynthesize(prompt);
     }
   }
 
-  // Fallback to OpenRouter if available
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  if (openRouterKey) {
-    try {
-      if (log) log.debug('🔗 Using OpenRouter fallback with model: tngtech/deepseek-r1t2-chimera:free');
-      const res = await undiciFetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openRouterKey}`,
-        },
-        body: JSON.stringify({
-          model: 'tngtech/deepseek-r1t2-chimera:free',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: format === 'json' ? 0.2 : 0.5,
-          max_tokens: 2000, // Increased from 800
-          ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.warn(`❌ OpenRouter API error: ${res.status} - ${errorText}`);
-        return stubSynthesize(prompt);
-      }
-      const data = (await res.json()) as { 
-        choices?: { message?: { content?: string } }[];
-        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-      };
-      const content = data?.choices?.[0]?.message?.content ?? '';
-      const usage = data?.usage;
-      
-      if (log) log.debug(`✅ OpenRouter Response - Output: ${countTokens(content)} tokens (approx)`);
-      if (usage && log) {
-        log.debug(`📊 Token usage - Prompt: ${usage.prompt_tokens}, Completion: ${usage.completion_tokens}, Total: ${usage.total_tokens}`);
-      }
-      if (log) log.debug(`📝 Full response: ${content.substring(0, 200)}${content.length > 200 ? '...' : ''}`);
-      
-      if (typeof content === 'string' && content.trim().length > 0) {
-        return content.trim();
-      }
-    } catch (error) {
-      console.warn('❌ OpenRouter fallback failed:', error);
+  // Try OpenRouter fallback
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (openrouterKey) {
+    for (const model of models) {
+      const result = await tryModel('https://openrouter.ai/api/v1', openrouterKey, model, prompt, format, log || undefined);
+      if (result) return result;
     }
   }
 
-  // Default: stub for tests/local dev
-  if (log) log.debug('🔧 Using stub synthesizer (no LLM configured)');
+  if (log) log.warn('All LLM providers failed, using stub');
   return stubSynthesize(prompt);
+}
+
+async function tryModel(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  prompt: string,
+  format: ResponseFormat,
+  log?: any
+): Promise<string | null> {
+  try {
+    if (log?.debug) log.debug(`🔗 Trying model: ${model} at ${baseUrl}`);
+    const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+    const res = await undiciFetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: format === 'json' ? 0.2 : 0.5,
+        max_tokens: 2000,
+        ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
+      }),
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      if (log?.debug) log.debug(`❌ Model ${model} failed: ${res.status} - ${errorText.substring(0, 200)}`);
+      return null;
+    }
+    
+    const data = (await res.json()) as { 
+      choices?: { message?: { content?: string } }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    };
+    const content = data?.choices?.[0]?.message?.content ?? '';
+    
+    if (typeof content === 'string' && content.trim().length > 0) {
+      if (log?.debug) log.debug(`✅ Model ${model} succeeded - Output: ${countTokens(content)} tokens`);
+      return content.trim();
+    }
+    
+    if (log?.debug) log.debug(`❌ Model ${model} returned empty content`);
+    return null;
+  } catch (e) {
+    if (log?.debug) log.debug(`❌ Model ${model} error: ${String(e)}`);
+    return null;
+  }
 }
 
 function stubSynthesize(prompt: string): string {
