@@ -95,4 +95,64 @@ export async function searchPOIs(input: {
   }
 }
 
+// Detail schema for a specific POI by xid
+const PoiDetailSchema = z.object({
+  xid: z.string(),
+  name: z.string().optional().default(''),
+  kinds: z.string().optional(),
+  wikipedia_extracts: z
+    .object({
+      text: z.string().optional(),
+      title: z.string().optional(),
+    })
+    .optional(),
+  url: z.string().optional(),
+  wikipedia: z.string().optional(),
+});
+
+export type PoiDetail = {
+  xid: string;
+  name: string;
+  description?: string;
+  url?: string;
+};
+
+export async function getPOIDetail(xid: string): Promise<
+  | { ok: true; detail: PoiDetail; source?: string }
+  | { ok: false; reason: string; source?: string }
+> {
+  const key = process.env.OPENTRIPMAP_API_KEY;
+  if (!key) return { ok: false, reason: 'missing_api_key' };
+  const url = `${BASE_URL}/xid/${encodeURIComponent(xid)}?apikey=${encodeURIComponent(key)}`;
+  try {
+    const json = await fetchJSON<unknown>(url, {
+      timeoutMs: 5000,
+      retries: 1,
+      target: 'opentripmap',
+      headers: { Accept: 'application/json' },
+    });
+    const parsed = PoiDetailSchema.safeParse(json);
+    if (!parsed.success) return { ok: false, reason: 'invalid_schema', source: 'opentripmap' };
+    const data = parsed.data;
+    return {
+      ok: true,
+      detail: {
+        xid: data.xid,
+        name: data.name || '',
+        description: data.wikipedia_extracts?.text,
+        url: data.url || data.wikipedia,
+      },
+      source: 'opentripmap',
+    };
+  } catch (e) {
+    if (e instanceof ExternalFetchError) {
+      if (e.kind === 'timeout') return { ok: false, reason: 'timeout', source: 'opentripmap' };
+      if (e.kind === 'http') {
+        return { ok: false, reason: e.status && e.status >= 500 ? 'http_5xx' : 'http_4xx', source: 'opentripmap' };
+      }
+      return { ok: false, reason: 'network', source: 'opentripmap' };
+    }
+    return { ok: false, reason: 'network', source: 'opentripmap' };
+  }
+}
 

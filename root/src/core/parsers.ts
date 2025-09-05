@@ -83,7 +83,9 @@ export async function parseCity(text: string, context?: Record<string, any>, log
     };
   } catch (error) {
     // Fallback to regex extraction
-    const cityMatch = text.match(/\b(?:in|to|for|from)\s+([A-Z][A-Za-z\- ]+)/);
+    const trimmed = text.trim();
+    // 1) Try common "in/to/for/from City" pattern
+    const cityMatch = trimmed.match(/\b(?:in|to|for|from)\s+([A-Z][A-Za-z\- ]+)/);
     if (cityMatch?.[1]) {
       const city = cityMatch[1].split(/[.,!?]/)[0]?.trim();
       if (city) {
@@ -95,7 +97,23 @@ export async function parseCity(text: string, context?: Record<string, any>, log
         };
       }
     }
-    
+
+    // 2) If user replied with just a proper-noun city (e.g., "Haifa"), accept it
+    //    Guard against short affirmations or noise
+    const isAffirmation = /^(yes|no|ok(ay)?|thanks|thank you)$/i.test(trimmed);
+    const properNounPattern = /^(?:[A-Z][a-zA-Z\-']{2,})(?:\s+[A-Z][a-zA-Z\-']{2,}){0,2}$/; // 1-3 capitalized words
+    if (!isAffirmation && properNounPattern.test(trimmed)) {
+      const city = trimmed.split(/[.,!?]/)[0]?.trim();
+      if (city) {
+        return {
+          success: true,
+          data: { city, normalized: city, confidence: 0.65 },
+          confidence: 0.65,
+          normalized: city,
+        };
+      }
+    }
+
     return {
       success: false,
       data: null,

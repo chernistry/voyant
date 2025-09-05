@@ -1,6 +1,6 @@
 import { searchTravelInfo, extractAttractionsFromResults } from './brave_search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchPOIs } from './opentripmap.js';
+import { searchPOIs, getPOIDetail } from './opentripmap.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };
 
@@ -51,12 +51,24 @@ async function tryOpenTripMap(city: string, limit = 5): Promise<Out> {
       kinds: 'museums,monuments,historic,cultural'
     });
     if (pois.ok) {
-      const names = pois.pois
-        .map((p) => p.name)
-        .filter((s) => s && s.trim().length > 0)
-        .slice(0, limit);
-      if (names.length > 0) {
-        return { ok: true, summary: names.join(', '), source: 'opentripmap' };
+      // Try to enrich with short descriptions using POI detail endpoint
+      const top = pois.pois.slice(0, Math.max(1, Math.min(limit, 5)));
+      const details = await Promise.all(
+        top.map(async (p) => {
+          const d = await getPOIDetail(p.xid);
+          if (d.ok) {
+            const name = d.detail.name || p.name || '';
+            const desc = (d.detail.description || '').replace(/\s+/g, ' ').trim();
+            if (name && desc) return `${name}: ${desc}`;
+            if (name) return name;
+          }
+          const fallback = (p.name || '').trim();
+          return fallback;
+        })
+      );
+      const items = details.filter(Boolean).map(String);
+      if (items.length > 0) {
+        return { ok: true, summary: items.join('; '), source: 'opentripmap' };
       }
       return { ok: false, reason: 'no_pois', source: 'opentripmap' };
     }
@@ -84,5 +96,4 @@ async function tryAttractionsFallback(city: string): Promise<Out> {
 
   return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };
 }
-
 

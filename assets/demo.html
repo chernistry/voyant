@@ -4,7 +4,979 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voyant Travel Assistant</title>
-    <link rel="stylesheet" href="demo.css">
+    <style>
+/*
+    File: demo.css
+    Author: AI Design Partner
+    Description: A complete visual refactor for the Voyant Travel Assistant page.
+    Philosophy: Swiss Modernism, minimalist, dark-mode corporate aesthetic.
+*/
+
+:root {
+    /* Color Palette (WCAG AA on dark) */
+    --color-background: #121212;
+    --color-surface: #1E1E1E;
+    --color-primary: #FFFFFF;
+    --color-secondary: #A0A0A0;
+    --color-accent: #007AFF; /* Apple Blue */
+    --color-accent-2: #FF9500; /* Amber */
+    --color-success: #34C759; /* Green */
+    --color-border: #333333;
+
+    /* Typography */
+    --font-family-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Fluid type for scalable hierarchy */
+    --fs-xl: clamp(2.25rem, 3vw + 1rem, 3.5rem);
+    --fs-l: clamp(1.5rem, 1.2vw + 1rem, 2rem);
+    --fs-m: clamp(1.0625rem, 0.6vw + 0.8rem, 1.25rem);
+    --fs-base: 1rem;
+    --fs-s: 0.875rem;
+
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 1rem;
+    --space-4: 1.5rem;
+    --space-5: 2rem;
+    --space-6: 3rem;
+    --space-7: 4rem;
+    --space-8: 6rem;
+
+    /* Layout */
+    --container-width: 1100px;
+    --border-radius: 12px;
+    --transition-speed: 0.3s;
+}
+
+/* --- Base & Reset --- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 100%; /* 16px */
+}
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-secondary);
+    font-family: var(--font-family-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    justify-content: center;
+    padding: var(--space-5);
+}
+
+/* Accessible focus styles */
+:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* --- Layout --- */
+.container {
+    width: 100%;
+    max-width: var(--container-width);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.section-title {
+    color: var(--color-primary);
+    font-size: var(--fs-l);
+    font-weight: 600;
+    margin-bottom: var(--space-5);
+    text-align: center;
+}
+
+/* --- Hero Section --- */
+.hero {
+    text-align: center;
+    padding: var(--space-7) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.hero__title {
+    color: var(--color-primary);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: var(--space-3);
+}
+
+.hero__subtitle {
+    color: var(--color-accent);
+    font-size: var(--fs-m);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+}
+
+.hero__description {
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: var(--fs-base);
+    line-height: 1.7;
+}
+
+/* --- Features Section --- */
+.features-section {
+    width: 100%;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-5);
+}
+
+.feature-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-5);
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.feature-card__title {
+    color: var(--color-primary);
+    font-size: var(--fs-m);
+    font-weight: 600;
+    margin-bottom: var(--space-3);
+}
+
+/* --- Conversation Section --- */
+.conversation-section {
+    width: 100%;
+    padding: var(--space-7) 0;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Demo Notice card */
+.demo-note {
+    max-width: 800px;
+    margin: 0 auto var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-secondary);
+    font-size: var(--fs-s);
+}
+.demo-note strong { color: var(--color-primary); }
+.demo-note .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: #0b2a4a;
+    color: #9fd1ff;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.demo-note code {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 2px 6px;
+    color: var(--color-primary);
+}
+.demo-note a { color: var(--color-accent); text-decoration: none; }
+.demo-note a:hover { text-decoration: underline; }
+.demo-note__list { margin-top: var(--space-2); display: grid; gap: 6px; }
+.demo-note__foot { margin-top: var(--space-2); opacity: 0.9; }
+
+.chat-messages {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.message-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.message {
+    display: flex;
+    gap: var(--space-3);
+    max-width: 85%;
+    align-items: flex-start;
+}
+
+.message.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+    margin-left: auto; /* ensure right alignment consistency */
+}
+
+.message.agent-message {
+    align-self: flex-start;
+}
+
+.message-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.user-message .message-avatar {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-primary);
+}
+
+.avatar-icon {
+    color: var(--color-primary);
+}
+
+.message-content {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    /* Prevent the very first short turns from stretching too wide */
+    flex: 0 1 auto;
+    max-width: min(640px, 100%);
+}
+
+.user-message .message-content {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-primary);
+}
+
+.message-header {
+    font-size: var(--fs-s);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    color: var(--color-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-message .message-header {
+    color: var(--color-primary);
+}
+
+.message-author {
+    color: inherit;
+    font-weight: 600;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.message-text {
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--color-primary);
+}
+
+.user-message .message-text {
+    color: var(--color-primary);
+}
+
+.message-text p {
+    margin-bottom: var(--space-3);
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.message-text ul {
+    margin-top: var(--space-3);
+    padding-left: var(--space-4);
+    list-style-type: disc;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.message-text li {
+    margin-bottom: 0;
+}
+
+.message-text a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.message-text a:hover {
+    text-decoration: underline;
+}
+
+/* High-contrast link focus */
+.message-text a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.sources-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+    font-size: var(--fs-s);
+    color: var(--color-secondary);
+}
+
+.user-message .sources-section {
+    border-top-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sources-section strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.sources-section ul {
+    margin-top: var(--space-2);
+    padding-left: var(--space-4);
+    list-style-type: decimal;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.sources-section li {
+    margin-bottom: 0;
+}
+
+/* Specific content blocks in agent messages */
+.travel-option,
+.event-highlight,
+.visa-info {
+    background-color: #2c2c2e; /* Slightly lighter surface for these blocks */
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-4);
+    transition: background-color var(--transition-speed) ease;
+}
+
+.travel-option:hover,
+.event-highlight:hover,
+.visa-info:hover {
+    background-color: #3a3a3c;
+}
+
+.travel-option h4,
+.event-highlight h4,
+.visa-status {
+    color: var(--color-accent);
+    font-size: var(--fs-m);
+    font-weight: 600;
+    margin-bottom: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.event-highlight h4 {
+    color: var(--color-accent-2);
+}
+
+.visa-status {
+    color: var(--color-success);
+    font-size: var(--fs-m);
+}
+
+.visa-info p.note {
+    padding: var(--space-3);
+    background: #2c2c2e;
+    border-radius: calc(var(--border-radius) - 4px);
+    font-style: italic;
+    font-size: var(--fs-s);
+    color: var(--color-secondary);
+    border-left: 3px solid var(--color-border);
+}
+
+/* Receipts Block */
+.receipts-block {
+    background: #1a1a1a;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    margin: var(--space-3) 0;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: var(--fs-s);
+    line-height: 1.4;
+}
+
+.receipts-header {
+    color: var(--color-accent);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-2);
+}
+
+.receipts-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.receipts-item {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
+.receipts-item::before {
+    content: '•';
+    color: var(--color-accent);
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.receipts-label {
+    color: var(--color-secondary);
+    font-weight: 600;
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.receipts-value {
+    color: var(--color-primary);
+    word-break: break-word;
+}
+
+/* --- Details Section --- */
+.details-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-7);
+}
+
+.detail-block .section-title {
+    text-align: left;
+    font-size: var(--fs-m);
+    margin-bottom: var(--space-4);
+}
+
+.detail-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.detail-list li {
+    padding-left: var(--space-4);
+    position: relative;
+    color: var(--color-secondary);
+}
+
+.flex-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* --- Roadmap Section --- */
+.roadmap-section {
+    background: linear-gradient(135deg, var(--color-surface) 0%, rgba(10, 10, 10, 0.95) 100%);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    padding: var(--space-7);
+    margin: var(--space-5) 0;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.roadmap-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.roadmap-block {
+    position: relative;
+    z-index: 1;
+}
+
+.roadmap-title {
+    color: var(--color-accent);
+    font-size: var(--fs-l);
+    margin-bottom: var(--space-3);
+    text-align: center;
+    font-weight: 700;
+}
+
+.roadmap-intro {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--color-accent-2);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--color-secondary);
+}
+
+.roadmap-list {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+}
+
+.roadmap-list li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.roadmap-list li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detail-list li::before {
+    content: '✓';
+    color: var(--color-accent);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: 700;
+}
+
+.detail-list li strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.roadmap-paragraph {
+    color: var(--color-secondary);
+    line-height: 1.6;
+    font-size: var(--fs-base);
+    margin: 0;
+}
+
+/* --- Footer --- */
+.footer {
+    text-align: center;
+    padding: var(--space-5) 0;
+    border-top: 1px solid var(--color-border);
+    font-size: var(--fs-s);
+    color: var(--color-secondary);
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+    .feature-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .details-section {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --fs-xl: 2.5rem;
+        --fs-l: 1.75rem;
+        --fs-m: 1.125rem;
+    }
+
+    body {
+        padding: var(--space-4);
+    }
+
+    .container {
+        gap: var(--space-7);
+    }
+
+    .message-group {
+        gap: var(--space-3);
+    }
+
+    .message {
+        max-width: 95%;
+    }
+
+    .message-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .message-content {
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .message-text {
+        font-size: 0.95rem;
+    }
+
+    .travel-option, .event-highlight, .visa-info {
+        padding: var(--space-3);
+    }
+
+    .travel-option h4, .event-highlight h4, .visa-status {
+        font-size: var(--fs-base);
+    }
+
+    .hero__title {
+        font-size: var(--fs-xl);
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --fs-xl: 2rem;
+        --fs-l: 1.5rem;
+        --fs-m: 1rem;
+    }
+
+    body {
+        padding: var(--space-3);
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .details-section {
+        padding: var(--space-5);
+        gap: var(--space-5);
+    }
+
+    .hero__title {
+        font-size: var(--fs-xl);
+    }
+
+    .hero__subtitle {
+        font-size: var(--fs-base);
+    }
+
+    .message-content {
+        padding: var(--space-2);
+    }
+
+    .message-text {
+        font-size: 0.9rem;
+    }
+
+    .message-header {
+        font-size: 0.8rem;
+    }
+
+    .detail-list li {
+        padding-left: var(--space-3);
+    }
+
+    .detail-list li::before {
+        left: 0;
+    }
+
+    .travel-option h4, .event-highlight h4, .visa-status {
+        font-size: 0.95rem;
+    }
+
+    .receipts-block {
+        padding: var(--space-2);
+        font-size: 0.8rem;
+    }
+
+    .receipts-item {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .receipts-label {
+        min-width: auto;
+        margin-bottom: var(--space-1);
+    }
+
+    .visa-info p.note {
+        padding: var(--space-2);
+        font-size: 0.8rem;
+    }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+}
+
+/* Print Styles */
+@media print {
+    @page {
+        size: A4;
+        margin: 16mm;
+    }
+    body {
+        background: white;
+        color: black;
+        padding: 0;
+        display: block;
+    }
+
+    .container {
+        box-shadow: none;
+        margin: 0;
+        border: none;
+        width: 100%;
+        max-width: none;
+        border-radius: 0;
+        gap: var(--space-5);
+    }
+
+    /* Keep hero for intro text as requested */
+    .hero {
+        border: none;
+        padding: 0 0 var(--space-4) 0;
+    }
+    .features-section {
+        display: none; /* omit marketing features in print */
+    }
+
+    .conversation-section {
+        padding: var(--space-5) 0;
+        border-top: none;
+    }
+
+    .section-title {
+        color: black;
+        text-align: left;
+        margin-left: var(--space-4);
+        margin-bottom: var(--space-4);
+        font-size: 1.5rem;
+    }
+
+    .chat-messages {
+        max-width: 100%;
+        padding: 0 var(--space-4);
+    }
+
+    .message-group {
+        page-break-inside: avoid;
+        margin-bottom: var(--space-3);
+    }
+
+    .message {
+        break-inside: avoid;
+        margin-bottom: var(--space-2);
+    }
+
+    .message-avatar {
+        display: none;
+    }
+
+    .message-content {
+        box-shadow: none;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: var(--space-2) var(--space-3);
+        max-width: 100%;
+        background-color: white;
+        color: black;
+    }
+
+    .user-message .message-content {
+        background-color: #f0f0f0;
+        color: black;
+        border-color: #e0e0e0;
+    }
+
+    .message-header {
+        color: #555;
+    }
+
+    .user-message .message-header {
+        color: #555;
+    }
+
+    .message-text {
+        color: black;
+    }
+
+    .user-message .message-text {
+        color: black;
+    }
+
+    .message-text strong,
+    .sources-section strong,
+    .travel-option h4,
+    .event-highlight h4,
+    .visa-status {
+        color: black;
+    }
+
+    .sources-section {
+        border-top-color: #e0e0e0;
+        color: #555;
+    }
+
+    .user-message .sources-section {
+        border-top-color: #e0e0e0;
+        color: #555;
+    }
+
+    .travel-option,
+    .event-highlight,
+    .visa-info {
+        background: #f8f8f8;
+        box-shadow: none;
+        border: 1px solid #e0e0e0;
+        border-left: 4px solid var(--color-accent); /* Retain accent color */
+        page-break-inside: avoid;
+        margin-top: var(--space-3);
+        padding: var(--space-2) var(--space-3);
+    }
+    .event-highlight {
+        border-left-color: var(--color-accent-2);
+    }
+    .visa-info {
+        border-left-color: var(--color-success);
+    }
+
+    .visa-info p.note {
+        background: #f0f0f0;
+        border: 1px solid #e0e0e0;
+        padding: var(--space-2);
+        color: #555;
+    }
+
+    .receipts-block {
+        background: #f8f8f8;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: var(--space-3);
+        margin: var(--space-2) 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+        color: #000;
+        page-break-inside: avoid;
+    }
+
+    .receipts-header {
+        color: #000;
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: bold;
+    }
+
+    .receipts-item::before {
+        color: #000;
+    }
+
+    .receipts-label {
+        color: #555;
+        font-weight: bold;
+    }
+
+    .receipts-value {
+        color: #000;
+    }
+
+    .details-section {
+        box-shadow: none;
+        border: none;
+        background-color: white;
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+        padding: var(--space-5) 0;
+    }
+
+    .detail-block .section-title {
+        margin-left: var(--space-4);
+        font-size: 1.2rem;
+    }
+
+    .detail-list li {
+        color: black;
+    }
+
+    .detail-list li::before {
+        color: var(--color-accent);
+    }
+
+    .detail-list li strong {
+        color: black;
+    }
+
+    .footer {
+        display: none;
+    }
+    a, a:visited {
+        color: #000;
+        text-decoration: underline;
+    }
+    .message-group,
+    .message {
+        break-inside: avoid;
+    }
+}
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -35,8 +1007,8 @@
                     <p>APIs first (Open‑Meteo/REST Countries/OpenTripMap) → Brave Search summarization when providers fail.</p>
                 </div>
                 <div class="feature-card">
-                    <h3 class="feature-card__title">Consent + Optimized Search</h3>
-                    <p>Asks before web search and compresses queries to ≤7 words for high‑signal results.</p>
+                    <h3 class="feature-card__title">LLM Search Query Optimization</h3>
+                    <p>Compresses search queries to ≤7 words for high‑signal results.</p>
                 </div>
                 
             </div>
@@ -386,7 +1358,6 @@
                     <li><strong>Few-Shot Prompting:</strong> Curated examples in `router.md` and `cot.md` train accurate intent classification and slot extraction.</li>
                     <li><strong>Chain-of-Thought:</strong> Structured reasoning in `cot.md` and `verify.md` decomposes analysis into verifiable steps.</li>
                     <li><strong>Guardrails:</strong> `blend.md` requires fact-grounding + `verify.md` provides secondary validation of claims.</li>
-                    <li><strong>Consent Detection:</strong> LLM-based yes/no/unclear gating before performing web search.</li>
                     <li><strong>Query Optimization:</strong> Compresses user search queries to ≤7 words to reduce noise.</li>
                 </ul>
             </div>
@@ -399,6 +1370,22 @@
                     <li>Optional /metrics endpoint (Prometheus or JSON) and structured logs (PII‑redacted by default).</li>
                     <li>Security-conscious: host allowlist, timeouts, retries with jitter, and circuit-like backoff.</li>
                     <li>E2E transcripts and golden tests for the core scenarios.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="roadmap-section">
+            <div class="roadmap-block">
+                <h2 class="section-title roadmap-title">Short‑Sprints Roadmap</h2>
+                <p class="roadmap-intro">
+                    <em>These are the features we would implement next if we continued development beyond this demo.</em>
+                </p>
+                <ul class="detail-list roadmap-list">
+                    <li><strong>Browser Fallback:</strong> Playwright integration for precise policy parsing with source citations and receipts.</li>
+                    <li><strong>Mini-RAG:</strong> Embeddings and passage-level citations for 3–5 seeded policy/waiver documents.</li>
+                    <li><strong>Agent Flow Scaling:</strong> Parallelizable nodes and rollback handling for the graph-based orchestrator.</li>
+                    <li><strong>Router Optimization:</strong> Embeddings-based intent detection with LLM fallback for faster routing.</li>
+                    <li><strong>Enterprise Observability & Production Readiness:</strong> P95 metrics, intent success rates, OpenAPI schemas, Lambda packaging, and ADRs.</li>
                 </ul>
             </div>
         </section>

@@ -626,7 +626,7 @@ export async function blendWithFacts(
       if (wx.ok) {
         const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
         cits.push(source);
-        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
+        facts += `Weather for ${cityHint}: ${wx.summary} (${source})\n`;
         factsArr.push({ source, key: 'weather_summary', value: wx.summary });
         decisions.push('Considered origin weather/season for destination suggestions.');
       } else {
@@ -644,7 +644,7 @@ export async function blendWithFacts(
       if (cf.ok) {
         const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
         cits.push(source);
-        facts += `Country: ${cf.summary}\n`;
+        facts += `Country: ${cf.summary} (${source})\n`;
         factsArr.push({ source, key: 'country_summary', value: cf.summary });
         decisions.push('Added country context (currency, language, region).');
       } else {
@@ -659,7 +659,7 @@ export async function blendWithFacts(
         if (wikipediaFacts.length > 0) {
           cits.push('Wikipedia');
           const attractions = wikipediaFacts.map(f => f.value.title).join(', ');
-          facts += `Attractions: ${attractions}\n`;
+          facts += `Attractions: ${attractions} (Wikipedia)\n`;
           factsArr.push(...wikipediaFacts);
           decisions.push('Listed attractions from Wikipedia with descriptions.');
         } else {
@@ -673,7 +673,7 @@ export async function blendWithFacts(
         if (at.ok) {
           const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
           cits.push(source);
-          facts += `POIs: ${at.summary}\n`;
+          facts += `POIs: ${at.summary} (${source})\n`;
           factsArr.push({ source: source, key: 'poi_list', value: at.summary });
           decisions.push('Listed top attractions from external POI API.');
         } else {
@@ -693,9 +693,12 @@ export async function blendWithFacts(
   // Include available slot context even when external APIs fail
   let contextInfo = '';
   if (cityHint && facts.trim() === '') {
-    // For attractions queries with no facts, explicitly indicate API failure
+    // For attractions queries with no facts, provide helpful fallback response
     if (input.route.intent === 'attractions') {
-      contextInfo = `API Status: Attractions data unavailable for ${cityHint}\n`;
+      return {
+        reply: `I'm unable to retrieve current attraction data for ${cityHint} right now. You might want to check local tourism websites or travel guides for the most up-to-date information about popular attractions, museums, and points of interest in the area.`,
+        citations: undefined
+      };
     } else {
       contextInfo = `Available context: City is ${cityHint}\n`;
     }
@@ -708,11 +711,17 @@ export async function blendWithFacts(
     
     const cotAnalysis = await callLLM(cotPrompt, { log: ctx.log });
     
-    // Check if CoT suggests missing critical information
+    // Check if CoT suggests missing critical information, but only if slots are actually missing
     if (cotAnalysis.includes('missing') && (cotAnalysis.includes('city') || cotAnalysis.includes('date'))) {
       const missingSlots = [];
-      if (cotAnalysis.includes('missing') && cotAnalysis.includes('city')) missingSlots.push('city');
-      if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month'))) missingSlots.push('dates');
+      // Only add city as missing if we actually don't have it in slots
+      if (cotAnalysis.includes('missing') && cotAnalysis.includes('city') && !cityHint) {
+        missingSlots.push('city');
+      }
+      // Only add dates as missing if we actually don't have them in slots
+      if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month')) && !whenHint) {
+        missingSlots.push('dates');
+      }
       
       if (missingSlots.length > 0) {
         const missing = missingSlots[0];
@@ -776,10 +785,21 @@ export async function blendWithFacts(
     }
   }
   
+  // Ensure a human-readable source mention appears once when external facts were used
+  let replyWithSource = reply;
+  if (cits.length > 0 && cits[0]) {
+    const firstSource = cits[0] as string;
+    const alreadyMentionsSource = new RegExp(`\\b${firstSource.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(replyWithSource);
+    if (!alreadyMentionsSource) {
+      // Append succinct source mention in parentheses, matching prompt guidance
+      replyWithSource = `${replyWithSource} (${firstSource})`;
+    }
+  }
+
   // Add mixed language warning if detected
   const finalReply = hasMixedLanguages 
-    ? `Note: I work best with English, but I'll try to help. ${reply}`
-    : reply;
+    ? `Note: I work best with English, but I'll try to help. ${replyWithSource}`
+    : replyWithSource;
     
   return { reply: finalReply, citations: cits.length ? cits : undefined };
 }
@@ -821,5 +841,3 @@ function chooseBandFromTemps(
   if (typeof maxC === 'number' || typeof minC === 'number') return 'mild';
   return undefined;
 }
-
-

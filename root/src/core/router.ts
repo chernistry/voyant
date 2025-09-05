@@ -86,8 +86,8 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   const isUnrelated = contentClassification?.content_type === 'unrelated' || 
                      contentClassification?.content_type === 'gibberish';
 
-  // Extract slots early for LLM override logic
-  const extractedSlots = await extractSlots(input.message, {}, input.logger?.log);
+  // Extract slots early for LLM override logic (use thread context for better parsing)
+  const extractedSlots = await extractSlots(input.message, ctxSlots, input.logger?.log);
   let finalSlots = extractedSlots;
 
   // Try LLM-based intent classification first
@@ -348,4 +348,3 @@ function extractJsonObject(text: string): unknown | undefined {
     return undefined;
   }
 }
-

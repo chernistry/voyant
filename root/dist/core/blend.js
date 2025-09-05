@@ -624,13 +624,17 @@ export async function blendWithFacts(input, ctx) {
     try {
         const cotPrompt = `${systemMd}\n\n${cotMd}\n\nAnalyze and plan response for:\nSlots: ${JSON.stringify(input.route.slots)}\nFacts: ${contextInfo + facts}\nUser: ${input.message}`;
         const cotAnalysis = await callLLM(cotPrompt, { log: ctx.log });
-        // Check if CoT suggests missing critical information
+        // Check if CoT suggests missing critical information, but only if slots are actually missing
         if (cotAnalysis.includes('missing') && (cotAnalysis.includes('city') || cotAnalysis.includes('date'))) {
             const missingSlots = [];
-            if (cotAnalysis.includes('missing') && cotAnalysis.includes('city'))
+            // Only add city as missing if we actually don't have it in slots
+            if (cotAnalysis.includes('missing') && cotAnalysis.includes('city') && !cityHint) {
                 missingSlots.push('city');
-            if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month')))
+            }
+            // Only add dates as missing if we actually don't have them in slots
+            if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month')) && !whenHint) {
                 missingSlots.push('dates');
+            }
             if (missingSlots.length > 0) {
                 const missing = missingSlots[0];
                 if (missing === 'city') {

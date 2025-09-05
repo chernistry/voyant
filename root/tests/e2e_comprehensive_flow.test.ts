@@ -11,7 +11,15 @@ import { recordedRequest } from '../src/test/transcript-helper.js';
 // Configure nock to work with undici
 nock.disableNetConnect();
 nock.enableNetConnect((host) => {
-  return host.includes('127.0.0.1') || host.includes('localhost') || host.includes('openrouter.ai');
+  // Allow local server and LLM provider
+  if (host.includes('127.0.0.1') || host.includes('localhost') || host.includes('openrouter.ai')) return true;
+  // Allow real travel/data APIs used by the agent for e2e flows
+  if (host.includes('api.open-meteo.com')) return true;
+  if (host.includes('geocoding-api.open-meteo.com')) return true;
+  if (host.includes('restcountries.com')) return true;
+  if (host.includes('api.opentripmap.com')) return true;
+  if (host.includes('api.search.brave.com')) return true;
+  return false;
 });
 
 const log = pino({ level: process.env.LOG_LEVEL ?? 'debug' });
@@ -191,6 +199,48 @@ describe('E2E Comprehensive User Journey Tests', () => {
 
   describe('🏛️ Attractions & Activities', () => {
     test('attractions queries with OpenTripMap API', async () => {
+      // Mock OpenTripMap geocoding
+      nock('https://api.opentripmap.com')
+        .get('/0.1/en/places/geoname')
+        .query(true)
+        .reply(200, { name: 'Tokyo', lat: 35.6762, lon: 139.6503, country: 'JP' });
+      
+      // Mock OpenTripMap POI search (geojson format)
+      nock('https://api.opentripmap.com')
+        .get('/0.1/en/places/radius')
+        .query(true)
+        .reply(200, {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              properties: {
+                xid: 'N123456',
+                name: 'Tokyo Tower',
+                kinds: 'towers,tourist_facilities',
+                dist: 100
+              },
+              geometry: {
+                type: 'Point',
+                coordinates: [139.6503, 35.6762]
+              }
+            },
+            {
+              type: 'Feature',
+              properties: {
+                xid: 'N789012',
+                name: 'Senso-ji Temple',
+                kinds: 'temples,cultural',
+                dist: 200
+              },
+              geometry: {
+                type: 'Point',
+                coordinates: [139.6503, 35.6762]
+              }
+            }
+          ]
+        });
+
       const r = await recordedRequest(app, transcriptRecorder, 'attractions_tokyo_opentripmap', 'What attractions are there in Tokyo?');
 
       await expectLLMEvaluation(

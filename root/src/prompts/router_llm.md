@@ -32,6 +32,12 @@ Output: {"intent":"weather","needExternal":true,"slots":{"city":"New York City",
 Input: "what to pack for Tokyo in March"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"},"confidence":0.85,"missingSlots":[]}
 
+Input: "What to wear to Haifa today?"
+Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.9,"missingSlots":[]}
+
+Input: "What to wear to Hafia toda?"
+Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.8,"missingSlots":[]}
+
 Input: "Any festivals or events that week?"
 Output: {"intent":"web_search","needExternal":true,"slots":{},"confidence":0.9,"missingSlots":[]}
 

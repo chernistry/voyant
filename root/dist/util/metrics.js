@@ -15,6 +15,7 @@ const IS_JSON = MODE === 'json';
 export const metricsEnabled = IS_PROM || IS_JSON;
 // JSON fallback counters
 let messages = 0;
+const externalAgg = new Map(); // key = target
 let register;
 let counterMessages;
 let counterExtReq;
@@ -51,9 +52,9 @@ async function ensureProm() {
     })();
     return initPromise;
 }
-// Kick off initialization without blocking
+// Kick off initialization without blocking; ignore failure if prom-client is not installed
 // no-await-in-loop intentionally avoided here
-void ensureProm();
+void ensureProm().catch(() => undefined);
 export function incMessages() {
     messages += 1;
     if (counterMessages)
@@ -67,6 +68,21 @@ export function observeExternal(labels, durationMs) {
         });
     if (histExtLatency)
         histExtLatency.observe({ target: labels.target ?? 'unknown', status: labels.status ?? 'unknown' }, durationMs);
+    // Always update JSON aggregation (even when not in JSON mode), so /metrics can still respond
+    const target = labels.target ?? 'unknown';
+    const status = labels.status ?? 'unknown';
+    const prev = externalAgg.get(target) ?? {
+        total: 0,
+        byStatus: {},
+        latency: { count: 0, sum: 0, min: Number.POSITIVE_INFINITY, max: 0 },
+    };
+    prev.total += 1;
+    prev.byStatus[status] = (prev.byStatus[status] ?? 0) + 1;
+    prev.latency.count += 1;
+    prev.latency.sum += durationMs;
+    prev.latency.min = Math.min(prev.latency.min, durationMs);
+    prev.latency.max = Math.max(prev.latency.max, durationMs);
+    externalAgg.set(target, prev);
 }
 export async function getPrometheusText() {
     if (!IS_PROM)
@@ -75,7 +91,18 @@ export async function getPrometheusText() {
     return register ? register.metrics() : '';
 }
 export function snapshot() {
-    return { messages };
+    const targets = Array.from(externalAgg.entries()).map(([target, agg]) => ({
+        target,
+        total: agg.total,
+        byStatus: agg.byStatus,
+        latency: {
+            count: agg.latency.count,
+            avg_ms: agg.latency.count > 0 ? Number((agg.latency.sum / agg.latency.count).toFixed(1)) : 0,
+            min_ms: agg.latency.count > 0 ? agg.latency.min : 0,
+            max_ms: agg.latency.max,
+        },
+    }));
+    return { messages_total: messages, external_requests: { targets } };
 }
 export function metricsMode() {
     if (IS_PROM)
