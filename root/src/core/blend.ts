@@ -591,6 +591,26 @@ export async function blendWithFacts(
         decisions.push('Weather API unavailable; offered general packing guidance without numbers.');
       }
     } else if (input.route.intent === 'destinations') {
+      // Use destinations catalog for recommendations
+      try {
+        const { recommendDestinations } = await import('../tools/destinations.js');
+        const destinationFacts = await recommendDestinations(input.route.slots);
+        
+        if (destinationFacts.length > 0) {
+          cits.push('Catalog+REST Countries');
+          const destinations = destinationFacts.map(f => 
+            `${f.value.city}, ${f.value.country} (${f.value.tags.climate}, ${f.value.tags.budget} budget)`
+          ).join('; ');
+          facts += `Recommended destinations: ${destinations}\n`;
+          factsArr.push(...destinationFacts);
+          decisions.push('Filtered destinations catalog by month/profile with factual anchors.');
+        }
+      } catch (e) {
+        ctx.log.debug({ error: e }, 'destinations_catalog_failed');
+        decisions.push('Destinations catalog unavailable; using generic guidance.');
+      }
+      
+      // Still get weather for origin city if available
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
@@ -611,6 +631,7 @@ export async function blendWithFacts(
           };
         }
       }
+      
       const cf = await getCountryFacts({ city: cityHint });
       if (cf.ok) {
         const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
@@ -621,28 +642,36 @@ export async function blendWithFacts(
       } else {
         ctx.log.debug({ reason: cf.reason }, 'country_adapter_failed');
       }
-      const at = await getAttractions({ city: cityHint, limit: 5 });
-      if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
-        cits.push(source);
-        facts += `POIs: ${at.summary}\n`;
-        factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from external POI API.');
-      } else {
-        ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
-        decisions.push('Attractions lookup failed; avoided fabricating POIs.');
-      }
     } else if (input.route.intent === 'attractions') {
-      const at = await getAttractions({ city: cityHint, limit: 5 });
-      if (at.ok) {
-        const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
-        cits.push(source);
-        facts += `POIs: ${at.summary}\n`;
-        factsArr.push({ source: source, key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from external POI API.');
-      } else {
-        ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
-        decisions.push('Attractions lookup failed; avoided fabricating POIs.');
+      // Try Wikipedia first, then fallback to existing OpenTripMap/Brave Search
+      try {
+        const { getAttractionFacts } = await import('../tools/wikipedia.js');
+        const wikipediaFacts = await getAttractionFacts(cityHint || '');
+        
+        if (wikipediaFacts.length > 0) {
+          cits.push('Wikipedia');
+          const attractions = wikipediaFacts.map(f => f.value.title).join(', ');
+          facts += `Attractions: ${attractions}\n`;
+          factsArr.push(...wikipediaFacts);
+          decisions.push('Listed attractions from Wikipedia with descriptions.');
+        } else {
+          throw new Error('No Wikipedia results');
+        }
+      } catch (e) {
+        ctx.log.debug({ error: e }, 'wikipedia_attractions_failed');
+        
+        // Fallback to existing attractions system
+        const at = await getAttractions({ city: cityHint, limit: 5 });
+        if (at.ok) {
+          const source = at.source === 'brave-search' ? 'Brave Search' : 'OpenTripMap';
+          cits.push(source);
+          facts += `POIs: ${at.summary}\n`;
+          factsArr.push({ source: source, key: 'poi_list', value: at.summary });
+          decisions.push('Listed top attractions from external POI API.');
+        } else {
+          ctx.log.debug({ reason: at.reason }, 'attractions_adapter_failed');
+          decisions.push('Attractions lookup failed; avoided fabricating POIs.');
+        }
       }
     }
   } catch (e) {
@@ -651,6 +680,7 @@ export async function blendWithFacts(
   }
   const systemMd = await getPrompt('system');
   const blendMd = await getPrompt('blend');
+  const cotMd = await getPrompt('cot');
   
   // Include available slot context even when external APIs fail
   let contextInfo = '';
@@ -662,21 +692,66 @@ export async function blendWithFacts(
       contextInfo = `Available context: City is ${cityHint}\n`;
     }
   }
-  
-  const tmpl = blendMd && blendMd.includes('{{FACTS}}')
-    ? blendMd
-        .replace('{{FACTS}}', (contextInfo + facts) || '(none)')
-        .replace('{{USER}}', input.message)
-    : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
-  const prompt = `${systemMd}\n\n${tmpl}`.trim();
-  const rawReply = await callLLM(prompt, { log: ctx.log });
-  
-  // Decode HTML entities from LLM response
-  const reply = rawReply
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
+
+  // Use CoT for main generation flow (hidden from user)
+  let reply: string;
+  try {
+    const cotPrompt = `${systemMd}\n\n${cotMd}\n\nAnalyze and plan response for:\nSlots: ${JSON.stringify(input.route.slots)}\nFacts: ${contextInfo + facts}\nUser: ${input.message}`;
+    
+    const cotAnalysis = await callLLM(cotPrompt, { log: ctx.log });
+    
+    // Check if CoT suggests missing critical information
+    if (cotAnalysis.includes('missing') && (cotAnalysis.includes('city') || cotAnalysis.includes('date'))) {
+      const missingSlots = [];
+      if (cotAnalysis.includes('missing') && cotAnalysis.includes('city')) missingSlots.push('city');
+      if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month'))) missingSlots.push('dates');
+      
+      if (missingSlots.length > 0) {
+        const missing = missingSlots[0];
+        if (missing === 'city') {
+          return { reply: "Which city are you interested in?", citations: undefined };
+        }
+        if (missing === 'dates') {
+          return { reply: "When are you planning to travel?", citations: undefined };
+        }
+      }
+    }
+    
+    // Generate final answer using blend prompt
+    const tmpl = blendMd && blendMd.includes('{{FACTS}}')
+      ? blendMd
+          .replace('{{FACTS}}', (contextInfo + facts) || '(none)')
+          .replace('{{USER}}', input.message)
+      : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
+    const prompt = `${systemMd}\n\n${tmpl}`.trim();
+    const rawReply = await callLLM(prompt, { log: ctx.log });
+    
+    // Decode HTML entities from LLM response
+    reply = rawReply
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+      
+  } catch (e) {
+    ctx.log.debug({ error: e }, 'CoT generation failed, using fallback');
+    
+    // Fallback to original generation without CoT
+    const tmpl = blendMd && blendMd.includes('{{FACTS}}')
+      ? blendMd
+          .replace('{{FACTS}}', (contextInfo + facts) || '(none)')
+          .replace('{{USER}}', input.message)
+      : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
+    const prompt = `${systemMd}\n\n${tmpl}`.trim();
+    const rawReply = await callLLM(prompt, { log: ctx.log });
+    
+    // Decode HTML entities from LLM response
+    reply = rawReply
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+  }
   // Enforce no fabricated citations when no external facts were used
   try {
     validateNoCitation(reply, cits.length > 0);
