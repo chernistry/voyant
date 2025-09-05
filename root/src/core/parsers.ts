@@ -13,7 +13,7 @@ const OD_NLP_MIN = 0.6;
 const DATE_NLP_MIN = 0.6;
 
 // Common temporal words/months guardrails
-const MONTH_WORDS = [
+export const MONTH_WORDS = [
   'january', 'february', 'march', 'april', 'may', 'june', 'july',
   'august', 'september', 'october', 'november', 'december',
   'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
@@ -100,6 +100,15 @@ export async function parseCity(
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
     const json = JSON.parse(raw);
     const result = CityParseResult.parse(json);
+    // Filter out placeholder/low-signal responses
+    const normalizedLower = (result.normalized || '').trim().toLowerCase();
+    const isPlaceholder = !result.normalized ||
+      result.confidence < 0.5 ||
+      ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(normalizedLower) ||
+      MONTH_WORDS.includes(normalizedLower);
+    if (isPlaceholder) {
+      throw new Error('Low confidence or placeholder city');
+    }
     if (logger?.debug && nlpCandidate.success) logger.debug({ nlpCandidate, llm: result }, 'city_llm_override_nlp');
     return {
       success: true,
@@ -108,6 +117,29 @@ export async function parseCity(
       normalized: result.normalized,
     };
   } catch (error) {
+    // Heuristics last-resort: only after NLP and LLM failed
+    const heuristicPatterns: Array<RegExp> = [
+      /\b(?:let'?s\s+say|lets\s+say|say|how\s+about|maybe|consider)\s+([A-Z][A-Za-z\- ]+)/i,
+      /\b([A-Z][A-Za-z\- ]+)\s+with\s+(?:a|the)\s+kid/i,
+    ];
+    for (const rx of heuristicPatterns) {
+      const m = text.match(rx);
+      const cand = m?.[1]?.trim();
+      if (typeof cand === 'string' && cand.length > 0 && !TEMPORAL_WORDS.includes(cand.toLowerCase())) {
+        const c = cand!;
+        const firstPart = c.split(/[.,!?]/)[0] || '';
+        const normalized = firstPart.trim();
+        const stoplist = new Set(['hey','hi','hello','thanks','thank you','ok','okay']);
+        if (!/^[A-Z][A-Za-z\- ]+$/.test(normalized) || stoplist.has(normalized.toLowerCase())) continue;
+        if (logger?.debug) logger.debug({ cand: normalized }, 'city_heuristic_last_resort');
+        return {
+          success: true,
+          data: { city: normalized, normalized, confidence: 0.6 },
+          confidence: 0.6,
+          normalized,
+        };
+      }
+    }
     // Rules-last: if NLP produced a candidate with any signal, return it; else fail
     if (nlpCandidate.success) return nlpCandidate;
     return { success: false, data: null, confidence: 0 };
@@ -121,24 +153,9 @@ function parseCityWithNLP(text: string): ParseResponse<z.infer<typeof CityParseR
   try {
     const doc = nlp.readDoc(text);
     
-    // Extract proper nouns that could be cities
-    const entities = doc.entities();
-    if (entities.length() > 0) {
-      const entityItems = entities.itemAt(0);
-      if (entityItems) {
-        const city = entityItems.out();
-        if (!MONTH_WORDS.includes(city.toLowerCase())) {
-          return {
-            success: true,
-            data: { city, normalized: city, confidence: 0.7 },
-            confidence: 0.7,
-            normalized: city,
-          };
-        }
-        // If the top entity is a month, ignore and try heuristic fallback below
-      }
-    }
-    
+    // Skip naive entity-first acceptance to avoid false positives like "Hey" or generic nouns
+    // keep heuristics only as last resort (handled in parseCity)
+
     // Fallback to capitalized words after prepositions
     const tokens = doc.tokens();
     const tokenArray = tokens.out();

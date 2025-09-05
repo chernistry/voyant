@@ -21,4 +21,9 @@ export default class CustomSequencer {
 
     return sorted;
   }
+
+  // Jest may call cacheResults in newer versions; implement no-op passthrough
+  cacheResults(tests /*, results */) {
+    return tests;
+  }
 }

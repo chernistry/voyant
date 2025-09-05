@@ -5,16 +5,18 @@ import { generateClarifyingQuestion } from './llm.js';
  * Returns exactly one concise question; stable phrasing to match tests.
  */
 export async function buildClarifyingQuestion(missing, slots = {}, log) {
-    // Try LLM first for context-aware clarification
-    try {
-        const llmQuestion = await generateClarifyingQuestion(missing, slots, log);
-        if (llmQuestion && llmQuestion.trim().length > 0) {
-            return llmQuestion.trim();
+    // Prefer deterministic fallback unless explicitly enabled
+    if (process.env.USE_LLM_CLARIFIER === 'true') {
+        try {
+            const llmQuestion = await generateClarifyingQuestion(missing, slots, log);
+            if (llmQuestion && llmQuestion.trim().length > 0) {
+                return llmQuestion.trim();
+            }
         }
-    }
-    catch (error) {
-        if (log)
-            log.debug('LLM clarification failed, using fallback');
+        catch (error) {
+            if (log)
+                log.debug('LLM clarification failed, using fallback');
+        }
     }
     // Fallback to hardcoded logic for consistency with existing tests
     return fallbackBuildClarifyingQuestion(missing, slots);

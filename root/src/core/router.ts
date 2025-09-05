@@ -29,7 +29,9 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Detect complex multi-constraint queries and request deep research consent (flagged)
   if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
     const complexity = detectComplexQuery(input.message);
-    if (complexity.isComplex && complexity.confidence >= 0.7) {
+    // Destination discovery with known constraints should prefer catalog, not deep research
+    const looksLikeDestinationDiscovery = /\b(where to go|where can i travel|destinations?|go from|travel from|trip|ideas?)\b/i.test(input.message);
+    if (!looksLikeDestinationDiscovery && complexity.isComplex && complexity.confidence >= 0.7) {
       if (input.threadId) {
         updateThreadSlots(input.threadId, {
           awaiting_deep_research_consent: 'true',
@@ -282,7 +284,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     return RouterResult.parse({ intent: 'packing', ...base });
   }
   
-  if (/attraction|do in|what to do|museum|activities/.test(m)) {
+  if (/attraction|do in|what to do|what should we do|museum|activities/.test(m)) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_attractions');
     }

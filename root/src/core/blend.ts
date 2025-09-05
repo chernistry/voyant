@@ -505,14 +505,14 @@ export async function blendWithFacts(
   if (input.route.intent === 'attractions') {
     const queryType = await detectQueryType(input.message, ctx);
     
-    if ((queryType === 'restaurant' || queryType === 'budget') && input.threadId) {
+    if ((queryType === 'restaurant') && input.threadId) {
       // Store the pending search query and set consent state
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
       }, []);
       
-      const searchType = queryType === 'restaurant' ? 'restaurant recommendations' : 'cost and budget information';
+      const searchType = 'restaurant recommendations';
       return {
         reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
         citations: undefined,
@@ -538,14 +538,15 @@ export async function blendWithFacts(
     
     const queryType = await detectQueryType(input.message, ctx);
     
-    if ((queryType === 'budget' || queryType === 'flight') && input.threadId) {
+    // Only propose web search for flights; for budget, stay catalog-based
+    if ((queryType === 'flight') && input.threadId) {
       // Store the pending search query and set consent state
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
       }, []);
       
-      const searchType = queryType === 'budget' ? 'cost and budget information' : 'flight and airline information';
+      const searchType = 'flight and airline information';
       return {
         reply: `I can search the web to find current ${searchType}. Would you like me to do that?`,
         citations: undefined,
@@ -689,12 +690,13 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'attractions') {
       // Prefer OpenTripMap results; avoid listing specific POIs from generic web search
-      const at = await getAttractions({ city: cityHint, limit: 5 });
+      const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
+      const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
       if (at.ok && at.source === 'opentripmap') {
         cits.push('OpenTripMap');
         facts += `POIs: ${at.summary} (OpenTripMap)\n`;
         factsArr.push({ source: 'OpenTripMap', key: 'poi_list', value: at.summary });
-        decisions.push('Listed top attractions from OpenTripMap.');
+        decisions.push(wantsKid ? 'Listed kid-friendly attractions from OpenTripMap.' : 'Listed top attractions from OpenTripMap.');
       } else {
         ctx.log.debug({ reason: at.ok ? `unexpected_source_${at.source}` : at.reason }, 'attractions_adapter_failed');
         decisions.push('Attractions lookup unavailable; avoided fabricating POIs.');

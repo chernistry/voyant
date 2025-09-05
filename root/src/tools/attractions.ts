@@ -7,11 +7,12 @@ type Out = { ok: true; summary: string; source?: string } | { ok: false; reason:
 export async function getAttractions(input: {
   city?: string;
   limit?: number;
+  profile?: 'default' | 'kid_friendly';
 }): Promise<Out> {
   if (!input.city) return { ok: false, reason: 'no_city' };
   
   // Try OpenTripMap first for richer POI data
-  const primaryResult = await tryOpenTripMap(input.city, input.limit);
+  const primaryResult = await tryOpenTripMap(input.city, input.limit, input.profile);
   if (primaryResult.ok) {
     return primaryResult;
   }
@@ -30,7 +31,7 @@ export async function getAttractions(input: {
   return primaryResult; // Return original error
 }
 
-async function tryOpenTripMap(city: string, limit = 7): Promise<Out> {
+async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid_friendly' = 'default'): Promise<Out> {
   // Resolve city to coordinates via Open-Meteo Geocoding API
   type GeoItem = {
     name?: string;
@@ -50,12 +51,14 @@ async function tryOpenTripMap(city: string, limit = 7): Promise<Out> {
       return { ok: false, reason: 'unknown_city' };
     }
     
-    // First pass with wider kinds
+    // First pass with kinds tuned to profile
+    const baseKinds = 'museums,monuments,historic,cultural,interesting_places,tourist_facilities,urban_environment,natural';
+    const kidKinds = 'amusements,theme_parks,playgrounds,zoo,aquarium,urban_environment,parks,gardens,museums';
     const pois = await searchPOIs({ 
       lat: first.latitude, 
       lon: first.longitude, 
       limit,
-      kinds: 'museums,monuments,historic,cultural,interesting_places,tourist_facilities'
+      kinds: profile === 'kid_friendly' ? kidKinds : baseKinds
     });
     if (pois.ok && pois.pois.length >= 3) {
       // Enrich with short descriptions when we have ample results (helps E2E expectations)
@@ -73,22 +76,34 @@ async function tryOpenTripMap(city: string, limit = 7): Promise<Out> {
           return '';
         })
       );
-      const items = details
+      let items = details
         .filter(Boolean)
         .map(String)
         .filter((s) => s.length > 10); // prefer meaningful entries
+      if (profile === 'kid_friendly') {
+        const positive = /(children|child|kids?|toddler|playground|park|garden|zoo|aquarium|carousel|swan|science|hands-on|interactive|museum of science|children's museum)/i;
+        const negative = /(cemetery|burying|memorial|monument|theatre|theater|cathedral|church|grave|mausoleum|fort|battle|war|historic)/i;
+        const filtered = items.filter((s) => positive.test(s) && !negative.test(s));
+        if (filtered.length >= 2) items = filtered;
+      }
       if (items.length >= 3) {
         return { ok: true, summary: items.join('; '), source: 'opentripmap' };
       }
     }
     if (pois.ok && pois.pois.length >= 2) {
       // Minimal case: provide names only (works with mocked SF test)
-      const items = pois.pois
+      let items = pois.pois
         .slice(0, Math.max(2, Math.min(limit, 5)))
         .map(p => (p.name || '').trim())
         .filter(Boolean)
         .filter(name => name.length >= 5)
         .filter(name => !/restaurant|cafe|pizzeria|bar|grill|fountain|erg/i.test(name));
+      if (profile === 'kid_friendly') {
+        const positive = /(Children|Child|Kids?|Toddler|Playground|Park|Garden|Zoo|Aquarium|Carousel|Swan|Science|Museum of Science)/i;
+        const negative = /(Cemetery|Burying|Memorial|Monument|Theatre|Theater|Cathedral|Church|Grave|Mausoleum|Fort|Battle|War|Historic)/i;
+        const filtered = items.filter((s) => positive.test(s) && !negative.test(s));
+        if (filtered.length >= 2) items = filtered;
+      }
       if (items.length >= 2) {
         return { ok: true, summary: items.join('; '), source: 'opentripmap' };
       }
@@ -100,17 +115,25 @@ async function tryOpenTripMap(city: string, limit = 7): Promise<Out> {
         lat: first.latitude, 
         lon: first.longitude, 
         limit: limit + 2,
-        kinds: 'interesting_places,tourist_facilities,architecture,urban_environment,natural,museums,monuments,historic,cultural',
+        kinds: profile === 'kid_friendly'
+          ? kidKinds
+          : 'interesting_places,tourist_facilities,architecture,urban_environment,natural,museums,monuments,historic,cultural',
         radiusMeters: 5000 // 5km radius
       });
       
       if (poisRadius.ok && poisRadius.pois.length > 0) {
-        const items = poisRadius.pois
+        let items = poisRadius.pois
           .slice(0, Math.max(2, Math.min(limit, 5)))
           .map(p => (p.name || '').trim())
           .filter(Boolean)
           .filter(name => name.length >= 5)
           .filter(name => !/restaurant|cafe|pizzeria|bar|grill|fountain|erg/i.test(name));
+        if (profile === 'kid_friendly') {
+          const positive = /(Children|Child|Kids?|Toddler|Playground|Park|Garden|Zoo|Aquarium|Carousel|Swan|Science|Museum of Science)/i;
+          const negative = /(Cemetery|Burying|Memorial|Monument|Theatre|Theater|Cathedral|Church|Grave|Mausoleum|Fort|Battle|War|Historic)/i;
+          const filtered = items.filter((s) => positive.test(s) && !negative.test(s));
+          if (filtered.length >= 2) items = filtered;
+        }
         if (items.length > 0) {
           return { ok: true, summary: items.join('; '), source: 'opentripmap' };
         }

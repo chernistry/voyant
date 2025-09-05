@@ -10,14 +10,16 @@ export async function buildClarifyingQuestion(
   slots: Record<string, string> = {},
   log?: any,
 ): Promise<string> {
-  // Try LLM first for context-aware clarification
-  try {
-    const llmQuestion = await generateClarifyingQuestion(missing, slots, log);
-    if (llmQuestion && llmQuestion.trim().length > 0) {
-      return llmQuestion.trim();
+  // Prefer deterministic fallback unless explicitly enabled
+  if (process.env.USE_LLM_CLARIFIER === 'true') {
+    try {
+      const llmQuestion = await generateClarifyingQuestion(missing, slots, log);
+      if (llmQuestion && llmQuestion.trim().length > 0) {
+        return llmQuestion.trim();
+      }
+    } catch (error) {
+      if (log) log.debug('LLM clarification failed, using fallback');
     }
-  } catch (error) {
-    if (log) log.debug('LLM clarification failed, using fallback');
   }
   
   // Fallback to hardcoded logic for consistency with existing tests
@@ -43,5 +45,4 @@ function fallbackBuildClarifyingQuestion(
   }
   return 'Could you provide more details about your travel plans?';
 }
-
 

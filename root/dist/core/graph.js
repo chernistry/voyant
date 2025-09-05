@@ -1,4 +1,5 @@
 import { routeIntent } from './router.js';
+import { MONTH_WORDS as __MONTHS_GUARD__ } from './parsers.js';
 import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
@@ -115,13 +116,26 @@ export async function runGraphTurn(message, threadId, ctx) {
     const filteredSlots = {};
     for (const [key, value] of Object.entries(extractedSlots)) {
         if (typeof value === 'string' && value.trim()) {
-            // For city: reject placeholders only if we have a prior city and this looks like a placeholder
-            if (key === 'city' && prior.city &&
-                ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(value.toLowerCase())) {
-                continue; // Skip placeholder, keep prior city
+            const v = value.toLowerCase();
+            const MONTH_WORDS = __MONTHS_GUARD__ || [];
+            const placeholderTokens = ['unknown', 'clean_city_name', 'there', 'normalized_name'];
+            const datePlaceholders = ['unknown', 'next week', 'normalized_date_string', 'month_name'];
+            if (key === 'city') {
+                // Always reject placeholder city values regardless of prior state
+                if (placeholderTokens.includes(v))
+                    continue;
+                // Reject generic non-proper tokens or obvious non-city words
+                const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(value);
+                const genericWords = ['city', 'destination', 'place'];
+                const containsGeneric = genericWords.some(w => v.includes(w));
+                const isTemporal = MONTH_WORDS?.includes?.(v) || /\b(today|now|tomorrow|next|last|week|month|year)\b/.test(v);
+                if (!looksProper || containsGeneric || isTemporal)
+                    continue;
+                filteredSlots[key] = value;
+                continue;
             }
             // For other fields: reject obvious placeholders
-            if (!['unknown', 'clean_city_name', 'there', 'next week', 'normalized_date_string', 'month_name'].includes(value.toLowerCase())) {
+            if (!datePlaceholders.includes(v)) {
                 filteredSlots[key] = value;
             }
         }
@@ -162,8 +176,10 @@ export async function runGraphTurn(message, threadId, ctx) {
         ctx.log.debug({ prior, extracted: routeResult.slots, merged: slots, intent }, 'slot_merge');
     }
     const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather';
-    const hasCity = (typeof slots.city === 'string' && slots.city.trim().length > 0) ||
-        (typeof slots.originCity === 'string' && slots.originCity.trim().length > 0);
+    // For destinations, originCity can satisfy city ("from NYC"). For attractions/weather we require explicit city.
+    const hasCity = intent === 'destinations'
+        ? ((typeof slots.city === 'string' && slots.city.trim().length > 0) || (typeof slots.originCity === 'string' && slots.originCity.trim().length > 0))
+        : (typeof slots.city === 'string' && slots.city.trim().length > 0);
     const hasWhen = (typeof slots.dates === 'string' && slots.dates.trim().length > 0)
         || (typeof slots.month === 'string' && slots.month.trim().length > 0);
     // Check if message has immediate time context that doesn't require date clarification
@@ -298,12 +314,15 @@ async function packingNode(ctx, slots, logger) {
     return { done: true, reply, citations };
 }
 async function attractionsNode(ctx, slots, logger) {
+    // Use thread slots to ensure we have the latest context
+    const threadSlots = getThreadSlots(ctx.threadId);
+    const mergedSlots = { ...threadSlots, ...(slots || {}) };
     const { reply, citations } = await blendWithFacts({
         message: ctx.msg,
         route: {
             intent: 'attractions',
             needExternal: true,
-            slots: slots || {},
+            slots: mergedSlots,
             confidence: 0.7,
         },
         threadId: ctx.threadId,
@@ -313,7 +332,7 @@ async function attractionsNode(ctx, slots, logger) {
 async function systemNode(ctx) {
     return {
         done: true,
-        reply: "I'm a travel assistant. I can help with destinations, weather, packing, and attractions. If you meant my previous reply, tell me what to clarify or ask a more specific travel question.",
+        reply: 'Which city and what dates are you planning to travel to?',
         citations: undefined,
     };
 }
@@ -429,8 +448,15 @@ async function summarizeSearchResults(results, query, ctx) {
             }
             sanitized = truncated;
         }
+        // Ensure Sources block with direct links present; if missing, append from our results
+        const hasLinks = /https?:\/\//i.test(sanitized) || /Sources:/i.test(sanitized);
+        let finalText = sanitized;
+        if (!hasLinks) {
+            const sourcesBlock = ['Sources:', ...formattedResults.slice(0, 5).map(r => `${r.id}. ${r.title} - ${r.url}`)].join('\n');
+            finalText = `${sanitized}\n\n${sourcesBlock}`;
+        }
         return {
-            reply: sanitized,
+            reply: finalText,
             citations: ['Brave Search']
         };
     }

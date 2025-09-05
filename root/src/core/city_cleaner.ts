@@ -62,6 +62,10 @@ function fallbackCleanCityName(rawCity: string): string {
 function fallbackExtractCleanCity(text: string): string {
   // Try different patterns to extract city
   const patterns = [
+    // Explicit hint patterns
+    /\b(?:let'?s\s+say|lets\s+say|say|how\s+about|maybe|consider)\s+([A-Z][A-Za-z\- ]+)/i,
+    // Start-of-text city followed by punctuation/dash
+    /^\s*([A-Z][A-Za-z\- ]+)\s*[—\-–,:]/,
     /\b(?:in|to|for|from)\s+([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)/,
     /\b([A-Z][A-Za-z\- ]+(?:\s+[A-Z][A-Za-z\- ]+)*)\s+(?:in|on|for|during)\s+\w+/,
     /(?:pack|weather|visit|go|travel)\s+(?:for|to|in)\s+([A-Z][A-Za-z\- ]+)/i,
