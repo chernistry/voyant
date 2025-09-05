@@ -324,11 +324,11 @@ export async function optimizeSearchQuery(
     // Remove quotes that LLM might add
     optimized = optimized.replace(/^["']|["']$/g, '');
     
-    // Validate length constraint (≤7 words)
-    const wordCount = optimized.split(/\s+/).length;
-    if (wordCount > 7) {
-      // Truncate to first 7 words
-      optimized = optimized.split(/\s+/).slice(0, 7).join(' ');
+    // Validate length constraint (≤12 words)
+    const wordCount = optimized.split(/\s+/).filter(Boolean).length;
+    if (wordCount > 12) {
+      // Truncate to first 12 words
+      optimized = optimized.split(/\s+/).filter(Boolean).slice(0, 12).join(' ');
     }
     
     // Cache the result
