@@ -99,7 +99,19 @@ export async function runGraphTurn(
   if (awaitingDeepResearch && pendingDeepResearchQuery) {
     const consent = await detectConsent(message, ctx);
     const isConsentResponse = consent !== 'unclear';
-    if (isConsentResponse) {
+    
+    // Check if this is a context switch (new query vs consent response)
+    const isContextSwitch = !isConsentResponse && message.toLowerCase().trim() !== pendingDeepResearchQuery.toLowerCase().trim();
+    
+    if (isContextSwitch) {
+      // Clear old consent state and process new query
+      updateThreadSlots(threadId, {
+        awaiting_deep_research_consent: '',
+        pending_deep_research_query: '',
+        complexity_reasoning: ''
+      }, []);
+      // Continue with normal routing for the new query
+    } else if (isConsentResponse) {
       const isPositive = consent === 'yes';
       // Clear consent state
       updateThreadSlots(threadId, {
