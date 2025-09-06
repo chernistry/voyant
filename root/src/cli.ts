@@ -108,18 +108,28 @@ async function main() {
 
 `));
   console.log(chalk.yellow.bold('✈️  VOYANT Travel Agent CLI'));
-  console.log(chalk.gray('─'.repeat(50)));
-  console.log(chalk.white('I am your AI travel assistant!'));
-  console.log(chalk.gray('Ask me about:'));
-  console.log(chalk.green('  🌤️  Weather in any city'));
-  console.log(chalk.green('  🏖️  Attractions and places to visit'));
-  console.log(chalk.green('  🎒  What to pack for your trip'));
-  console.log(chalk.green('  🗺️  Destination information and advice'));
-  console.log(chalk.gray('─'.repeat(50)));
-  console.log(chalk.gray('Commands:'));
-  console.log(chalk.blue('  /why  - show answer details'));
-  console.log(chalk.red('  exit  - quit the program'));
-  console.log(chalk.gray('─'.repeat(50)));
+  console.log(chalk.gray('─'.repeat(60)));
+  console.log(chalk.white('Ask travel questions. I answer in concise English.'));
+  console.log(chalk.gray('You can ask in any language; I will reply in English.'));
+  console.log(chalk.gray('─'.repeat(60)));
+  console.log(chalk.white.bold('What I can help with:'));
+  console.log(chalk.green('  • Weather — "Weather in London this week?"'));
+  console.log(chalk.green('  • Packing — "What to pack for Tokyo in March?"'));
+  console.log(chalk.green('  • Attractions — "Kid‑friendly things to do in SF in late Aug"'));
+  console.log(chalk.green('  • Destinations — "Where to go from Tel Aviv in August?"'));
+  console.log(chalk.green('  • Policies (RAG) — "United baggage allowance", "Marriott cancellation"'));
+  console.log(chalk.green('    and visas — "Do I need a visa for Japan with a US passport?"'));
+  console.log(chalk.green('  • Web search on consent — events, flights, live info'));
+  console.log(chalk.gray('─'.repeat(60)));
+  console.log(chalk.white.bold('How to ask:'));
+  console.log(chalk.white('  • Include city and month/dates when possible.'));
+  console.log(chalk.white('  • I may ask to use web search or deep research — reply "yes" to proceed.'));
+  console.log(chalk.white('  • I avoid prices/budgeting; I can still suggest options.'));
+  console.log(chalk.gray('─'.repeat(60)));
+  console.log(chalk.white.bold('Commands:'));
+  console.log(chalk.blue('  /why   Show receipts (sources, decisions, self‑check)'));
+  console.log(chalk.red('  exit   Quit'));
+  console.log(chalk.gray('─'.repeat(60)));
   console.log();
 
   log.debug('CLI started. Type "exit" to quit.');
@@ -166,5 +176,4 @@ async function main() {
 }
 
 main().catch((e) => (console.error(e), process.exit(1)));
-
 
