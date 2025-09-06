@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Chat Interface</title>
+    <title>Voyant Travel Assistant - Live Chat</title>
     <style>
         /* Theme Variables */
         :root {
@@ -555,7 +555,7 @@
                 <!-- Chat history will be populated here dynamically -->
             </div>
             <div class="sidebar-footer">
-                <div>Local LLM Chat Interface</div>
+                <div>Voyant Travel Assistant</div>
                 <button id="clear-storage-btn" class="clear-storage-btn">
                     <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -589,12 +589,12 @@
     </div>
 
     <script>
-        // Configuration - Replace with your actual endpoint
+        // Configuration - Voyant Travel Assistant API
         const CONFIG = {
-            apiUrl: 'http://localhost:1234/v1/chat/completions',
-            apiKey: 'not-needed',  // Optional API key
-            model: 'local-model',  // Default model
-            initialSystemPrompt: 'You are a helpful assistant.' // System prompt
+            apiUrl: 'https://voyant-travel-assistant.onrender.com/chat',
+            apiKey: null,  // No API key needed
+            model: 'voyant-travel',  // Travel assistant model
+            initialSystemPrompt: 'You are Voyant, a helpful travel assistant. I can help you with weather, destinations, packing advice, and attractions around the world.' // System prompt
         };
 
         // State management
@@ -714,6 +714,21 @@
             
             saveChatHistory();
             clearChatUI();
+            
+            // Add welcome message
+            const welcomeMessage = `✈️ **Welcome to Voyant Travel Assistant!**
+
+I can help you with:
+• 🌤️ Weather in any city
+• 🏖️ Attractions and places to visit  
+• 🎒 What to pack for your trip
+• 🗺️ Destination information and advice
+
+**NOTE:** Deep Research is disabled for this deployment due to free tier resource limitations. Basic travel queries work perfectly!
+
+Ask me anything about your travel plans!`;
+            
+            appendMessageToUI('assistant', welcomeMessage);
             userInput.focus();
         }
 
@@ -968,19 +983,19 @@
             state.isGenerating = true;
             
             try {
-                // Prepare the API request
+                // Get the last user message
+                const lastUserMessage = state.messages[state.messages.length - 1];
+                
+                // Prepare the API request for Voyant Travel Assistant
                 const requestBody = {
-                    model: CONFIG.model,
-                    messages: state.messages,
-                    stream: true,
-                    temperature: 0.7
+                    message: lastUserMessage.content,
+                    threadId: state.currentChatId || 'web-chat-' + Date.now()
                 };
                 
                 const response = await fetch(CONFIG.apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        ...(CONFIG.apiKey && { 'Authorization': `Bearer ${CONFIG.apiKey}` })
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(requestBody)
                 });
@@ -989,71 +1004,35 @@
                     throw new Error(`API error: ${response.status}`);
                 }
                 
-                // Remove typing indicator and prepare for streaming response
+                // Remove typing indicator and prepare for response
                 removeTypingIndicator();
                 
-                // Create container for AI message
-                appendMessageToUI('assistant', '');
-                const aiMessageElement = chatContainer.lastChild.querySelector('.message-content');
+                // Get the JSON response
+                const data = await response.json();
                 
-                let fullResponse = '';
+                // Extract the reply from the response
+                const aiResponse = data.reply || 'Sorry, I could not process your request.';
                 
-                // Process the stream
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                
-                let buffer = '';
-                
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    buffer += decoder.decode(value, { stream: true });
-                    
-                    // Process complete JSON objects in the buffer
-                    let lastJSONEnd = 0;
-                    
-                    // Try to find and parse each chunk from the stream
-                    while (buffer.indexOf('\n', lastJSONEnd) !== -1) {
-                        const lineEnd = buffer.indexOf('\n', lastJSONEnd);
-                        const line = buffer.substring(lastJSONEnd, lineEnd).trim();
-                        lastJSONEnd = lineEnd + 1;
-                        
-                        if (line.startsWith('data: ')) {
-                            const jsonStr = line.slice(6);
-                            
-                            // Handle [DONE] signal
-                            if (jsonStr === '[DONE]') continue;
-                            
-                            try {
-                                const json = JSON.parse(jsonStr);
-                                
-                                // Extract content from the chunk
-                                const content = json.choices?.[0]?.delta?.content || '';
-                                if (content) {
-                                    fullResponse += content;
-                                    
-                                    // Update the UI with the new content
-                                    aiMessageElement.innerHTML = formatMarkdown(fullResponse);
-                                    
-                                    // Scroll to the bottom
-                                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                                }
-                            } catch (e) {
-                                console.error('Error parsing JSON from stream:', e);
-                            }
-                        }
-                    }
-                    
-                    // Keep any incomplete data in the buffer
-                    buffer = buffer.substring(lastJSONEnd);
+                // Update thread ID if provided
+                if (data.threadId) {
+                    state.currentChatId = data.threadId;
                 }
                 
-                // Add AI response to state
+                // Add AI response to messages
                 state.messages.push({
                     role: 'assistant',
-                    content: fullResponse
+                    content: aiResponse
                 });
+                
+                // Display the response
+                appendMessageToUI('assistant', aiResponse);
+                
+                // Show citations if available
+                if (data.citations && data.citations.length > 0) {
+                    const citationsText = '\n\nSources: ' + data.citations.join(', ');
+                    const lastMessage = chatContainer.lastChild.querySelector('.message-content');
+                    lastMessage.innerHTML += `<div class="citations" style="margin-top: 10px; font-size: 0.9em; color: #666; font-style: italic;">${citationsText}</div>`;
+                }
                 
                 // Update chat in history
                 const updatedChatIndex = state.chatHistory.findIndex(chat => chat.id === state.currentChatId);
@@ -1065,7 +1044,7 @@
             } catch (error) {
                 console.error('Error sending message:', error);
                 removeTypingIndicator();
-                appendMessageToUI('assistant', 'Sorry, there was an error communicating with the API. Please check your connection and API settings.');
+                appendMessageToUI('assistant', 'Sorry, there was an error communicating with the travel assistant. Please try again.');
             } finally {
                 state.isGenerating = false;
                 sendButton.disabled = userInput.value.trim() === '';
