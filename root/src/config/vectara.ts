@@ -4,7 +4,8 @@
  */
 export const VECTARA = {
   BASE_URL: process.env.VECTARA_BASE_URL || 'https://api.vectara.io',
-  QUERY_PATH: process.env.VECTARA_QUERY_PATH || '/v1/query',
+  // Default to v2. Tests may override via jest.mock.
+  QUERY_PATH: process.env.VECTARA_QUERY_PATH || '/v2/query',
   INDEX_PATH: process.env.VECTARA_INDEX_PATH || '/v1/index',
   API_KEY: process.env.VECTARA_API_KEY || '',
   CUSTOMER_ID: process.env.VECTARA_CUSTOMER_ID || '',

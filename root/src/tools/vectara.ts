@@ -34,7 +34,12 @@ const qCache = new TTLCache<VectaraQueryResponseT>(VECTARA.CACHE_TTL_MS);
 export type QueryOptions = {
   corpus: 'airlines' | 'hotels' | 'visas';
   maxResults?: number;
-  filter?: Record<string, string>;
+  /**
+   * Optional metadata filter. If provided as a string, it will be passed
+   * directly to Vectara. Object form is currently ignored to avoid
+   * malformed payloads that can trigger 400 responses.
+   */
+  filter?: string | Record<string, string>;
 };
 
 /**
@@ -71,16 +76,33 @@ export class VectaraClient {
     const hit = qCache.get(cacheKey);
     if (hit) return hit;
 
+    const isV2 = VECTARA.QUERY_PATH.startsWith('/v2');
     const url = `${this.base}${VECTARA.QUERY_PATH}`;
-    const body = {
+    
+    // v1 request body (deprecated/retired in production, used by tests/mocks)
+    const bodyV1: Record<string, unknown> = {
       query: [{
         query: text,
-        corpusKey: [{ corpusId: corpus }],
+        corpusKey: [{ customerId: VECTARA.CUSTOMER_ID, corpusId: corpus }],
         numResults: opts.maxResults ?? 6,
         contextConfig: { sentencesBefore: 1, sentencesAfter: 1 },
-        metadataFilter: opts.filter || {},
       }],
       summary: [{ prompt: 'concise-with-citations' }],
+    };
+
+    if (typeof opts.filter === 'string' && bodyV1.query && Array.isArray(bodyV1.query)) {
+      (bodyV1.query[0] as any).metadataFilter = opts.filter;
+    }
+
+    // v2 request body (Multiple Corpora Query)
+    const bodyV2: Record<string, unknown> = {
+      query: text,
+      corpora: [ { corpus_key: corpus } ],
+      search: {
+        limit: opts.maxResults ?? 6,
+        context_configuration: { sentences_before: 1, sentences_after: 1 },
+        ...(typeof opts.filter === 'string' ? { metadata_filter: opts.filter } : {}),
+      },
     };
 
     try {
@@ -89,8 +111,10 @@ export class VectaraClient {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': this.auth,
+          // v1 requires 'customer-id'; v2 does not.
+          ...(isV2 ? {} : { 'customer-id': VECTARA.CUSTOMER_ID }),
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(isV2 ? bodyV2 : bodyV1),
       });
 
       if (!response.ok) {
