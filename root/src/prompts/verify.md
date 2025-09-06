@@ -6,7 +6,7 @@ decide if the answer is fully supported by the provided facts.
 Return STRICT JSON only with this schema:
 {
   "verdict": "pass" | "warn" | "fail",
-  "confidence": 0.0-1.0,
+  "confidence": 0.00-1.00,
   "notes": ["short bullet..."],
   "revisedAnswer": "only if fail: corrected concise answer using ONLY provided facts"
 }
@@ -18,9 +18,12 @@ Criteria:
 - Formatting: no hidden CoT; ≤100 words unless necessary; citations only if facts used.
 - Safety: no invented numbers; no mention of cities not in facts when facts are required.
 
+Output constraints:
+- Round confidence to two decimals.
+- Keep notes concise (≤4 items).
+
 Edge Cases:
 - Missing facts for a key claim → verdict="warn"; add note to state uncertainty.
 - Contradictory facts vs draft → verdict="fail"; produce revisedAnswer grounded only in facts.
 - Empty/irrelevant facts → verdict="warn" unless draft contains invented specifics → "fail".
-
 
