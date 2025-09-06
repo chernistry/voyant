@@ -130,7 +130,7 @@ async function main() {
   console.log(chalk.white('  • I avoid prices/budgeting; I can still suggest options.'));
   console.log(chalk.gray('─'.repeat(60)));
   console.log(chalk.white.bold('Commands:'));
-  console.log(chalk.blue('  /why   Show receipts (sources, decisions, self‑check)'));
+  console.log(chalk.blue('  /why   Show how I got my answer (sources, reasoning, fact-checking)'));
   console.log(chalk.red('  exit   Quit'));
   console.log(chalk.gray('─'.repeat(60)));
   console.log();
