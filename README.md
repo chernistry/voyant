@@ -42,4 +42,4 @@ npm run dev
 
 ---
 
-Demo page: open `https://chernistry.github.io/voyant/` in a browser for a guided tour and sample transcripts.
+Demo page: [View Live Demo](https://chernistry.github.io/voyant/) for a guided tour and sample transcripts.
