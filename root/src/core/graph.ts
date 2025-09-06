@@ -29,7 +29,7 @@ async function detectConsent(
 
 export type NodeCtx = { msg: string; threadId: string };
 export type NodeOut =
-  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
+  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
 
 export async function runGraphTurn(
@@ -290,6 +290,8 @@ export async function runGraphTurn(
       return packingNode(routeCtx, mergedSlots, ctx);
     case 'attractions':
       return attractionsNode(routeCtx, mergedSlots, ctx);
+    case 'policy':
+      return policyNode(routeCtx, mergedSlots, ctx);
     case 'system':
       return await systemNode(routeCtx);
     case 'web_search':
@@ -406,6 +408,53 @@ async function attractionsNode(
     logger || { log: pinoLib({ level: 'silent' }) },
   );
   return { done: true, reply, citations };
+}
+
+async function policyNode(
+  ctx: NodeCtx,
+  slots?: Record<string, string>,
+  logger?: { log: pino.Logger }
+): Promise<NodeOut> {
+  const { PolicyAgent } = await import('./policy_agent.js');
+  const agent = new PolicyAgent();
+  
+  try {
+    const { answer, citations } = await agent.answer(
+      ctx.msg, 
+      undefined, 
+      ctx.threadId, 
+      logger?.log
+    );
+    
+    const formattedAnswer = formatPolicyAnswer(answer, citations);
+    const citationTitles = citations.map(c => c.title || c.url || 'Vectara');
+    
+    return { 
+      done: true, 
+      reply: formattedAnswer, 
+      citations: citationTitles 
+    };
+  } catch (error) {
+    if (logger?.log?.warn) {
+      logger.log.warn({ error: String(error) }, '❌ PolicyAgent failed, falling back');
+    }
+    
+    // Fallback to web search
+    return webSearchNode(ctx, slots, logger);
+  }
+}
+
+function formatPolicyAnswer(
+  answer: string, 
+  citations: Array<{ url?: string; title?: string }>
+): string {
+  if (!citations.length) return answer;
+  
+  const sources = citations
+    .map((c, i) => `${i + 1}. ${c.title ?? 'Policy Source'}${c.url ? ` — ${c.url}` : ''}`)
+    .join('\n');
+  
+  return `${answer}\n\nSources:\n${sources}`;
 }
 
 async function systemNode(ctx: NodeCtx): Promise<NodeOut> {
