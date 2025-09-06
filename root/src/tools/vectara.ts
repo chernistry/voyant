@@ -94,52 +94,57 @@ export class VectaraClient {
       (bodyV1.query[0] as any).metadataFilter = opts.filter;
     }
 
-    // v2 request body (Multiple Corpora Query)
+    // v2 request body (Multi-corpus format that works)
     const bodyV2: Record<string, unknown> = {
       query: text,
-      corpora: [ { corpus_key: corpus } ],
       search: {
+        corpora: [{ corpus_key: corpus }],
         limit: opts.maxResults ?? 6,
         context_configuration: { sentences_before: 1, sentences_after: 1 },
         ...(typeof opts.filter === 'string' ? { metadata_filter: opts.filter } : {}),
       },
     };
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': this.auth,
+      // v1 requires 'customer-id'; v2 does not.
+      ...(isV2 ? {} : { 'customer-id': VECTARA.CUSTOMER_ID }),
+    };
+    const body = JSON.stringify(isV2 ? bodyV2 : bodyV1);
+
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.auth,
-          // v1 requires 'customer-id'; v2 does not.
-          ...(isV2 ? {} : { 'customer-id': VECTARA.CUSTOMER_ID }),
-        },
-        body: JSON.stringify(isV2 ? bodyV2 : bodyV1),
+        headers,
+        body,
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log('🔍 Vectara Error Body:', errorText);
         throw new ExternalFetchError('http', `vectara_query_${response.status}`);
       }
 
       const respData = await response.json();
 
       const normalized: VectaraQueryResponseT = VectaraQueryResponse.parse({
-        summary: respData?.summary?.[0]?.text || respData?.summaryText,
-        hits: (respData?.results || respData?.hits || []).map((h: any) => ({
+        summary: respData?.summary?.[0]?.text || respData?.summaryText || '',
+        hits: (respData?.search_results || respData?.results || []).map((h: any) => ({
           snippet: h?.text || h?.snippet,
           score: Number(h?.score ?? 0),
-          documentId: h?.documentId || h?.docId,
-          url: h?.metadata?.url || h?.url,
-          title: h?.metadata?.title || h?.title,
-          page: Number(h?.metadata?.page || h?.page || 0) || undefined,
+          documentId: h?.document_id || h?.documentId || h?.docId,
+          url: h?.document_metadata?.url || h?.metadata?.url || h?.url,
+          title: h?.document_metadata?.title || h?.metadata?.title || h?.title || `Policy Document (${h?.document_id || h?.documentId || 'Unknown'})`,
+          page: Number(h?.document_metadata?.page || h?.metadata?.page || h?.page || 0) || undefined,
         })),
-        citations: (respData?.citations || respData?.results || []).map((c: any) => ({
+        citations: (respData?.search_results || respData?.citations || respData?.results || []).map((c: any) => ({
           text: c?.text || c?.snippet,
           score: Number(c?.score ?? 0),
-          documentId: c?.documentId || c?.docId,
-          url: c?.metadata?.url || c?.url,
-          title: c?.metadata?.title || c?.title,
-          page: Number(c?.metadata?.page || c?.page || 0) || undefined,
+          documentId: c?.document_id || c?.documentId || c?.docId,
+          url: c?.document_metadata?.url || c?.metadata?.url || c?.url,
+          title: c?.document_metadata?.title || c?.metadata?.title || c?.title || `Policy Document (${c?.document_id || c?.documentId || 'Unknown'})`,
+          page: Number(c?.document_metadata?.page || c?.metadata?.page || c?.page || 0) || undefined,
         })),
       });
 
