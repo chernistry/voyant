@@ -142,10 +142,18 @@ body {
     transition: var(--transition);
     color: var(--color-secondary);
     font-size: var(--fs-s);
+    min-height: 44px; /* Touch target size */
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
 }
 
 .theme-toggle:hover {
     background: var(--color-border);
+}
+
+.theme-toggle:active {
+    transform: scale(0.98);
 }
 
 /* Hero */
@@ -188,11 +196,17 @@ body {
     font-weight: 600;
     transition: var(--transition);
     box-shadow: var(--shadow);
+    min-height: 44px; /* Touch target size */
+    justify-content: center;
 }
 
 .cta-button:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-lg);
+}
+
+.cta-button:active {
+    transform: translateY(0);
 }
 
 /* Features */
@@ -640,37 +654,90 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .container {
+        padding: 0 var(--space-3);
+    }
+    
     .header-content {
         flex-direction: column;
         gap: var(--space-3);
+        padding: var(--space-3) 0;
     }
     
     .header-actions {
-        flex-direction: column;
-        gap: var(--space-2);
+        flex-direction: row;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+    
+    .hero {
+        padding: var(--space-6) 0;
+    }
+    
+    .hero-title {
+        font-size: clamp(2rem, 8vw, 3rem);
+        line-height: 1.1;
+    }
+    
+    .hero-subtitle {
+        font-size: clamp(1.25rem, 4vw, 1.5rem);
+    }
+    
+    .hero-description {
+        font-size: var(--fs-s);
+        margin-bottom: var(--space-4);
+    }
+    
+    .features {
+        padding: var(--space-6) 0;
     }
     
     .features-grid {
         grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+    
+    .feature-card {
+        padding: var(--space-4);
+    }
+    
+    .section-title {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+        margin-bottom: var(--space-4);
     }
     
     .details-section {
         grid-template-columns: 1fr;
-        gap: var(--space-6);
+        gap: var(--space-5);
+        padding: var(--space-5);
+    }
+    
+    .chat-messages {
+        gap: var(--space-3);
     }
     
     .message {
-        max-width: 95%;
+        max-width: 100%;
     }
     
     .message-avatar {
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
     }
     
     .message-content {
         padding: var(--space-2) var(--space-3);
+        font-size: var(--fs-s);
+    }
+    
+    .message-text {
+        font-size: var(--fs-s);
+    }
+    
+    .receipts-block {
+        padding: var(--space-3);
+        font-size: 0.8rem;
     }
     
     .receipts-item {
@@ -680,6 +747,89 @@ body {
     
     .receipts-label {
         min-width: auto;
+        font-size: 0.75rem;
+    }
+    
+    .code-block {
+        padding: var(--space-3);
+        font-size: 0.8rem;
+        overflow-x: auto;
+    }
+    
+    .demo-note {
+        padding: var(--space-3);
+        font-size: var(--fs-s);
+    }
+    
+    .demo-note__list {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+    
+    .roadmap-section {
+        padding: var(--space-5);
+        margin: var(--space-4) 0;
+    }
+    
+    .roadmap-intro {
+        padding: var(--space-3);
+        margin-bottom: var(--space-4);
+    }
+    
+    .roadmap-list {
+        padding: var(--space-3);
+    }
+    
+    .cta-button {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--fs-s);
+    }
+}
+
+/* Extra small screens (iPhone SE, etc.) */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 var(--space-2);
+    }
+    
+    .hero {
+        padding: var(--space-4) 0;
+    }
+    
+    .hero-title {
+        font-size: clamp(1.75rem, 10vw, 2.5rem);
+        margin-bottom: var(--space-2);
+    }
+    
+    .hero-subtitle {
+        font-size: clamp(1rem, 5vw, 1.25rem);
+        margin-bottom: var(--space-3);
+    }
+    
+    .features {
+        padding: var(--space-4) 0;
+    }
+    
+    .feature-card {
+        padding: var(--space-3);
+    }
+    
+    .message-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .message-content {
+        padding: var(--space-2);
+    }
+    
+    .details-section {
+        padding: var(--space-4);
+    }
+    
+    .roadmap-section {
+        padding: var(--space-4);
     }
 }
     </style>
