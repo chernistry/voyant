@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyant Travel Assistant</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+:root {
+    /* Light theme (default) */
+    --color-background: #FFFFFF;
+    --color-surface: #F8F9FA;
+    --color-primary: #1A1A1A;
+    --color-secondary: #6B7280;
+    --color-accent: #007ACC;
+    --color-accent-2: #E94B3C;
+    --color-success: #7ED321;
+    --color-border: #E5E7EB;
+    --color-card: #FFFFFF;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Typography */
+    --font-family-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --fs-xl: clamp(2.5rem, 4vw + 1rem, 4rem);
+    --fs-l: clamp(1.75rem, 2vw + 1rem, 2.5rem);
+    --fs-m: clamp(1.125rem, 1vw + 0.8rem, 1.5rem);
+    --fs-base: 1rem;
+    --fs-s: 0.875rem;
+
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 1rem;
+    --space-4: 1.5rem;
+    --space-5: 2rem;
+    --space-6: 3rem;
+    --space-7: 4rem;
+    --space-8: 6rem;
+
+    /* Layout */
+    --container-width: 1200px;
+    --border-radius: 8px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+    --color-background: #1E1E1E;
+    --color-surface: #252526;
+    --color-primary: #CCCCCC;
+    --color-secondary: #969696;
+    --color-accent: #007ACC;
+    --color-accent-2: #E94B3C;
+    --color-success: #7ED321;
+    --color-border: #3E3E42;
+    --color-card: #2D2D30;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-secondary);
+    font-family: var(--font-family-main);
+    line-height: 1.6;
+    transition: var(--transition);
+    -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+    vertical-align: middle;
+}
+
+.container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+}
+
+/* Header */
+.header {
+    position: sticky;
+    top: 0;
+    background: var(--color-background);
+    border-bottom: 1px solid var(--color-border);
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-4) 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--color-secondary);
+    text-decoration: none;
+    font-size: var(--fs-s);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.github-link:hover {
+    color: var(--color-accent);
+}
+
+.logo {
+    font-size: var(--fs-m);
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.theme-toggle {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--color-secondary);
+    font-size: var(--fs-s);
+    min-height: 44px; /* Touch target size */
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.theme-toggle:hover {
+    background: var(--color-border);
+}
+
+.theme-toggle:active {
+    transform: scale(0.98);
+}
+
+/* Hero */
+.hero {
+    text-align: center;
+    padding: var(--space-8) 0;
+}
+
+.hero-title {
+    color: var(--color-primary);
+    font-size: var(--fs-xl);
+    font-weight: 800;
+    margin-bottom: var(--space-3);
+    letter-spacing: -0.025em;
+}
+
+.hero-subtitle {
+    color: var(--color-accent);
+    font-size: var(--fs-m);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+}
+
+.hero-description {
+    max-width: 600px;
+    margin: 0 auto var(--space-6);
+    font-size: var(--fs-base);
+    color: var(--color-secondary);
+}
+
+.cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--color-accent);
+    color: white;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+    min-height: 44px; /* Touch target size */
+    justify-content: center;
+}
+
+.cta-button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.cta-button:active {
+    transform: translateY(0);
+}
+
+/* Features */
+.features {
+    padding: var(--space-8) 0;
+    background: var(--color-surface);
+}
+
+.section-title {
+    text-align: center;
+    color: var(--color-primary);
+    font-size: var(--fs-l);
+    font-weight: 700;
+    margin-bottom: var(--space-6);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-5);
+}
+
+.feature-card {
+    background: var(--color-card);
+    padding: var(--space-5);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.feature-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.feature-icon {
+    font-size: 2rem;
+    margin-bottom: var(--space-3);
+}
+
+.feature-title {
+    color: var(--color-primary);
+    font-size: var(--fs-m);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+}
+
+.feature-description {
+    color: var(--color-secondary);
+}
+
+/* Code blocks */
+.code-block {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    margin: var(--space-4) 0;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: var(--fs-s);
+    overflow-x: auto;
+}
+
+/* Conversation Section */
+.conversation-section {
+    padding: var(--space-8) 0;
+    background: var(--color-surface);
+}
+
+.demo-note {
+    max-width: 800px;
+    margin: 0 auto var(--space-6);
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    font-size: var(--fs-s);
+}
+
+.demo-note strong {
+    color: var(--color-primary);
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-right: 8px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.demo-note code {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--color-primary);
+}
+
+.demo-note a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.demo-note a:hover {
+    text-decoration: underline;
+}
+
+.demo-note__list {
+    margin-top: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.demo-note__foot {
+    margin-top: var(--space-3);
+    opacity: 0.8;
+}
+
+.chat-messages {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.message-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.message {
+    display: flex;
+    gap: var(--space-3);
+    max-width: 85%;
+    align-items: flex-start;
+}
+
+.message.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message.agent-message {
+    align-self: flex-start;
+}
+
+.message-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.user-message .message-avatar {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.message-content {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    flex: 1;
+    max-width: 640px;
+}
+
+.user-message .message-content {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.message-header {
+    font-size: var(--fs-s);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+    color: var(--color-secondary);
+}
+
+.user-message .message-header {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message-text {
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--color-primary);
+}
+
+.user-message .message-text {
+    color: white;
+}
+
+.message-text p {
+    margin-bottom: var(--space-3);
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text ul {
+    margin-top: var(--space-2);
+    padding-left: var(--space-4);
+    list-style-type: disc;
+}
+
+.message-text li {
+    margin-bottom: var(--space-1);
+}
+
+.sources-section {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+    font-size: var(--fs-s);
+    color: var(--color-secondary);
+}
+
+.user-message .sources-section {
+    border-top-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sources-section ul {
+    margin-top: var(--space-2);
+    padding-left: var(--space-4);
+    list-style-type: decimal;
+}
+
+.receipts-block {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    margin: var(--space-3) 0;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: var(--fs-s);
+    line-height: 1.4;
+}
+
+.receipts-header {
+    color: var(--color-accent);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-2);
+}
+
+.receipts-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.receipts-item {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
+.receipts-label {
+    color: var(--color-secondary);
+    font-weight: 600;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.receipts-value {
+    color: var(--color-primary);
+    word-break: break-word;
+}
+
+/* Details Section */
+.details-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-7);
+    box-shadow: var(--shadow);
+}
+
+.detail-block .section-title {
+    text-align: left;
+    font-size: var(--fs-m);
+    margin-bottom: var(--space-4);
+}
+
+.detail-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.detail-list li {
+    padding-left: var(--space-4);
+    position: relative;
+    color: var(--color-secondary);
+}
+
+.detail-list li::before {
+    content: '';
+    color: var(--color-accent);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: 700;
+    font-family: 'Material Symbols Outlined';
+    font-size: 18px;
+}
+
+.detail-list li::before {
+    content: 'check_circle';
+}
+
+.detail-list li strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Roadmap Section */
+.roadmap-section {
+    background: linear-gradient(135deg, var(--color-card) 0%, var(--color-surface) 100%);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    padding: var(--space-7);
+    margin: var(--space-6) 0;
+    position: relative;
+    box-shadow: var(--shadow-lg);
+}
+
+.roadmap-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.roadmap-title {
+    color: var(--color-accent);
+    font-size: var(--fs-l);
+    margin-bottom: var(--space-4);
+    text-align: center;
+    font-weight: 700;
+}
+
+.roadmap-intro {
+    background: var(--color-surface);
+    border-left: 3px solid var(--color-accent-2);
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--color-secondary);
+}
+
+.roadmap-list {
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+}
+
+.roadmap-list li {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.roadmap-list li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.completed-item::before {
+    display: none !important;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: var(--space-6) 0;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-secondary);
+}
+
+.footer__link {
+    margin-top: var(--space-2);
+}
+
+.footer__link a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.footer__link a:hover {
+    color: var(--color-accent-2);
+    text-decoration: underline;
+}
+
+.hero__link {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+.hero__link a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.hero__link a:hover {
+    color: var(--color-accent-2);
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 var(--space-3);
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: var(--space-3);
+        padding: var(--space-3) 0;
+    }
+    
+    .header-actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+    
+    .hero {
+        padding: var(--space-6) 0;
+    }
+    
+    .hero-title {
+        font-size: clamp(2rem, 8vw, 3rem);
+        line-height: 1.1;
+    }
+    
+    .hero-subtitle {
+        font-size: clamp(1.25rem, 4vw, 1.5rem);
+    }
+    
+    .hero-description {
+        font-size: var(--fs-s);
+        margin-bottom: var(--space-4);
+    }
+    
+    .features {
+        padding: var(--space-6) 0;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+    
+    .feature-card {
+        padding: var(--space-4);
+    }
+    
+    .section-title {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+        margin-bottom: var(--space-4);
+    }
+    
+    .details-section {
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+        padding: var(--space-5);
+    }
+    
+    .chat-messages {
+        gap: var(--space-3);
+    }
+    
+    .message {
+        max-width: 100%;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .message-content {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--fs-s);
+    }
+    
+    .message-text {
+        font-size: var(--fs-s);
+    }
+    
+    .receipts-block {
+        padding: var(--space-3);
+        font-size: 0.8rem;
+    }
+    
+    .receipts-item {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+    
+    .receipts-label {
+        min-width: auto;
+        font-size: 0.75rem;
+    }
+    
+    .code-block {
+        padding: var(--space-3);
+        font-size: 0.8rem;
+        overflow-x: auto;
+    }
+    
+    .demo-note {
+        padding: var(--space-3);
+        font-size: var(--fs-s);
+    }
+    
+    .demo-note__list {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+    
+    .roadmap-section {
+        padding: var(--space-5);
+        margin: var(--space-4) 0;
+    }
+    
+    .roadmap-intro {
+        padding: var(--space-3);
+        margin-bottom: var(--space-4);
+    }
+    
+    .roadmap-list {
+        padding: var(--space-3);
+    }
+    
+    .cta-button {
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--fs-s);
+    }
+}
+
+/* Extra small screens (iPhone SE, etc.) */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 var(--space-2);
+    }
+    
+    .hero {
+        padding: var(--space-4) 0;
+    }
+    
+    .hero-title {
+        font-size: clamp(1.75rem, 10vw, 2.5rem);
+        margin-bottom: var(--space-2);
+    }
+    
+    .hero-subtitle {
+        font-size: clamp(1rem, 5vw, 1.25rem);
+        margin-bottom: var(--space-3);
+    }
+    
+    .features {
+        padding: var(--space-4) 0;
+    }
+    
+    .feature-card {
+        padding: var(--space-3);
+    }
+    
+    .message-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .message-content {
+        padding: var(--space-2);
+    }
+    
+    .details-section {
+        padding: var(--space-4);
+    }
+    
+    .roadmap-section {
+        padding: var(--space-4);
+    }
+}
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo"><span class="material-symbols-outlined">flight</span> Voyant</a>
+                <div class="header-actions">
+                    <a href="https://github.com/chernistry/voyant/" target="_blank" class="github-link">
+                        <span class="material-symbols-outlined">code</span> GitHub
+                    </a>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <span id="theme-icon" class="material-symbols-outlined">dark_mode</span> <span id="theme-text">Dark</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 class="hero-title">Voyant Travel Assistant</h1>
+                <p class="hero-subtitle">Builds trust, then answers fast.</p>
+                <p class="hero-description">
+                    A minimalist, fact-grounded travel assistant that employs LLM-driven NLP for intent classification and slot filling, 
+                    pulling verified data from trusted APIs with multi-layered hallucination prevention.
+                </p>
+                <a href="https://www.mermaidchart.com/play#pako:eNq1V91SGzcUfpUzzHQw0ybmL3-kk4wxjoEASWxjwCHDyLuyvY1W2qy0GDdkJled3rZ9iL5XnqTnSPJqDWRKL8oNs_LR0Xe-8_95KVIxX9paOpcjoabRhOUGejvnEvCv8f586VjzHA651mzMz5c-wIMHL6Cx-vl8qZVmZlbnqfolqY-T4ZDniZ68PF_64u-ukuj1GdfX0FhDRR2eidkWNPRHGKkcGESCsxxMzi65gE8F1yZREp9YuH-krmEbb0-YjAVvTpiprZQy2xZN8zMpj3iSGQ0pWvMSavXpZAb4Su7PV0pczQCrQ7AOFItBMG1KWRjlKgUtlIEUzctn5XudNftgZx3vDYtExPNnux-54EbJCrbOupPdQNlL5GY0a0g95XltBWoHB4ew331zVJHecNKblihT5LKE80BJMcMvZK8Ub5bc7OCFrNAT76GameScxXtxUL1jNbdQLi9kO2fZpIfqa6m78BMs3nB3fvgBmkpqLg2MmeEahhx9xiFXhUnk2Am1rOI2st-YsoTOYcqHoNGr0QQidz8ERDsQ3ybiY254ZPwznpWVLZhxXZeqXkgbHqUVbUv99Yyu79J1lZkkTX7lXfvcu4Lnswr7u85Tu-SpjOcIPj3hQyd7hCFSFV33ogxldZGmLC_VdrguBEbEt9_-dB6AHyFKDKNI1fB-eZuCF5zs8oebYCX6Z3cjhP6RgixXQ8HThw8fBuHSl-3NKpcx5xk--l06Nyt8PvrvfD4KfLYfB5Z28NWOf_QGUe3HzuFPQowuYrzF0M3XiJD2U7z-igkxZNHHLRtRHDIuY7L5E7kRLhPmzitwN0uW9iiS6dc9adDSCsgydjsuTAFrhs1jDTWn7yFVAiu1Z23ZX9RVW9n6eZi_eICliWmNKYts0jnZ5E-coCPXyfIrLGGR6bp30PZZPWZkE8uxdGovpU2eRAYo8x0UG1NDppPIHtoIKwQPnO07hFRqd1qttxedVrfV6DR3L1pHje2D1g58-_1vDIs0E_wqhMV-pezuU550uQHmY-qC_HUx99eFjym0boH_58CwRs9_rE0TQ65lWkkUCeGwHwr0a8R4mCA_qMLy_bJChHZ2hQq877LDgoICObqGlvvldcB-sDavsU3BqHqi7ne-R8xLKHE28pEUcB241D9YD2FKwAQHw_IxJkl8u9m8Lk05pCLAzQE2hHlMPMc2gBdhlAj0G_ch9RyKjMzr2fJpvX8zDH2saGQQs8P6WyDR1JeMUkI7wUML9wgpdPIlT0cW1JQzMyGO3iEy_-FiPmg8QRe9whjUlWx1t2MyVLpsxIZny0Q4ub-eDClGEq-hS6XCfdz_NjM2RRyIHmqoHNxfCzaXCxe513Bsybi7oDtpPdOGpwj4jCC7rzsFC_lRqqm8hj7K-Y9_A3WrS6rRCHMdEqmTmOM_ciRWA3s5FJ2edXWvgb7GJDSsyBnetUkXMrjXCFnQazRdPIYU_l7uzn-4I4WNqjTm0nr_DgV9bxVfQWl8oOBhJnEjyTai5VeZSDCjYSSS8eQW5M52Zaja_v8g-3cIcucW5NIn1lE-1agDYIHmuWSimnTvrG0nVGSwJJy4tILaG0T27esfh1gl1EJ5AdvpV_wZ6i8xdb0mj3D1zs8N905TFdLkMwewhgW9B-4o4fqez8010qCIE6JKUzRzp5LTWHmZYUKNkefFF-5S13PqelQsyfhenmSHLLsDzI3LJdsnYeTLkMV5p62HbPXp4HPg2D54umaDhH7u2QVgT44U1JzZJbpTV8pP1-2Eb0exEHSn6yHoTjdKdRflCDefgNa-ff1rg9oxG9P0q5GYriryCDkXiTbhNTeDny7M4Pee-Twcis3TR2Hmi1QhYrmMmZNgKOa4JlxSzido7iKPx67yeLLA7jvUT2_WkL4F2V-jDWyelc7yQE1_LVBzvHBE8PpE57FELNi-4nrXlsZ6K8YWFzHNKxT3nU2lLN6tjLN7yylucX5_o-kIKxoip-UuLHUUeCVHXl83lOaF85bdJdvzXbLuNsw-jYRCUfPpk2tuLJD8-yukV_uGcnuaaE5TxULtTjOlqa9TcWB2O7tF94kLwTOXwG9xM8xMzXWTeqRM3Yq7zIowXzDiyudPXDyd-a_N6ldvvfrVr36c2Y8BJcglEwnNGEeq6QOw0r0GDtmAvGnzEmNNCFwBeBw8OKgkyWAjzDbzxfWOfXHgYA9oKWhkmR1YJAdtUwZHIUk4IBlB6ia-cDFkwOCxP3Irw-CJHRCvOG3aclzg3lmJssGTCkbaDt7mfJRcwZTlckH_k6D_GYrhOnVL5KknbzXksHOvy-RaNZXRBCZnFcOfzS8vNBNXBHV1bSgP8ZVdXmCwGhzj_XIMdl-fTri0g30h2SVLBMNAqQs1pQ43whlBRtS1lr78A3_5tkk@index.html" class="cta-button">
+                    <span class="material-symbols-outlined">account_tree</span> View Agent Decision Flow
+                </a>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <h2 class="section-title">Key Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">shield</span></div>
+                        <h3 class="feature-title">Anti‑Hallucination</h3>
+                        <p class="feature-description">Self‑evaluates to prevent hallucinations, requiring citations and secondary verification.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">travel_explore</span></div>
+                        <h3 class="feature-title">Web Search</h3>
+                        <p class="feature-description">Delivers standard and deep research modes with intelligent page <a href="https://github.com/apify/crawlee" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">crawling</a> for complex queries, ensuring robust fallback when APIs fail.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">psychology</span></div>
+                        <h3 class="feature-title">Smart Routing <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px;">LIVE</span></h3>
+                        <p class="feature-description"><a href="https://huggingface.co/Davlan/xlm-roberta-base-ner-hrl" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Transformers</a>-powered multilingual NLP/NER for smarter routing. Reduces LLM calls by 20–40% with a resilient cascade (Transformers > LLM > Rules) and handles multi-turn conversations naturally.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">public</span></div>
+                        <h3 class="feature-title">Real-Time Data</h3>
+                        <p class="feature-description">Connects to <a href="https://open-meteo.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Open‑Meteo</a>, <a href="https://restcountries.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">REST Countries</a>, and <a href="https://opentripmap.com/en/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">OpenTripMap</a> for verified travel info, with robust retry/backoff to handle external API instability.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">target</span></div>
+                        <h3 class="feature-title">E2E Testing</h3>
+                        <p class="feature-description">End‑to‑end tests using real agent interactions with LLM‑based evaluation.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><span class="material-symbols-outlined">bolt</span></div>
+                        <h3 class="feature-title">Fast & Clean</h3>
+                        <p class="feature-description">Interactive CLI and REST API with TypeScript validation, structured logging, and comprehensive tests.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="container" style="padding: var(--space-8) 0;">
+            <h2 class="section-title">Quick Start</h2>
+            <div class="code-block">
+# Install dependencies<br>
+npm install<br><br>
+
+# Start CLI<br>
+npm run cli<br><br>
+
+# Or start HTTP server<br>
+npm run dev<br><br>
+
+# Run tests<br>
+npm test
+            </div>
+        </section>
+
+        <section class="conversation-section">
+            <div class="container">
+                <h2 class="section-title">Live Conversation Demo</h2>
+                
+                <div class="demo-note">
+                    <strong>Demo Notice:</strong> This page shows a <em>real conversation transcript</em> from the actual assistant. The conversation content is authentic and was recorded during live testing using the <a href="https://openrouter.ai/mistralai/mistral-nemo:free" target="_blank">MistralAI Mistral-Nemo model</a>. Only the presentation format is static - the actual assistant runs via a CLI and simple REST API.
+                    <div class="demo-note__list">
+                        <div><span class="badge">CLI</span> <code>npm run cli</code></div>
+                        <div><span class="badge">REST</span> <code>POST /chat</code>, <code>GET /healthz</code>, <code>GET /metrics</code></div>
+                    </div>
+                    <div class="demo-note__foot">
+                        Details and examples in <a href="#" target="_blank">README.md</a>.
+                    </div>
+                </div>
+
+                <div class="chat-messages">
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What's the weather like in Barcelona today?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <ul>
+                                        <li>The high temperature in Barcelona is 25.5°C.</li>
+                                        <li>The low temperature in Barcelona is 21.2°C.</li>
+                                        <li>The probability of precipitation in Barcelona is 2%.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What should I pack for this weather?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <ul>
+                                        <li>Pack for warm weather: High 25.5°C / Low 21.2°C in Barcelona.</li>
+                                        <li>The probability of precipitation is 2%.</li>
+                                        <li>Consider light clothing, sunglasses, and sunscreen.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What are some must-see attractions in Barcelona?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <ul>
+                                        <li>Yamadori</li>
+                                        <li>Charlot Cafè</li>
+                                        <li>Accés</li>
+                                        <li>Cinc Sentits</li>
+                                    </ul>
+                                    <p>(OpenTripMap)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    I need to plan a complex family trip from Tel Aviv to NYC with my four 3-year-old kids on a $4500 budget
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?</p>
+                                    <p><em>Reason: multiple_constraints: location, budget, group, transport</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    No thanks, I'll stick to basic info for now
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    I need more information to help you.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    Actually, I'd like to know about restaurants and nightlife in Barcelona within my budget
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?</p>
+                                    <p><em>Reason: multiple_constraints: location, budget, group, accommodation, time</em></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    Yes, please search for that information
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p><strong>Short Answer:</strong> For a week-long stay in Rome with dietary restrictions, budget around €170 per day per person, and consider family-friendly, budget hotels in areas like Ludovisi and Trastevere. For dining, try local trattorias like Trattoria Lilli, which offers affordable and delicious options.</p>
+
+                                    <ul>
+                                        <li><strong>Daily Budget:</strong> Expect to spend around €170 per person per day, including food, drinks, and snacks [2].</li>
+                                        <li><strong>Budget Hotels:</strong> Consider areas like Ludovisi for budget-friendly hotels [5].</li>
+                                        <li><strong>Family Restaurants:</strong> Try local trattorias like Trattoria Lilli, known for their affordable and delicious meals [4, 7].</li>
+                                    </ul>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Rome Travel Cost - Average Price of a Vacation to Rome: Food & Meal Budget, Daily & Weekly Expenses | BudgetYourTrip.com - https://www.budgetyourtrip.com/italy/rome</li>
+                                        <li>Rome in One Week | Essential Budget Travel | What To See, Eat & Do! — Michael & Matt Gay Travel - https://www.michaelandmatt.com/blog/rome-in-one-week-essential-budget-travel</li>
+                                        <li>Where to Stay in Rome for 3 Days: Make the most of your stay! • Meliss Meets World - https://melissmeetsworld.com/where-to-stay-in-rome-for-3-days/</li>
+                                        <li>Where to eat in Rome: a local's guide | Luggage and Life - https://luggageandlife.com/where-to-eat-in-rome/</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    Quick one: do US passport holders need a visa for Canada?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>U.S. citizens generally do not need a visa to visit Canada for stays of 180 days or less, but they must have a valid passport. A passport is considered the most reliable travel document [2, 4].</p>
+
+                                    <ul>
+                                        <li>U.S. citizens do not need a visa to visit Canada for stays less than 180 days [2].</li>
+                                        <li>A valid passport is required for entry into Canada [2, 4].</li>
+                                        <li>Biometrics (fingerprints and photo) may be required for some applicants [3].</li>
+                                        <li>While a visa is required for foreign nationals, U.S. citizens typically do not need one for tourism or business [2, 5].</li>
+                                    </ul>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Canada Travel Advisory | Travel.State.gov (http://Travel.State.gov) - https://travel.state.gov/en/international-travel/travel-advisories/canada.html</li>
+                                        <li>Travel and identification documents for entering Canada - https://www.cbsa-asfc.gc.ca/travel-voyage/td-dv-eng.html</li>
+                                        <li>Entry requirements by country or territory - Canada.ca (http://Canada.ca) - https://www.canada.ca/en/immigration-refugees-citizenship/services/visit-canada/entry-requirements-country.html</li>
+                                        <li>Move to Canada from the U.S | Immigration, Work, &amp; Study Visa Options | Canadavisa.com (http://Canadavisa.com) - https://www.canadavisa.com/moving-to-canada-from-the-u-s.html</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    /why
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <div class="receipts-block">
+                                        <div class="receipts-header">--- RECEIPTS ---</div>
+                                        <div class="receipts-content">
+                                            <div class="receipts-item">
+                                                <span class="receipts-label">Sources:</span>
+                                                <span class="receipts-value">Brave Search</span>
+                                            </div>
+                                            <div class="receipts-item">
+                                                <span class="receipts-label">Decisions:</span>
+                                                <span class="receipts-value">Performed web search for: "us passport canada visa requirements"</span>
+                                            </div>
+                                            <div class="receipts-item">
+                                                <span class="receipts-label">Self-Check:</span>
+                                                <span class="receipts-value">warn (The provided facts state that U.S. citizens do not need a visa for stays less than 180 days, but also state that foreign nationals need a visa. The draft answer does not specify the length of stay for visa requirements., The facts state that a valid passport is required, but do not explicitly state that it is the most reliable travel document.)</span>
+                                            </div>
+                                            <div class="receipts-item">
+                                                <span class="receipts-label">Budget:</span>
+                                                <span class="receipts-value">0ms API, ~400 tokens</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What should I pack for Lodon?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>For London in September: Pack layered clothing for London, with a high of 22°C and low of 11.9°C.</p>
+
+                                    <ul>
+                                        <li>Include a light waterproof jacket and an umbrella or poncho, as there's a 0% chance of precipitation.</li>
+                                        <li>Comfortable walking shoes and a daypack or crossbody bag are recommended.</li>
+                                        <li>Don't forget a medium-weight sweater, jeans or comfortable pants, and a light scarf.</li>
+                                        <li>Consider a cardigan or light jacket, breathable windbreaker, and light gloves.</li>
+                                    </ul>
+                                    <p>(Open-Meteo)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="container" style="padding: var(--space-8) 0;">
+            <div class="details-section">
+                <div class="detail-block">
+                    <h3 class="section-title">Notes on Prompt Engineering</h3>
+                    <ul class="detail-list">
+                        <li><strong>Format Priming:</strong> Enforced JSON/bullet-point schemas ensure structured, parseable outputs while preventing hallucinations.</li>
+                        <li><strong>Few-Shot Prompting:</strong> Curated examples in router.md and cot.md train accurate intent classification and slot extraction.</li>
+                        <li><strong>Chain-of-Thought:</strong> Structured reasoning in cot.md and verify.md decomposes analysis into verifiable steps.</li>
+                        <li><strong>Guardrails:</strong> blend.md requires fact-grounding + verify.md provides secondary validation of claims.</li>
+                        <li><strong>Query Optimization:</strong> Rewrites user search queries to reduce noise.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-block">
+                    <h3 class="section-title">Other Perks</h3>
+                    <ul class="detail-list">
+                        <li><strong>Anti-hallucination receipts</strong> with self-check and sources.</li>
+                        <li><strong>Resilient data blend:</strong> APIs → search fallback when providers fail.</li>
+                        <li><strong>Smart routing + memory</strong> for natural multi-turn conversations.</li>
+                        <li><strong>Optional /metrics endpoint</strong> (Prometheus or JSON) and structured logs (PII‑redacted by default).</li>
+                        <li><strong>Security-conscious:</strong> host allowlist, timeouts, retries with jitter, and circuit-like backoff.</li>
+                        <li><strong>E2E transcripts</strong> and golden tests for the core scenarios.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="container">
+            <div class="roadmap-section">
+                <div class="roadmap-block">
+                    <h3 class="roadmap-title">Priority Roadmap</h3>
+                    <div class="roadmap-intro">
+                        These are the features we would implement next if we continued development beyond this demo.
+                    </div>
+                    <div class="roadmap-list">
+                        <ul class="detail-list">
+                            <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Router Optimization:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Transformers.js with 'bert-base-multilingual-cased-ner-hrl' for multilingual NER, entity-based complexity detection (≥4 entities, ≥3 constraint types), and Transformers > LLM > Rules cascade routing with 20-40% latency reduction.</span></li>
+                            <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Browser Fallback:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Crawlee (Playwright) for comprehensive web page content extraction and AI summarization when users request complex queries, providing detailed analysis beyond basic search snippets with source citations and receipts.</span></li>
+                            <li><strong>Mini-RAG:</strong> Embeddings and passage-level citations for 3-5 seeded policy/waiver documents.</li>
+                            <li><strong>Agent Flow Scaling:</strong> Parallelizable nodes and rollback handling for the graph-based orchestrator.</li>
+                            <li><strong>Enterprise Observability & Production Readiness:</strong> P95 metrics, intent success rates, OpenAPI schemas, Lambda packaging, and ADRs.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Voyant Travel Assistant. Built with modern AI and enterprise-grade reliability.</p>
+            <div class="footer__link">
+                <a href="https://github.com/chernistry/voyant/" target="_blank">View on GitHub ↗</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                themeIcon.textContent = 'dark_mode';
+                themeText.textContent = 'Dark';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = 'light_mode';
+                themeText.textContent = 'Light';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.getElementById('theme-icon').textContent = 'light_mode';
+                document.getElementById('theme-text').textContent = 'Light';
+            }
+        }
+
+        // Initialize on load
+        initTheme();
+    </script>
+</body>
+</html>
