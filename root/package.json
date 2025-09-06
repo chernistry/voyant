@@ -25,7 +25,7 @@
   "scripts": {
     "dev": "tsx src/api/server.ts",
     "cli": "tsx src/cli.ts",
-    "build": "tsc -p tsconfig.json && cp -r src/prompts dist/ && mkdir -p dist/public && cp public/index.html dist/public/ && cp public/llmchat.html dist/public/",
+    "build": "tsc -p tsconfig.json && cp -r src/prompts dist/ && mkdir -p dist/public && cp ../docs/index.html dist/public/ && cp ../docs/llmchat.html dist/public/",
     "start": "node dist/api/server.js",
     "prepublishOnly": "npm run build",
     "test": "jest --runInBand",
