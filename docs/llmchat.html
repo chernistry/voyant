@@ -714,6 +714,21 @@
             
             saveChatHistory();
             clearChatUI();
+            
+            // Add welcome message
+            const welcomeMessage = `✈️ **Welcome to Voyant Travel Assistant!**
+
+I can help you with:
+• 🌤️ Weather in any city
+• 🏖️ Attractions and places to visit  
+• 🎒 What to pack for your trip
+• 🗺️ Destination information and advice
+
+**NOTE:** Deep Research is disabled for this deployment due to free tier resource limitations. Basic travel queries work perfectly!
+
+Ask me anything about your travel plans!`;
+            
+            appendMessageToUI('assistant', welcomeMessage);
             userInput.focus();
         }
 
