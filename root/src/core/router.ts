@@ -95,6 +95,16 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
   
+  // Handle policy questions before explicit search
+  if (contentClassification?.content_type === 'policy') {
+    return RouterResult.parse({
+      intent: 'policy',
+      needExternal: true,
+      slots: ctxSlots,
+      confidence: 0.9
+    });
+  }
+  
   // Handle explicit search commands early
   if (contentClassification?.is_explicit_search) {
     // Extract and optimize search query

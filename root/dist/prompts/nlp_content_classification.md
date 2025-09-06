@@ -11,6 +11,8 @@ Examples:
 - "What concerts are happening in Boston?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": true, "confidence": 0.9}
 - "Weather in London" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.8}
 - "What to pack for Tokyo" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.8}
+- "What is United baggage allowance?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "Marriott cancellation policy" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 
 System questions (about the AI assistant):
 - "can you help", "what can you do", "who are you", "how do you work", "tell me about yourself"
@@ -24,6 +26,12 @@ Travel requests (destinations, recommendations, packing, weather):
 - Requests with origin/dates asking for destination ideas
 - NOT explicit search unless using search command words
 
+Policy questions (airline/hotel/visa policies):
+- "baggage allowance", "cancellation policy", "change fee", "refund policy"
+- "visa requirements", "entry requirements", "passport", "check-in policy"
+- Questions about specific company policies (United, Marriott, etc.)
+- NOT explicit search - these use internal policy documents
+
 Explicit search indicators:
 - "find", "search", "google", "look up", "search for", "get info", "information about"
 - Commands requesting information that requires web search
@@ -32,6 +40,7 @@ Explicit search indicators:
 Content types:
 - system: questions about the AI assistant itself or requests for help
 - travel: weather, packing, destinations, attractions, events, visa, travel info
+- policy: airline/hotel/visa policies, baggage, cancellation, refund rules
 - unrelated: programming, cooking, medicine, etc.
 - budget: cost, price, money, exchange rates
 - restaurant: food, dining recommendations

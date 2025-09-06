@@ -80,6 +80,15 @@ export async function routeIntent(input) {
             confidence: 0.9
         });
     }
+    // Handle policy questions before explicit search
+    if (contentClassification?.content_type === 'policy') {
+        return RouterResult.parse({
+            intent: 'policy',
+            needExternal: true,
+            slots: ctxSlots,
+            confidence: 0.9
+        });
+    }
     // Handle explicit search commands early
     if (contentClassification?.is_explicit_search) {
         // Extract and optimize search query

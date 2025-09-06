@@ -1,9 +1,34 @@
 import 'dotenv/config';
 const HF_INFERENCE_URL = 'https://router.huggingface.co/hf-inference/models';
 const DEFAULT_MODEL = 'Davlan/xlm-roberta-base-ner-hrl';
-const TIMEOUT_MS = 10000;
+const LOCAL_MODEL = 'Xenova/bert-base-multilingual-cased-ner-hrl';
+const TIMEOUT_MS = 5000;
 function getModelName() {
     return process.env.TRANSFORMERS_NER_MODEL || DEFAULT_MODEL;
+}
+function useLocalNER() {
+    return process.env.NER_USE_LOCAL === 'true';
+}
+async function nerLocal(text, log) {
+    try {
+        const { pipeline } = await import('@huggingface/transformers');
+        const classifier = await pipeline('token-classification', LOCAL_MODEL);
+        const result = await classifier(text);
+        if (log?.debug) {
+            log.debug({ model: LOCAL_MODEL, entities: result.length }, '🤖 Local NER: Success');
+        }
+        return result.map((item) => ({
+            entity_group: item.entity_group || item.entity,
+            score: item.score,
+            text: item.word
+        }));
+    }
+    catch (error) {
+        if (log?.debug) {
+            log.debug({ error: String(error) }, '❌ Local NER: Failed');
+        }
+        return [];
+    }
 }
 async function callHuggingFaceAPI(text, log) {
     const model = getModelName();
@@ -103,18 +128,9 @@ export async function extractEntities(text, log) {
     if (!text || typeof text !== 'string') {
         return [];
     }
-    // Use local transformers in test environment to avoid network calls
-    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-        try {
-            const { extractEntities: localExtractEntities } = await import('../core/transformers-nlp.js');
-            return await localExtractEntities(text, log);
-        }
-        catch (error) {
-            if (log?.debug) {
-                log.debug({ error: String(error) }, '❌ NER: Local fallback failed');
-            }
-            return [];
-        }
+    // Use local transformers when flag is set or in test environment
+    if (useLocalNER() || process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+        return await nerLocal(text, log);
     }
     // Truncate text to avoid API limits
     const truncated = text.slice(0, 512);

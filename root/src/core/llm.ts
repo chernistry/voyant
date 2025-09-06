@@ -7,7 +7,7 @@ type ResponseFormat = 'text' | 'json';
 
 // NLP service types
 export type ContentClassification = {
-  content_type: 'travel' | 'system' | 'unrelated' | 'budget' | 'restaurant' | 'flight' | 'gibberish' | 'emoji_only';
+  content_type: 'travel' | 'system' | 'policy' | 'unrelated' | 'budget' | 'restaurant' | 'flight' | 'gibberish' | 'emoji_only';
   is_explicit_search: boolean;
   has_mixed_languages: boolean;
   needs_web_search: boolean;
