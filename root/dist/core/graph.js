@@ -94,6 +94,30 @@ export async function runGraphTurn(message, threadId, ctx) {
             }
         }
     }
+    // Handle consent responses for web search after empty RAG results
+    const awaitingWebSearchConsent = threadSlots.awaiting_web_search_consent === 'true';
+    const pendingWebSearchQuery = threadSlots.pending_web_search_query;
+    if (awaitingWebSearchConsent && pendingWebSearchQuery) {
+        const consent = await detectConsent(message, ctx);
+        const isConsentResponse = consent !== 'unclear';
+        if (isConsentResponse) {
+            const isPositive = consent === 'yes';
+            // Clear consent state
+            updateThreadSlots(threadId, {
+                awaiting_web_search_consent: '',
+                pending_web_search_query: ''
+            }, []);
+            if (isPositive) {
+                return webSearchNode({ msg: pendingWebSearchQuery, threadId }, {}, ctx);
+            }
+            else {
+                return {
+                    done: true,
+                    reply: 'Understood. Feel free to ask me anything else!'
+                };
+            }
+        }
+    }
     const routeCtx = { msg: message, threadId };
     const routeResult = await routeIntentNode(routeCtx, ctx);
     if ('done' in routeResult) {
@@ -341,8 +365,26 @@ async function policyNode(ctx, slots, logger) {
     const agent = new PolicyAgent();
     try {
         const { answer, citations } = await agent.answer(ctx.msg, undefined, ctx.threadId, logger?.log);
+        // Check if no results found in internal knowledge base
+        if (!citations.length || citations.every(c => !c.snippet?.trim())) {
+            // Set consent state for web search
+            updateThreadSlots(ctx.threadId, {
+                awaiting_web_search_consent: 'true',
+                pending_web_search_query: ctx.msg
+            }, []);
+            const noDataMessage = `I couldn't find information about this in our internal knowledge base. 
+
+Would you like me to search the web for current information? This will take a bit longer but may provide more comprehensive results.
+
+Type 'yes' to proceed with web search, or ask me something else.`;
+            return {
+                done: true,
+                reply: noDataMessage,
+                citations: ['Internal Knowledge Base (No Results)']
+            };
+        }
         const formattedAnswer = formatPolicyAnswer(answer, citations);
-        const citationTitles = citations.map(c => c.title || c.url || 'Vectara');
+        const citationTitles = citations.map(c => c.title || c.url || 'Internal Knowledge Base');
         return {
             done: true,
             reply: formattedAnswer,
@@ -361,7 +403,7 @@ function formatPolicyAnswer(answer, citations) {
     if (!citations.length)
         return answer;
     const sources = citations
-        .map((c, i) => `${i + 1}. ${c.title ?? 'Policy Source'}${c.url ? ` — ${c.url}` : ''}`)
+        .map((c, i) => `${i + 1}. ${c.title ?? 'Internal Knowledge Base'}${c.url ? ` — ${c.url}` : ''}`)
         .join('\n');
     return `${answer}\n\nSources:\n${sources}`;
 }

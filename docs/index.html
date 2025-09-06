@@ -890,7 +890,7 @@ body {
 
                     <div class="feature-card">
                         <div class="feature-icon"><span class="material-symbols-outlined">psychology</span></div>
-                        <h3 class="feature-title">Smart Routing <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px;">LIVE</span></h3>
+                        <h3 class="feature-title">Smart Routing <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px; vertical-align: middle;">LIVE</span></h3>
                         <p class="feature-description"><a href="https://huggingface.co/Davlan/xlm-roberta-base-ner-hrl" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Transformers</a>-powered multilingual NLP/NER for smarter routing. Reduces LLM calls by 20–40% with a resilient cascade (Transformers > LLM > Rules) and handles multi-turn conversations naturally.</p>
                     </div>
 
@@ -899,18 +899,18 @@ body {
                         <h3 class="feature-title">Real-Time Data</h3>
                         <p class="feature-description">Connects to <a href="https://open-meteo.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Open‑Meteo</a>, <a href="https://restcountries.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">REST Countries</a>, and <a href="https://opentripmap.com/en/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">OpenTripMap</a> for verified travel info, with robust retry/backoff to handle external API instability.</p>
                     </div>
-
                     <div class="feature-card">
-                        <div class="feature-icon"><span class="material-symbols-outlined">target</span></div>
-                        <h3 class="feature-title">E2E Testing</h3>
-                        <p class="feature-description">End‑to‑end tests using real agent interactions with LLM‑based evaluation.</p>
+                        <div class="feature-icon"><span class="material-symbols-outlined">search</span></div>
+                        <h3 class="feature-title">Enterprise-grade RAG <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px; vertical-align: middle;">LIVE</span></h3>
+                        <p class="feature-description">Advanced retrieval-augmented generation with the ability to search and retrieve information from internal knowledge bases, policy documents, and enterprise data sources.</p>
                     </div>
-
                     <div class="feature-card">
                         <div class="feature-icon"><span class="material-symbols-outlined">bolt</span></div>
                         <h3 class="feature-title">Fast & Clean</h3>
-                        <p class="feature-description">Interactive CLI and REST API with TypeScript validation, structured logging, and comprehensive tests.</p>
+                        <p class="feature-description">Interactive CLI and REST API with TS validation, structured logging, and comprehensive E2E tests using real agent interactions with LLM-based eval.</p>
                     </div>
+
+
                 </div>
             </div>
         </section>
@@ -1287,6 +1287,81 @@ npm test
                             </div>
                         </div>
                     </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What is the standard cancellation window for Marriott hotels, and what penalty applies if you cancel after this window?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>The standard cancellation window for Marriott hotels depends on the rate you booked.</p>
+
+                                    <ul>
+                                        <li>Standard Rates: You can cancel up to 24 hours before arrival for no fee. Cancellations within 24 hours of arrival incur a one-night penalty. No-shows are charged the full stay.</li>
+                                        <li>Advance Purchase Rates: These are generally non-refundable with no changes or cancellations allowed, except for extraordinary circumstances.</li>
+                                        <li>Flexible Rates: You can cancel up to 6 PM on the day of arrival for a full refund.</li>
+                                        <li>Group Bookings (10+ rooms): A 72-hour cancellation notice is required, and attrition fees may apply.</li>
+                                    </ul>
+                                    <p>Marriott Bonvoy Elite members have enhanced flexibility, with Platinum and above having a 4 PM cancellation window on the day of arrival. Gold members have the standard 24-hour policy.</p>
+                                    <p>The documents do not specify a standard cancellation window for Hilton hotels.</p>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Policy Document (marriott-cancellation.txt)</li>
+                                        <li>Policy Document (hilton-checkin.txt)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What is the timeframe for Delta's risk-free cancellation policy and what are the key conditions?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>Delta Air Lines offers a 24-hour risk-free cancellation policy for bookings made at least 7 days before the flight. To be eligible for a full refund, you must cancel within 24 hours of booking. This applies to all fare types. Basic Economy fares are an exception and do not allow changes or cancellations, except for the 24-hour risk-free period.</p>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Policy Document (delta-cancellation.txt)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>
