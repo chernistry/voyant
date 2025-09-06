@@ -317,6 +317,19 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Fallback heuristic patterns (simplified)
   const m = input.message.toLowerCase();
   
+  // Policy questions - check before other patterns
+  if (/baggage|carry.?on|checked.?bag|luggage|personal.?item|refund|cancellation|change.?fee|rebooking|no.?show|check.?in|boarding|seat.?selection|fare.?rules|basic.?economy|visa|passport|entry.?requirements|esta|schengen/.test(m)) {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_policy');
+    }
+    return RouterResult.parse({ 
+      intent: 'policy', 
+      needExternal: true, 
+      slots: finalSlots, 
+      confidence: 0.85 
+    });
+  }
+  
   // Events/festivals should trigger web search (check first before attractions)
   if (/festival|event|concert|show|happening|going on|plan around/.test(m) && 
       !/attraction|museum|do in/.test(m)) {

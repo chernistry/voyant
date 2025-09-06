@@ -88,7 +88,7 @@ class Spinner {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
-      process.stdout.write('\r'.padEnd(20, ' ') + '\r'); // очищаем строку
+      process.stdout.write('\r'.padEnd(20, ' ') + '\r'); // clear the line
     }
   }
 }
@@ -160,7 +160,7 @@ async function main() {
     }
     const renderedReply = renderMarkdownToTerminal(outputText);
     await streamText(renderedReply);
-    console.log(); // новая строка после завершения
+    console.log(); // new line after completion
   }
   rl.close();
 }
