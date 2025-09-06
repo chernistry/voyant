@@ -867,7 +867,7 @@ body {
                     <span class="material-symbols-outlined">chat</span> Try Live
                 </a>
                 <div style="font-size: 0.8em; color: #666; margin-top: 8px; font-style: italic;">
-                    Note: Deep research disabled in web version due to free tier resource limitations. Use CLI for full feature set.
+                    Note: The web interface offers limited functionality (e.g., deep research is disabled) due to free tier resource constraints. <br>Please use the CLI for the complete feature set.
                 </div>
             </div>
         </section>
@@ -890,7 +890,7 @@ body {
 
                     <div class="feature-card">
                         <div class="feature-icon"><span class="material-symbols-outlined">psychology</span></div>
-                        <h3 class="feature-title">Smart Routing <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px;">LIVE</span></h3>
+                        <h3 class="feature-title">Smart Routing <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px; vertical-align: middle;">LIVE</span></h3>
                         <p class="feature-description"><a href="https://huggingface.co/Davlan/xlm-roberta-base-ner-hrl" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Transformers</a>-powered multilingual NLP/NER for smarter routing. Reduces LLM calls by 20–40% with a resilient cascade (Transformers > LLM > Rules) and handles multi-turn conversations naturally.</p>
                     </div>
 
@@ -899,18 +899,18 @@ body {
                         <h3 class="feature-title">Real-Time Data</h3>
                         <p class="feature-description">Connects to <a href="https://open-meteo.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Open‑Meteo</a>, <a href="https://restcountries.com/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">REST Countries</a>, and <a href="https://opentripmap.com/en/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">OpenTripMap</a> for verified travel info, with robust retry/backoff to handle external API instability.</p>
                     </div>
-
                     <div class="feature-card">
-                        <div class="feature-icon"><span class="material-symbols-outlined">target</span></div>
-                        <h3 class="feature-title">E2E Testing</h3>
-                        <p class="feature-description">End‑to‑end tests using real agent interactions with LLM‑based evaluation.</p>
+                        <div class="feature-icon"><span class="material-symbols-outlined">search</span></div>
+                        <h3 class="feature-title">Enterprise-grade RAG <span style="background: var(--color-success); color: white; padding: 2px 6px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; margin-left: 4px; vertical-align: middle;">LIVE</span></h3>
+                        <p class="feature-description">Advanced retrieval-augmented generation with <a href="https://docs.vectara.com/docs" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">Vectara</a> integration for searching and retrieving information from internal knowledge bases, policy documents, and enterprise data sources.</p>
                     </div>
-
                     <div class="feature-card">
                         <div class="feature-icon"><span class="material-symbols-outlined">bolt</span></div>
                         <h3 class="feature-title">Fast & Clean</h3>
-                        <p class="feature-description">Interactive CLI and REST API with TypeScript validation, structured logging, and comprehensive tests.</p>
+                        <p class="feature-description">Interactive CLI and REST API with TS validation, structured logging, and comprehensive E2E tests using real agent interactions with LLM-based eval.</p>
                     </div>
+
+
                 </div>
             </div>
         </section>
@@ -947,6 +947,8 @@ npm test
                     </div>
                     <div class="demo-note__foot">
                         Details and examples in <a href="#" target="_blank">README.md</a>.
+                        <br><br>
+                        <strong>⚡ Update:</strong> Functionality has been significantly expanded since this conversation was recorded. For the full experience with latest features including advanced RAG, policy search, and enhanced routing, please use the CLI version instead of just reading the transcript.
                     </div>
                 </div>
 
@@ -1080,7 +1082,7 @@ npm test
                                     <span class="message-author">User</span>
                                 </div>
                                 <div class="message-text">
-                                    No thanks, I'll stick to basic info for now
+                                    Yes
                                 </div>
                             </div>
                         </div>
@@ -1092,7 +1094,22 @@ npm test
                                     <span class="message-author">AI Assistant</span>
                                 </div>
                                 <div class="message-text">
-                                    I need more information to help you.
+                                    <p>Planning a complex family trip from Tel Aviv to NYC with four 3-year-olds on a $4500 budget will require careful planning, particularly focusing on flights and accommodation costs. The provided resources offer insights into potential costs and activities.</p>
+
+                                    <ul>
+                                        <li>Flights from NYC to Tel Aviv can be found for around $343 [1].</li>
+                                        <li>A 3-night Tel Aviv vacation package for two people starts from $1,243 [2].</li>
+                                        <li>The New York CityPASS costs $126 for adults and $104 for youths, providing access to six top attractions [6].</li>
+                                        <li>Tel Aviv offers family-friendly activities like beaches, walking tours, markets, bike rides, and various restaurants [4, 7].</li>
+                                    </ul>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Cheap Flights from New York City (NYC) to Tel Aviv - Yafo (TLV) - https://www.edreams.net/us/flights/new-york-city-tel-aviv-yafo/NYC/TLV/</li>
+                                        <li>Tel Aviv vacation packages from $1,243 | KAYAK - https://www.kayak.com/packages/israel/tel-aviv</li>
+                                        <li>Plan a New York trip for a family for less than $4,500 - MoneySense - https://www.moneysense.ca/spend/shopping/travel/new-york-trip-family-4500/</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -1330,6 +1347,38 @@ npm test
                         </div>
                     </div>
 
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    What is the timeframe for Delta's risk-free cancellation policy and what are the key conditions?
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>Delta Air Lines offers a 24-hour risk-free cancellation policy for bookings made at least 7 days before the flight. To be eligible for a full refund, you must cancel within 24 hours of booking. This applies to all fare types. Basic Economy fares are an exception and do not allow changes or cancellations, except for the 24-hour risk-free period.</p>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Policy Document (delta-cancellation.txt)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>
@@ -1371,10 +1420,8 @@ npm test
                     <div class="roadmap-intro" style="margin-top: var(--space-3);">
                         <strong>Deliberate tradeoffs (assignment scope):</strong>
                         <ul class="detail-list" style="margin-top: var(--space-2);">
-                            <li><strong>No policy RAG yet:</strong> kept the demo lean and license-safe; used API‑first + receipts and consensual web/deep search. Roadmap includes policy‑grade RAG with anchored citations.</li>
                             <li><strong>Linear graph today:</strong> prioritized debuggability and clear guardrails; interfaces are stateless and typed to drop in parallel branches and rollbacks.</li>
                             <li><strong>No circuit breaker/limiter:</strong> relied on timeouts, retries with jitter, and Retry‑After; plan to add per‑adapter breaker and rate limits.</li>
-                            <li><strong>Browser policy mode:</strong> deep research aggregates content now; next step adds Playwright evidence (screenshots/snippets) in receipts.</li>
                             <li><strong>Prod wrappers:</strong> avoided Docker/CI to keep local start ≤5 min; packaging and minimal CI are listed below.</li>
                         </ul>
                     </div>
@@ -1382,7 +1429,7 @@ npm test
                         <ul class="detail-list">
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Router Optimization:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Transformers.js with 'bert-base-multilingual-cased-ner-hrl' for multilingual NER, entity-based complexity detection (≥4 entities, ≥3 constraint types), and Transformers > LLM > Rules cascade routing with 20-40% latency reduction.</span></li>
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Browser Fallback:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Crawlee (Playwright) for comprehensive web page content extraction and AI summarization when users request complex queries, providing detailed analysis beyond basic search snippets with source citations and receipts.</span></li>
-                            <li><strong>Policy RAG & Anchored Citations:</strong> Seed 3–5 policy/waiver pages; paragraph‑level citations with URL + snippet in receipts.</li>
+                            <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Policy RAG & Anchored Citations:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Vectara RAG integration with PolicyAgent for airlines, hotels, and visas. Seeded 6 policy documents with paragraph-level citations including URL + snippet in receipts. Full cascade routing (Transformers > LLM > Rules) with robust error handling and Brave search fallbacks.</span></li>
                             <li><strong>Agent Flow Scaling:</strong> Parallel branches (weather/country/POI) with merge and simple rollbacks.</li>
                             <li><strong>Circuit Breaker & Rate Limiting:</strong> Per‑adapter breaker (cockatiel) and Bottleneck limits; error budgets in /metrics.</li>
                             <li><strong>Browser Policy Mode (Playwright):</strong> Navigate to policy pages; extract key clauses; attach screenshot/snippet to receipts.</li>

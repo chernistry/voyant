@@ -83,8 +83,25 @@ export async function extractEntities(text, log, opts) {
     if (!nerReady)
         nerReady = loadPipeline(log);
     const run = await nerReady;
+    // Suppress transformers.js console output if LOG_LEVEL is info or higher
+    const shouldSuppressConsole = process.env.LOG_LEVEL === 'info' || process.env.LOG_LEVEL === 'warn' || process.env.LOG_LEVEL === 'error';
+    const originalConsole = shouldSuppressConsole ? { ...console } : null;
+    if (shouldSuppressConsole) {
+        console.log = () => { };
+        console.warn = () => { };
+        console.info = () => { };
+    }
     const timeout = Math.max(200, Math.min(opts?.timeoutMs ?? 800, 3000));
-    return withTimeout(run(text), timeout).catch(() => []);
+    try {
+        const result = await withTimeout(run(text), timeout).catch(() => []);
+        return result;
+    }
+    finally {
+        // Restore console
+        if (shouldSuppressConsole && originalConsole) {
+            Object.assign(console, originalConsole);
+        }
+    }
 }
 async function withTimeout(p, ms) {
     let t;

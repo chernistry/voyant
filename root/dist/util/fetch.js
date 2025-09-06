@@ -1,6 +1,8 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import { observeExternal } from './metrics.js';
 import { createLogger } from './logging.js';
+import { scheduleWithLimit } from './limiter.js';
+import { withBreaker } from './circuit.js';
 const log = createLogger();
 // Use standard fetch in test environment for nock compatibility
 async function getFetch() {
@@ -19,6 +21,14 @@ const ALLOWLIST = new Set([
     'api.search.brave.com',
     'api.opentripmap.com',
     'api.vectara.io',
+    // Test hosts
+    'api.test-service-cb1.com',
+    'api.stats-test-cb2.com',
+    'api.rate-test-rl1.com',
+    'api.limiter-stats-rl2.com',
+    'api.integration-test-int1.com',
+    'api.retry-test-int2.com',
+    'api.no-retry-test-int3.com',
 ]);
 export class ExternalFetchError extends Error {
     kind;
@@ -69,99 +79,113 @@ export async function fetchJSON(url, opts = {}) {
         throw new ExternalFetchError('network', 'invalid_url');
     }
     let lastErr;
+    const host = new URL(url).hostname;
     for (let i = 0; i <= retries; i++) {
-        const ac = new AbortController();
-        const t = setTimeout(() => ac.abort(), timeoutMs);
-        const start = Date.now(); // Move start time here
+        const start = Date.now();
         try {
-            const fetchImpl = await getFetch();
-            log.debug({ target, attempt: i + 1, maxAttempts: retries + 1, url: url.length > 100 ? url.slice(0, 100) + '...' : url }, '🌐 API request attempt');
-            const res = await fetchImpl(url, {
-                signal: ac.signal,
-                headers: opts.headers
-            });
-            clearTimeout(t);
-            const duration = Date.now() - start;
-            log.debug({ target, status: res.status, statusText: res.statusText, duration }, '📡 API response received');
-            if (!res.ok) {
-                const retryAfter = res.headers.get('retry-after') || res.headers.get('x-retry-after');
-                const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : undefined;
-                log.debug({ target, status: res.status, statusText: res.statusText, retryAfterSeconds }, '❌ HTTP error response');
-                // Log response headers for debugging
-                const headers = {};
-                res.headers.forEach((value, key) => {
-                    headers[key] = value;
-                });
-                log.debug({ target, headers }, '📋 Response headers');
-                // Try to read error response body
+            // Wrap each attempt with rate limiter and circuit breaker
+            const exec = async () => {
+                const ac = new AbortController();
+                const t = setTimeout(() => ac.abort(), timeoutMs);
                 try {
-                    const errorText = await res.text();
-                    if (errorText) {
-                        log.debug({ target, errorText: errorText.slice(0, 500) }, '📄 Error response body');
+                    const fetchImpl = await getFetch();
+                    log.debug({ target, attempt: i + 1, maxAttempts: retries + 1, url: url.length > 100 ? url.slice(0, 100) + '...' : url }, '🌐 API request attempt');
+                    const res = await fetchImpl(url, {
+                        signal: ac.signal,
+                        headers: opts.headers
+                    });
+                    clearTimeout(t);
+                    log.debug({ target, status: res.status, statusText: res.statusText }, '📡 API response received');
+                    if (!res.ok) {
+                        const retryAfter = res.headers.get('retry-after') || res.headers.get('x-retry-after');
+                        const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : undefined;
+                        log.debug({ target, status: res.status, statusText: res.statusText, retryAfterSeconds }, '❌ HTTP error response');
+                        // Try to read error response body
+                        try {
+                            const errorText = await res.text();
+                            if (errorText) {
+                                log.debug({ target, errorText: errorText.slice(0, 500) }, '📄 Error response body');
+                            }
+                        }
+                        catch (bodyErr) {
+                            log.debug({ target, error: bodyErr }, '📄 Could not read error response body');
+                        }
+                        const error = new ExternalFetchError('http', `HTTP_${res.status}`, res.status);
+                        // For rate limits (429) or server errors (5xx), allow retry
+                        if ((res.status === 429 || res.status >= 500)) {
+                            throw error;
+                        }
+                        throw error;
+                    }
+                    let responseText;
+                    try {
+                        responseText = await res.text();
+                    }
+                    catch (textErr) {
+                        log.debug({ target, error: textErr }, '❌ Failed to read response text');
+                        throw new ExternalFetchError('network', 'response_read_error');
+                    }
+                    let out;
+                    try {
+                        out = JSON.parse(responseText);
+                    }
+                    catch (jsonErr) {
+                        log.debug({ target, responseText: responseText.slice(0, 500) }, '❌ JSON parse error');
+                        throw new ExternalFetchError('network', 'json_parse_error');
+                    }
+                    return { result: out, responseText };
+                }
+                catch (err) {
+                    clearTimeout(t);
+                    // Distinguish timeout vs other network errors
+                    if (err?.name === 'AbortError') {
+                        log.debug({ target, timeoutMs }, '⏰ Request timeout');
+                        throw new ExternalFetchError('timeout', 'timeout');
+                    }
+                    else if (err instanceof ExternalFetchError) {
+                        throw err;
+                    }
+                    else {
+                        log.debug({
+                            target,
+                            error: {
+                                name: err instanceof Error ? err.name : 'Unknown',
+                                message: err instanceof Error ? err.message : String(err),
+                                code: err?.code,
+                                errno: err?.errno,
+                                syscall: err?.syscall
+                            }
+                        }, '🌐 Network error');
+                        throw new ExternalFetchError('network', 'network_error');
                     }
                 }
-                catch (bodyErr) {
-                    log.debug({ target, error: bodyErr }, '📄 Could not read error response body');
-                }
-                observeExternal({ target, status: res.status >= 500 ? '5xx' : '4xx' }, duration);
-                const error = new ExternalFetchError('http', `HTTP_${res.status}`, res.status);
-                // For rate limits (429) or server errors (5xx), retry with backoff
-                if ((res.status === 429 || res.status >= 500) && i < retries) {
-                    log.debug({ target, status: res.status, attempt: i + 1, maxAttempts: retries + 1 }, '🔄 Retrying after error');
-                    lastErr = error;
-                    await calculateDelay(i, retryAfterSeconds);
-                    continue;
-                }
-                throw error;
-            }
-            let responseText;
-            try {
-                responseText = await res.text();
-            }
-            catch (textErr) {
-                log.debug({ target, error: textErr }, '❌ Failed to read response text');
-                throw new ExternalFetchError('network', 'response_read_error');
-            }
-            let out;
-            try {
-                out = JSON.parse(responseText);
-            }
-            catch (jsonErr) {
-                log.debug({ target, responseText: responseText.slice(0, 500) }, '❌ JSON parse error');
-                throw new ExternalFetchError('network', 'json_parse_error');
-            }
+            };
+            // Schedule via limiter and fire via breaker
+            const { result, responseText } = await scheduleWithLimit(host, () => withBreaker(host, exec));
+            const duration = Date.now() - start;
             log.debug({ target, responseSize: responseText.length, duration }, '✅ API request successful');
             observeExternal({ target, status: 'ok' }, duration);
-            return out;
+            return result;
         }
         catch (err) {
-            clearTimeout(t);
             const duration = Date.now() - start;
             lastErr = err;
-            // Distinguish timeout vs other network errors
-            if (err?.name === 'AbortError') {
-                log.debug({ target, timeoutMs }, '⏰ Request timeout');
-                observeExternal({ target, status: 'timeout' }, timeoutMs);
-                lastErr = new ExternalFetchError('timeout', 'timeout');
+            // Handle circuit breaker open error
+            if (err instanceof Error && (err.name === 'CircuitBreakerOpenError' || err.message.includes('Circuit breaker is open'))) {
+                log.debug({ target }, '🔌 Circuit breaker is open');
+                observeExternal({ target, status: 'breaker_open' }, duration);
+                throw new ExternalFetchError('network', 'circuit_open');
             }
-            else if (err instanceof ExternalFetchError) {
-                log.debug({ target, kind: err.kind, message: err.message }, '🔍 ExternalFetchError');
-                // HTTP errors already handled above, don't retry client errors (4xx except 429)
+            if (err instanceof ExternalFetchError) {
+                const statusLabel = err.kind === 'timeout' ? 'timeout' :
+                    err.kind === 'http' ? (err.status && err.status >= 500 ? '5xx' : '4xx') : 'network';
+                observeExternal({ target, status: statusLabel }, duration);
+                // HTTP errors: retry 429 and 5xx, but not 4xx
                 if (err.kind === 'http' && err.status && err.status >= 400 && err.status < 500 && err.status !== 429) {
                     throw err;
                 }
             }
             else {
-                log.debug({
-                    target,
-                    error: {
-                        name: err instanceof Error ? err.name : 'Unknown',
-                        message: err instanceof Error ? err.message : String(err),
-                        code: err?.code,
-                        errno: err?.errno,
-                        syscall: err?.syscall
-                    }
-                }, '🌐 Network error');
                 observeExternal({ target, status: 'network' }, duration);
                 lastErr = new ExternalFetchError('network', 'network_error');
             }

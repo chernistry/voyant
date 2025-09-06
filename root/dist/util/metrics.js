@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import process from 'node:process';
+import { getAllBreakerStats } from './circuit.js';
+import { getAllLimiterStats } from './limiter.js';
 /**
  * Minimal metrics utility with optional Prometheus exposure.
  * - Set METRICS=prom to enable Prometheus default registry at /metrics
@@ -20,6 +22,9 @@ let register;
 let counterMessages;
 let counterExtReq;
 let histExtLatency;
+let gaugeBreakerState;
+let counterBreakerEvents;
+let counterRateLimitThrottled;
 async function ensureProm() {
     if (!IS_PROM)
         return;
@@ -28,7 +33,7 @@ async function ensureProm() {
     initPromise = (async () => {
         const modName = 'prom-client';
         promClient = (await import(modName));
-        const { Registry, collectDefaultMetrics, Counter, Histogram, } = promClient;
+        const { Registry, collectDefaultMetrics, Counter, Histogram, Gauge, } = promClient;
         register = new Registry();
         collectDefaultMetrics({ register });
         counterMessages = new Counter({
@@ -47,6 +52,24 @@ async function ensureProm() {
             help: 'Latency of external adapter requests in milliseconds',
             labelNames: ['target', 'status'],
             buckets: [50, 100, 200, 400, 800, 2000, 4000],
+            registers: [register],
+        });
+        gaugeBreakerState = new Gauge({
+            name: 'circuit_breaker_state',
+            help: 'Circuit breaker state (0=closed, 0.5=halfOpen, 1=open)',
+            labelNames: ['target'],
+            registers: [register],
+        });
+        counterBreakerEvents = new Counter({
+            name: 'circuit_breaker_events_total',
+            help: 'Circuit breaker events',
+            labelNames: ['target', 'type'],
+            registers: [register],
+        });
+        counterRateLimitThrottled = new Counter({
+            name: 'rate_limit_throttled_total',
+            help: 'Rate limit throttled requests',
+            labelNames: ['target'],
             registers: [register],
         });
     })();
@@ -84,10 +107,30 @@ export function observeExternal(labels, durationMs) {
     prev.latency.max = Math.max(prev.latency.max, durationMs);
     externalAgg.set(target, prev);
 }
+export function updateBreakerMetrics() {
+    if (!gaugeBreakerState || !counterBreakerEvents)
+        return;
+    const breakerStats = getAllBreakerStats();
+    for (const [target, stats] of Object.entries(breakerStats)) {
+        const stateValue = stats.state === 'open' ? 1 : stats.state === 'halfOpen' ? 0.5 : 0;
+        gaugeBreakerState.set({ target }, stateValue);
+    }
+}
+export function incBreakerEvent(target, type) {
+    if (counterBreakerEvents) {
+        counterBreakerEvents.inc({ target, type });
+    }
+}
+export function incRateLimitThrottled(target) {
+    if (counterRateLimitThrottled) {
+        counterRateLimitThrottled.inc({ target });
+    }
+}
 export async function getPrometheusText() {
     if (!IS_PROM)
         return '';
     await ensureProm();
+    updateBreakerMetrics();
     return register ? register.metrics() : '';
 }
 export function snapshot() {
@@ -102,7 +145,12 @@ export function snapshot() {
             max_ms: agg.latency.max,
         },
     }));
-    return { messages_total: messages, external_requests: { targets } };
+    return {
+        messages_total: messages,
+        external_requests: { targets },
+        breaker: { byTarget: getAllBreakerStats() },
+        rate_limit: { byTarget: getAllLimiterStats() }
+    };
 }
 export function metricsMode() {
     if (IS_PROM)
