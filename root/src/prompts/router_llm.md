@@ -1,5 +1,10 @@
 Task: Classify intent and extract slots. Return strict JSON only.
 
+Hard requirements:
+- Output exactly one JSON object. No code fences, no prose, no trailing commas.
+- Use only the keys in the schema. Do not add comments or extra fields.
+- Round `confidence` to two decimals.
+
 Guidelines:
 - Use the output schema exactly. No extra keys. No comments.
 - Normalize entities:
@@ -39,7 +44,7 @@ Input: "What to wear to Hafia toda?"
 Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.8,"missingSlots":[]}
 
 Input: "Any festivals or events that week?"
-Output: {"intent":"web_search","needExternal":true,"slots":{},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"unknown","needExternal":true,"slots":{},"confidence":0.90,"missingSlots":[]}
 
 Input: "what to do there?"
 Output: {"intent":"attractions","needExternal":false,"slots":{},"confidence":0.4,"missingSlots":["city"]}

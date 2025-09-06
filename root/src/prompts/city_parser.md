@@ -1,5 +1,10 @@
 Task: Extract and normalize city name from text.
 
+Hard requirements:
+- Output exactly one JSON object. No code fences, no prose, no trailing commas.
+- Use only the keys in the schema. Do not add comments or extra fields.
+- Round `confidence` to two decimals.
+
 Rules:
 - Extract city from phrases: "Weather in Moscow", "Погода в Москве", "Things to do in Paris"
 - Handle prepositions: "in", "в", "to", "для", "from", "из"
@@ -13,9 +18,9 @@ Input: "{text}"
 Context: {context}
 
 Output JSON only:
-{"city": "clean_city_name", "normalized": "normalized_name", "confidence": 0.0-1.0}
+{"city": "clean_city_name", "normalized": "normalized_name", "confidence": 0.00-1.00}
 
 Few‑shot examples:
 - Input: "Weather in NYC" | Context: {} → {"city":"New York","normalized":"New York","confidence":0.95}
-- Input: "Что делать в Питере?" | Context: {} → {"city":"Saint Petersburg","normalized":"Saint Petersburg","confidence":0.9}
-- Input: "Go there in summer" | Context: {"city":"Tokyo"} → {"city":"Tokyo","normalized":"Tokyo","confidence":0.7}
+- Input: "Что делать в Питере?" | Context: {} → {"city":"Saint Petersburg","normalized":"Saint Petersburg","confidence":0.90}
+- Input: "Go there in summer" | Context: {"city":"Tokyo"} → {"city":"Tokyo","normalized":"Tokyo","confidence":0.70}

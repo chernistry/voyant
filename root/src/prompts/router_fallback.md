@@ -1,5 +1,11 @@
 Task: Return STRICT JSON only. Classify intent and extract CLEAN slot values.
 
+Hard requirements:
+- Output exactly one JSON object. No code fences, no prose, no trailing commas.
+- Use only the keys in the schema. Do not add comments or extra fields.
+- Round `confidence` to two decimals.
+- Do not use a `web_search` intent. If the user explicitly asks for searches (events, restaurants, flights, visas, prices), keep `intent` within the allowed set and set `needExternal`=true.
+
 {instructions}
 
 {context}
@@ -11,7 +17,7 @@ Output (strict JSON only):
   "intent": "destinations|packing|attractions|weather|unknown",
   "needExternal": true|false,
   "slots": {"city": "CLEAN_CITY_NAME", "month": "...", "dates": "...", "travelerProfile": "..."},
-  "confidence": 0..1,
+  "confidence": 0.00-1.00,
   "missingSlots": ["city"|"dates"|"month"|...]
 }
 
