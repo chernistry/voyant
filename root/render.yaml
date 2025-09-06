@@ -3,7 +3,7 @@ services:
     name: voyant-travel-assistant
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx playwright install chromium && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -12,3 +12,5 @@ services:
         value: 10000
       - key: LOG_LEVEL
         value: info
+      - key: DEEP_RESEARCH_ENABLED
+        value: false
