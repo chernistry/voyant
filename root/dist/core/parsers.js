@@ -53,8 +53,8 @@ export async function parseCity(text, context, logger) {
     }
     // Transformers.js NER
     try {
-        const { extractEntities } = await import('./transformers-nlp.js');
-        const spans = await extractEntities(text, logger, { timeoutMs: 800 });
+        const { extractEntities } = await import('../tools/ner.js');
+        const spans = await extractEntities(text, logger);
         // Prefer LOC spans; simple filters to avoid months and placeholders
         const locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
         const stop = new Set(['today', 'tomorrow', 'now', 'month', 'week']);
@@ -157,7 +157,7 @@ export async function parseDate(text, context, logger) {
     }
     // Transformers.js NER for DATE/TIME entities (preferred)
     try {
-        const { extractEntities } = await import('./transformers-nlp.js');
+        const { extractEntities } = await import('../tools/ner.js');
         const spans = await extractEntities(text, logger);
         const dateLike = (spans || []).filter(s => /DATE|TIME/i.test(String(s.entity_group || '')));
         const picked = dateLike[0];

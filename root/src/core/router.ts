@@ -2,7 +2,7 @@ import { RouterResult, RouterResultT } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
 import { z } from 'zod';
 import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
-import { extractEntities } from './transformers-nlp.js';
+import { extractEntities } from '../tools/ner.js';
 import { parseDate, parseOriginDestination } from './parsers.js';
 import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';

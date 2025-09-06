@@ -35,13 +35,14 @@ export async function callLLM(
   const inputTokens = countTokens(prompt);
   if (log) log.debug(`🤖 LLM Call - Input: ${inputTokens} tokens, Format: ${format}`);
   
-  // Model fallback chain
-  const models = [
+  // Model fallback chain from env or default
+  const defaultModels = [
     'mistralai/mistral-nemo',
     'tngtech/deepseek-r1t2-chimera:free',
     'meta-llama/llama-3.2-3b-instruct:free',
     'microsoft/phi-3-mini-128k-instruct:free'
   ];
+  const models = process.env.LLM_MODELS?.split(',').map(m => m.trim()) || defaultModels;
   
   // Try configured provider first
   const baseUrl = process.env.LLM_PROVIDER_BASEURL;
