@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import MarkdownIt from 'markdown-it';
 import { handleChat } from './core/blend.js';
 import { createLogger } from './util/logging.js';
+import { silenceNoisyLibLogs } from './util/noise_filter.js';
 const rl = readline.createInterface({ input, output });
 const log = createLogger();
 let threadId = 'local';
@@ -79,6 +80,8 @@ class Spinner {
 async function main() {
     // Log startup information for debugging
     log.debug({ logLevel: process.env.LOG_LEVEL || 'error' }, 'CLI starting with log level');
+    // Suppress noisy third‑party logs (e.g., Transformers dtype warnings) for non‑debug levels
+    silenceNoisyLibLogs(process.env.LOG_LEVEL);
     // Display banner and intro
     console.log(chalk.cyan(`
 ██╗   ██╗ ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗████████╗
