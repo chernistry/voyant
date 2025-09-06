@@ -1,5 +1,11 @@
 Classify the content type and characteristics of the user message.
 
+Hard requirements:
+- Output exactly one JSON object. No code fences, no prose, no trailing commas.
+- Use only the keys in the schema below. Do not add comments or extra fields.
+- Round `confidence` to two decimals.
+- `has_mixed_languages` is true when the message clearly contains multiple languages or scripts (e.g., Latin + Cyrillic); otherwise false.
+
 Examples:
 - "Hey can you help plan a trip?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "From NYC, end of June. Ideas?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
@@ -50,4 +56,11 @@ Content types:
 
 User message: {message}
 
-Return strict JSON with content_type, is_explicit_search, has_mixed_languages, needs_web_search, confidence:
+Return strict JSON only with this schema:
+{
+  "content_type": "system|travel|policy|unrelated|budget|restaurant|flight|gibberish|emoji_only",
+  "is_explicit_search": true|false,
+  "has_mixed_languages": true|false,
+  "needs_web_search": true|false,
+  "confidence": 0.00-1.00
+}

@@ -1,5 +1,11 @@
 **Task:** Return STRICT JSON only. Classify intent and extract CLEAN slots.
 
+Hard requirements:
+- Output exactly one JSON object. No code fences, no prose, no trailing commas.
+- Use only the keys in the schema. Do not add comments or extra fields.
+- Round `confidence` to two decimals.
+- Do not use a `web_search` intent. If the user explicitly asks for searches (events, restaurants, flights, visas, prices), keep `intent` within the allowed set and set `needExternal`=true.
+
 **Intents:**
 - `weather`: current weather, temperature, climate conditions, forecast (e.g., "What's the weather like in Paris?", "How hot is it in Tokyo?")
 - `destinations`: where to go, travel recommendations, trip planning (e.g., "Where should I go in June?", "Best places to visit")
@@ -60,4 +66,3 @@ Edge‑case examples:
 {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.3,"missingSlots":[]}
 {"intent":"attractions","needExternal":true,"slots":{"city":"Rome"},"confidence":0.73,"missingSlots":["city"]}
 ```
-
