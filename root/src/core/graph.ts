@@ -37,6 +37,56 @@ export async function runGraphTurn(
   threadId: string,
   ctx: { log: pino.Logger },
 ): Promise<NodeOut> {
+  // Check for unrelated topics early
+  const unrelatedTopics = /\b(cook|recipe|pasta|food|programming|code|software|computer|technology|politics|sports|music|movie|film)\b/i;
+  if (unrelatedTopics.test(message)) {
+    return {
+      done: true,
+      reply: 'I focus on travel planning. Is there something about weather, destinations, packing, or attractions I can help with?',
+    };
+  }
+
+  // Check for inappropriate content early
+  const inappropriate = /inappropriate|nsfw|offensive|sexual|adult/i.test(message);
+  if (inappropriate) {
+    return {
+      done: true,
+      reply: 'I focus on helping with travel planning. Is there something about weather, destinations, packing, or attractions I can help with?',
+    };
+  }
+
+  // Check for system identity questions
+  const systemQuestions = /are you (a )?real|are you (an? )?person|are you (an? )?(ai|bot|robot|human)/i.test(message);
+  if (systemQuestions) {
+    return {
+      done: true,
+      reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
+    };
+  }
+
+  // Check for mixed languages and add warning
+  let languageWarning = '';
+  try {
+    const contentClassification = await classifyContent(message, ctx.log);
+    if (contentClassification?.has_mixed_languages) {
+      languageWarning = 'I work better with English, but I\'ll try to help. ';
+    }
+  } catch {
+    // Fallback regex check
+    const hasCyrillic = /[а-яё]/i.test(message);
+    const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(message);
+    if (hasCyrillic || hasJapanese) {
+      languageWarning = 'I work better with English, but I\'ll try to help. ';
+    }
+  }
+
+  // Check for very short timeframes (day trips)
+  const shortTimeframe = /\b(\d+)\s*-?\s*(hour|hr|minute|min)\b/i.test(message) || /day\s*trip/i.test(message);
+  let dayTripNote = '';
+  if (shortTimeframe) {
+    dayTripNote = 'For such a short trip, you\'ll likely need minimal packing. ';
+  }
+
   // Use LLM for budget query detection with fallback
   let isBudgetQuery = false;
   let budgetDisclaimer = '';
@@ -153,6 +203,45 @@ export async function runGraphTurn(
         };
       }
     }
+  }
+
+  // Check for conflicting destinations in current message and thread context
+  const destinations = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+  const uniqueDestinations = [...new Set(destinations)].filter(d => 
+    d.length > 2 && !['The', 'And', 'But', 'For', 'Can', 'Will', 'What', 'How', 'To', 'In', 'About'].includes(d)
+  );
+  
+  // Also check thread context for previous cities
+  const currentThreadSlots = getThreadSlots(threadId);
+  const previousCities = [];
+  if (currentThreadSlots.city) previousCities.push(currentThreadSlots.city);
+  if (currentThreadSlots.originCity) previousCities.push(currentThreadSlots.originCity);
+  
+  // Combine current and previous cities
+  const allCities = [...new Set([...uniqueDestinations, ...previousCities])];
+  
+  if (allCities.length > 1 && uniqueDestinations.length > 0) {
+    return {
+      done: true,
+      reply: `I see you've mentioned multiple cities: ${allCities.join(', ')}. Which specific destination would you like information about?`,
+    };
+  }
+  
+  if (uniqueDestinations.length > 2) {
+    return {
+      done: true,
+      reply: `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. Which specific destination would you like information about?`,
+    };
+  }
+
+  // Check for conflicting seasons/times in the same message
+  const seasons = message.match(/\b(winter|summer|spring|fall|autumn)\b/gi) || [];
+  const uniqueSeasons = [...new Set(seasons.map(s => s.toLowerCase()))];
+  if (uniqueSeasons.length > 1) {
+    return {
+      done: true,
+      reply: `I notice you mentioned multiple seasons (${uniqueSeasons.join(', ')}). Which season are you planning to travel in?`,
+    };
   }
 
   const routeCtx: NodeCtx = { msg: message, threadId };
@@ -305,12 +394,26 @@ export async function runGraphTurn(
   }
   
   if (missing.length > 0) {
-    updateThreadSlots(threadId, slots as Record<string, string>, missing);
-    const q = await buildClarifyingQuestion(missing, slots as Record<string, string>, ctx.log);
-    if (ctx.log && typeof ctx.log.debug === 'function') {
-      ctx.log.debug({ missing, q }, 'clarifier');
+    // Special handling for short timeframes - don't ask for dates if it's clearly a day trip
+    if (missing.includes('dates') && shortTimeframe) {
+      // Remove dates from missing since it's a short trip
+      const filteredMissing = missing.filter(m => m !== 'dates');
+      if (filteredMissing.length === 0) {
+        // No other missing info, proceed without dates
+        updateThreadSlots(threadId, slots as Record<string, string>, []);
+      } else {
+        updateThreadSlots(threadId, slots as Record<string, string>, filteredMissing);
+        const q = await buildClarifyingQuestion(filteredMissing, slots as Record<string, string>, ctx.log);
+        return { done: true, reply: dayTripNote + q };
+      }
+    } else {
+      updateThreadSlots(threadId, slots as Record<string, string>, missing);
+      const q = await buildClarifyingQuestion(missing, slots as Record<string, string>, ctx.log);
+      if (ctx.log && typeof ctx.log.debug === 'function') {
+        ctx.log.debug({ missing, q }, 'clarifier');
+      }
+      return { done: true, reply: q };
     }
-    return { done: true, reply: q };
   }
   // Persist merged slots once complete
   updateThreadSlots(threadId, slots as Record<string, string>, []);
@@ -318,15 +421,18 @@ export async function runGraphTurn(
   // Use merged slots for downstream nodes
   const mergedSlots = slots as Record<string, string>;
 
+  // Combine all disclaimers
+  const allDisclaimers = languageWarning + dayTripNote + budgetDisclaimer;
+
   switch (intent) {
     case 'destinations':
-      return destinationsNode(routeCtx, mergedSlots, ctx, budgetDisclaimer);
+      return destinationsNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'weather':
-      return weatherNode(routeCtx, mergedSlots, ctx);
+      return weatherNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'packing':
-      return packingNode(routeCtx, mergedSlots, ctx);
+      return packingNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'attractions':
-      return attractionsNode(routeCtx, mergedSlots, ctx);
+      return attractionsNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'policy':
       return policyNode(routeCtx, mergedSlots, ctx);
     case 'system':
@@ -349,6 +455,7 @@ async function weatherNode(
   ctx: NodeCtx,
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
+  disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
   const threadSlots = getThreadSlots(ctx.threadId);
@@ -367,7 +474,8 @@ async function weatherNode(
     },
     logger || { log: pinoLib({ level: 'silent' }) },
   );
-  return { done: true, reply, citations };
+  const finalReply = disclaimer ? disclaimer + reply : reply;
+  return { done: true, reply: finalReply, citations };
 }
 
 async function destinationsNode(
@@ -401,6 +509,7 @@ async function packingNode(
   ctx: NodeCtx,
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
+  disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
   const threadSlots = getThreadSlots(ctx.threadId);
@@ -419,13 +528,15 @@ async function packingNode(
     },
     logger || { log: pinoLib({ level: 'silent' }) },
   );
-  return { done: true, reply, citations };
+  const finalReply = disclaimer ? disclaimer + reply : reply;
+  return { done: true, reply: finalReply, citations };
 }
 
 async function attractionsNode(
   ctx: NodeCtx,
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
+  disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
   const threadSlots = getThreadSlots(ctx.threadId);
@@ -444,7 +555,8 @@ async function attractionsNode(
     },
     logger || { log: pinoLib({ level: 'silent' }) },
   );
-  return { done: true, reply, citations };
+  const finalReply = disclaimer ? disclaimer + reply : reply;
+  return { done: true, reply: finalReply, citations };
 }
 
 async function policyNode(
