@@ -27,7 +27,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  // Use LLM for content classification first
+  // Use LLM for content classification first (kept for early overrides like system/policy/search)
   const contentClassification = await classifyContent(input.message, input.logger?.log);
   
   // COMPLEXITY CHECK FIRST - before any routing
@@ -77,9 +77,29 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     }
   }
 
-  // STEP 1: Try Transformers.js NLP first (should be primary method)
+  // STEP 1: Try Transformers.js NLP first (actual execution with short timeout)
   if (typeof input.logger?.log?.debug === 'function') {
     input.logger.log.debug({ step: 1, method: 'transformers' }, '🤖 ROUTING_CASCADE: Attempting Transformers.js NLP');
+  }
+
+  const transformersFast = await routeViaTransformersFirst(
+    input.message,
+    input.threadId,
+    input.logger,
+  );
+  if (transformersFast) {
+    // Short-circuit on high confidence from Transformers path
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({
+        step: 1,
+        method: 'transformers',
+        submethod: 'transformers_fast',
+        success: true,
+        intent: transformersFast.intent,
+        confidence: transformersFast.confidence,
+      }, '✅ ROUTING_CASCADE: Transformers path succeeded');
+    }
+    return RouterResult.parse(transformersFast);
   }
   
   // Prefer LLM router first for robust NLU and slot extraction
@@ -430,6 +450,75 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     input.logger.log.debug({ intent: result.intent, confidence: result.confidence }, 'router_final_result');
   }
   return result;
+}
+
+/**
+ * Transformers-first fast routing with a strict timeout. Returns undefined on timeout
+ * or low confidence so the cascade can proceed to LLM and rules.
+ */
+export async function routeViaTransformersFirst(
+  message: string,
+  threadId?: string,
+  logger?: { log: pino.Logger },
+): Promise<RouterResultT | undefined> {
+  const log = logger?.log;
+  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '800'));
+  let timedOut = false;
+
+  const timer = new Promise<undefined>((resolve) => {
+    setTimeout(() => {
+      timedOut = true;
+      resolve(undefined);
+    }, timeoutMs);
+  });
+
+  const started = Date.now();
+  const result = await Promise.race([
+    tryRouteViaTransformers(message, threadId, log),
+    timer,
+  ]);
+  const durationMs = Date.now() - started;
+
+  if (!result) {
+    if (log?.debug) {
+      log.debug({
+        step: 1,
+        method: 'transformers',
+        success: false,
+        reason: timedOut ? 'timeout' : 'low_confidence_or_no_match',
+        durationMs,
+      }, '⚠️ ROUTING_CASCADE: Transformers path skipped');
+    }
+    return undefined;
+  }
+
+  if (result.confidence >= 0.7) {
+    // Success path already logs at caller; include submethod for completeness
+    if (log?.debug) {
+      log.debug({
+        step: 1,
+        method: 'transformers',
+        submethod: 'transformers_fast',
+        success: true,
+        durationMs,
+        intent: result.intent,
+        confidence: result.confidence,
+      }, '✅ ROUTING_CASCADE: Transformers path accepted');
+    }
+    return RouterResult.parse(result);
+  }
+
+  if (log?.debug) {
+    log.debug({
+      step: 1,
+      method: 'transformers',
+      success: false,
+      reason: 'below_threshold',
+      confidence: result.confidence,
+      durationMs,
+    }, '⚠️ ROUTING_CASCADE: Transformers result below threshold');
+  }
+  return undefined;
 }
 
 async function tryRouteViaLLM(message: string, logger?: { log: pino.Logger }): Promise<RouterResultT | undefined> {

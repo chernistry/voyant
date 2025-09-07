@@ -669,6 +669,10 @@ body {
         justify-content: center;
         gap: var(--space-3);
     }
+
+    .ascii-art-mobile {
+        display: none;
+    }
     
     .hero {
         padding: var(--space-6) 0;
@@ -873,22 +877,22 @@ body {
                 </p>
 
                 <!-- Terminal CLI Simulation -->
-                <div style="background: #1e1e1e; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 800px; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; line-height: 1.4; color: #cccccc; text-align: left; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
-                    <div style="color: #00d4aa; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                <div class="terminal-block" style="background: #1e1e1e; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 800px; font-family: 'Monaco', 'Menlo', monospace; font-size: 12px; line-height: 1.4; color: #cccccc; text-align: left; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+                    <div style="color: #00d4aa; font-weight: bold; text-align: center; margin-bottom: 10px;" class="ascii-art-mobile">
 <pre style="font-family: monospace; white-space: pre; margin: 0; line-height: 1;">
- ██╗   ██╗ ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗████████╗
- ██║   ██║██╔═══██╗╚██╗ ██╔╝██╔══██╗████╗  ██║╚══██╔══╝
- ██║   ██║██║   ██║ ╚████╔╝ ███████║██╔██╗ ██║   ██║   
- ╚██╗ ██╔╝██║   ██║  ╚██╔╝  ██╔══██║██║╚██╗██║   ██║   
-  ╚████╔╝ ╚██████╔╝   ██║   ██║  ██║██║ ╚████║   ██║   
-   ╚═══╝   ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   
+    ██╗   ██╗ ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗████████╗
+    ██║   ██║██╔═══██╗╚██╗ ██╔╝██╔══██╗████╗  ██║╚══██╔══╝
+    ██║   ██║██║   ██║ ╚████╔╝ ███████║██╔██╗ ██║   ██║   
+    ╚██╗ ██╔╝██║   ██║  ╚██╔╝  ██╔══██║██║╚██╗██║   ██║   
+     ╚████╔╝ ╚██████╔╝   ██║   ██║  ██║██║ ╚████║   ██║   
+      ╚═══╝   ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   
 </pre>
                     </div>
                     <div style="color: #ffd700; font-weight: bold; text-align: center; margin-bottom: 5px;">✈️  VOYANT Travel Agent CLI</div>
-                    <div style="color: #666; text-align: center; margin-bottom: 5px;">────────────────────────────────────────────────────────────</div>
+                    <div style="color: #666; text-align: center; margin-bottom: 5px;">───────────────────────────────────────</div>
                     <div style="color: #cccccc; text-align: center; margin-bottom: 3px;">Ask travel questions. I answer in concise English.</div>
                     <div style="color: #999; text-align: center; margin-bottom: 5px;">You can ask in any language; I will reply in English.</div>
-                    <div style="color: #666; text-align: center; margin-bottom: 5px;">────────────────────────────────────────────────────────────</div>
+                    <div style="color: #666; text-align: center; margin-bottom: 5px;">───────────────────────────────────────</div>
                     <div style="color: #cccccc; font-weight: bold; margin-bottom: 3px;">What I can help with:</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Weather — "Weather in London this week?"</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Packing — "What to pack for Tokyo in March?"</div>
@@ -897,16 +901,16 @@ body {
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Policies (RAG) — "United baggage allowance", "Marriott cancellation"</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">    and visas — "Do I need a visa for Japan with a US passport?"</div>
                     <div style="color: #7ed321; margin-bottom: 5px;">  • Web search on consent — events, flights, live info</div>
-                    <div style="color: #666; text-align: center; margin-bottom: 5px;">────────────────────────────────────────────────────────────</div>
+                    <div style="color: #666; text-align: center; margin-bottom: 5px;">───────────────────────────────────────</div>
                     <div style="color: #cccccc; font-weight: bold; margin-bottom: 3px;">How to ask:</div>
                     <div style="color: #cccccc; margin-bottom: 2px;">  • Include city and month/dates when possible.</div>
                     <div style="color: #cccccc; margin-bottom: 2px;">  • I may ask to use web search or deep research — reply "yes" to proceed.</div>
                     <div style="color: #cccccc; margin-bottom: 5px;">  • I avoid prices/budgeting; I can still suggest options.</div>
-                    <div style="color: #666; text-align: center; margin-bottom: 5px;">────────────────────────────────────────────────────────────</div>
+                    <div style="color: #666; text-align: center; margin-bottom: 5px;">───────────────────────────────────────</div>
                     <div style="color: #cccccc; font-weight: bold; margin-bottom: 3px;">Commands:</div>
                     <div style="color: #007acc; margin-bottom: 2px;">  /why   Show how I got my answer (sources, reasoning, fact-checking)</div>
                     <div style="color: #e94b3c; margin-bottom: 5px;">  exit   Quit</div>
-                    <div style="color: #666; text-align: center; margin-bottom: 10px;">────────────────────────────────────────────────────────────</div>
+                    <div style="color: #666; text-align: center; margin-bottom: 10px;">───────────────────────────────────────</div>
                 </div>
 
                 <a href="https://www.mermaidchart.com/play#pako:eNq1WFtzGjkW_isqV00Z18bgWyaJs5kUxgy-EgIY24ynKNEtQOtuqaelNmbDVM3T1Lzu7o_Y_5VfsudI6lZj493Mw_JEd5_75TtH-rIRyJBtHG7ciUkk58GMppr0j-8EgV_9p7uNK8VScsmUolN2t_Ez2d7-gdR3vtxtNONEL2osln_jtSkfj1nK1ezj3cavjncHSZe3TC1JfRcEdVkSLQ5JXd2TiUwJJUHEaEp0Sh9YRH7JmNJcClCxwt-WS3IE3DMqwog1ZlRXtgqaI2NN4wsKDxhPtCIxePORVGrz2YKAltS93yrsanizumjWhaQhiajSBS2ZpDImKpKaxOBeuij0dXeNwu4e8I0zHoW52t49i5iWomRbd8_S7gPtA8RmsqgLNWdpZYtULi4uyVnvU7tEvW-pD0ygdJaKwpxtKaIFPEH0CvJGEZtjYEgyNXMZquhZymh4GnrRx0ZyE-jSTLRSmsz6IL4SW4ZXZJXD8nz3HWlIoZjQZEo1U2TMIGeMpDLTXEwtUdMIbkH063PK8T2ZszFRkNVgRgLL7wui5QPfwsCHTLNAOzUuKluHZMFUTchaJkx5FF60TOiXC2Q_QXaZaB7zv7OeUfc5Y-miFP0Tm6kTzFTCUjA-vmZjS9uGEimT7jlSCrQqi2OaFmK7TGURVMTX3_9pM0D-QgKuKVaqIj9tHmHxEku7-fNTYwXk52Tfl35bkiSV44jF1WrVExe5bB2UYxkyloDSF8N5UIrn6z8fz9c-nq3vfZSOQWvXKX0SqNb3NuFvfI2u2vgsQk-1YUBab4H9RxpFYxrcH5qKYiRhIkSff8E0kgdO7fuSuQdFlE6xkvHrqdDgacnIona7tkwJYIbpY0UqVl4VkcBQnRpfzlZlVbYO_zpOf9gGaKJKQctCNPE9-uTeWEIbXEvLHgHCAt2zesD3RS2k6BNNATqVo1I65YEm2PnWFFNTY6p4YF6aCssi5mN2Zi1MoCY6MuLBAmsAlQO8uX8jvUjYh8R89Qh3lvjKOEuwV7ih_rBpKTdJRTAWNh_BCkGjDzrNmM-y48ZInyHMHzebnVG32WvWu42TUbNdP7poHpOvf_wbzImTiD36kjwrQf4Z6u0xTair5xHWyiivlZGrZ4jsSu7fEwrzIf9YmXONZUWVFEBSMtIPh3Ow8ZJDbkCEyfXHUhKUjWkpNrYzjVEkg_wsSdN-Ofe2X-zm-N6IKCI3yP7s5lMO35iviatib9eFhZ2LPd8iaFjEiKbpFBo0fD7ozgtXLhGAmL6AYZTX43sYQcBIJjyCbDFXzu9JlqB7fQPdpvKetoCrUwURhM40tRZBoHEmaikjZQkvjbltCKGlL-LUNkbNGdUzjNFnsMw92H7zEq8hRT9C_asSUljuEB0VFglg2BqI8m--XU4CIYYgLkkPYco-fDs31aY9rRF9kFB68SdsMJ2zJB00wfwv8dr2rE9NyXbrrafMMBVHtuyX5MpEcv0kstRqoTSLwdtb9Nc-rSXMxL2Qc7EkA6BzD__Lo2fjXU4mAFKEC8VDRixQAIwZZo-WfVMn_ToUCnSwpllKgdd0rG__ft23UL_esMXs-_-lxs8_rOl_LUsbReG904Md098BLQiGXGTML1N2lzoCa9ljArmBXp9EfDp7ZnL3qLQNHv3_THZ60OTuM5OLnJhEuT7F0cUcQpc79rPx7RoRCvDk2vYkqXwCy77-9o9LgBi5gk3ErChb7h3IL2zqOUnOwp21j_tWT0NmQqcLa2AFpkGf2FecqW9Ul0vEDRdWWxnH4OZxCRAAtqmmkZxCnFc1rBPXt-L6iLTofD_lySVN1hjzhLmIthuq0K8wqmHMVKa4G1fdtmebfESxqfN3Jg21B9iyaEp9c3SMJR1MScKD-4ZMYSGv5DgPKxjgjVC4XGGnoaD1A79jh0cHXRpYJY2Io35TZzD0UTDIUyyG9oPFwe1d6zaujt1qO_vQBD2z1C4IfaA8olBfvgE6-74BOgf2uEeccmKXYX_qcMRYxR3cOHv5skxmHEKEaxt6BnmMItyPPOOBNQb3TIwD1Q4y8xORmfMii8dmxvVklgblwLx27O7R7qGdN7gti4V3vqYETxIGK4D3703Jv7flw9XzZR5HoGm3c0DSiIUwdo-oYptEcw158uu9E2ri8O7pmuPBfg1ulD6WsAMww2USvnst7-zBrVSy1_54ZUvWrpI1L9YhuKvMKyPhZtfgGn7um8P2qZhIUrGdWqi7sdV3s2dO0-bY48N4s-fDeLNfiBsVx6X8tLH79bd_7ePqS003KfDdZZNEXGmvzZ53bw7-e0peOF85czABN6_9-SqQWRSKTQB7DuiZwpH8AccUB3dXW__KDksXLGLuFnB_fDr2BsbIwS7eduSDxHruQzPY9aG5WnmF5g0wnFcCbIF1Laz1zDSvNbG2AqitUogH1qeCFnhLR8fTzZjQ_K4ETyIwhMFyvEjxFyiIlUWMnLye3yZW3jfNvU0rv7ep2ducAR6_IonL1gBT8-Syhr18XePEfsJxNOeK4Ra9sm7EiVS4x2KDUdP3z8J9bUvw1s6cTgo8umIXoFogdc2Q22HgIKZQf23r6dY9HZSf-nvlp0H54dY8DLFBHmjEcaduy4YrwNLCNbSWDTGbZpRArUURwCQLfQaHpSYZ7vtdPr8kWnM3M7RmDxEY60liFnTBiDItA6u_QDsIn5DYnnA8o--AoYPFoYXF4RtzIHpkeKslphlMsFKVDUt4OEQ87KRswh_JnKZiRb6HuCFCXFs-J3nrgrfje9im13ZypdzK4AIVi5Lj73Lmlf3Hzm1VPqIXL0HLCcugWHHyuYsoYu7G5jMmzOTJRDHiapGc41I2gbVWBH43NMN6mU-4kCskNscilqYyNT18J8CYtoTjo_m3XV4VuDI3YiEZLwgTD4ek8-nitHE7gm8fIFUgZ9Bs9Ovd-qjeOR2dN28JbpQVxRgJZaBq-ddes3_VqcbhVtXp6NpbAYDTe-W2jxyfcLC6E39-D8EDE1hScYd_VDzLo4P7O51Oze1eQMH7KDLUr0CSotVqtVB6OslVoW-pSaIiAuaRm6SvYCSZGYUo8Px2D47Q5p7l5eGXazped5uF0TQHEIinSeLaywZzQWEWYns9lIcAmNwVRK7kKANg1TkUksTWtkkzMHHYv_KLzPJJ1MGR8hsgxmfj1_8AnqSaBg" class="cta-button">
