@@ -19,7 +19,7 @@ export type NerSpan = { entity_group: string; score: number; text: string };
 const DEFAULT_MODEL = 'Davlan/xlm-roberta-base-ner-hrl';
 const LOCAL_MODEL = 'Xenova/bert-base-multilingual-cased-ner-hrl';
 const HF_INFERENCE_URL = 'https://router.huggingface.co/hf-inference/models';
-const DEFAULT_TIMEOUT_MS = 800;
+const DEFAULT_TIMEOUT_MS = 2000;
 const REMOTE_TIMEOUT_MS = 5000;
 const MAX_TEXT_LENGTH = 512;
 

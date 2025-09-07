@@ -108,7 +108,7 @@ export async function extractEntities(text: string, log?: pino.Logger, opts?: { 
     console.info = () => {};
   }
 
-  const timeout = Math.max(200, Math.min(opts?.timeoutMs ?? 800, 3000));
+  const timeout = Math.max(200, Math.min(opts?.timeoutMs ?? 2000, 5000));
 
   try {
     const result = await withTimeout(run(text), timeout).catch(() => []);

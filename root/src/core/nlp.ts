@@ -1,7 +1,7 @@
 import type pino from 'pino';
 import { z } from 'zod';
 import { getPrompt } from './prompts.js';
-import { callLLM } from './llm.js';
+import { callLLM, classifyContent } from './llm.js';
 import { parseCity, parseDate, parseIntent } from './parsers.js';
 import { routeWithLLM } from './router.llm.js';
 
@@ -46,31 +46,8 @@ const ContentClassification = z.object({
 });
 export type ContentClassificationT = z.infer<typeof ContentClassification>;
 
-export async function classifyContentLLM(
-  message: string,
-  log: pino.Logger,
-  opts: { timeoutMs?: number } = {}
-): Promise<ContentClassificationT | null> {
-  try {
-    const tmpl = await getPrompt('nlp_content_classification');
-    const prompt = tmpl.replace('{message}', message);
-    // Prefer JSON response format for strictness
-    const raw = await callLLM(prompt, { responseFormat: 'json', log });
-    // Some providers echo extra text; try strict JSON first, then extract
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      const m = raw.match(/\{[\s\S]*\}/);
-      parsed = m ? JSON.parse(m[0]) : null;
-    }
-    if (!parsed) return null;
-    return ContentClassification.parse(parsed);
-  } catch (e) {
-    if (log?.debug) log.debug({ err: String(e) }, 'nlp_classify_content_failed');
-    return null;
-  }
-}
+// Redirect to unified implementation
+export const classifyContentLLM = classifyContent;
 
 export async function detectIntentAndSlots(
   message: string,

@@ -462,7 +462,7 @@ export async function routeViaTransformersFirst(
   logger?: { log: pino.Logger },
 ): Promise<RouterResultT | undefined> {
   const log = logger?.log;
-  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '800'));
+  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '2000'));
   let timedOut = false;
 
   const timer = new Promise<undefined>((resolve) => {

@@ -1,17 +1,20 @@
 import 'dotenv/config';
+import { z } from 'zod';
 import { getContext } from './memory.js';
 import { fetch as undiciFetch } from 'undici';
 import { getPrompt } from './prompts.js';
 
 type ResponseFormat = 'text' | 'json';
 
-// NLP service types
-export type ContentClassification = {
-  content_type: 'travel' | 'system' | 'policy' | 'unrelated' | 'budget' | 'restaurant' | 'flight' | 'gibberish' | 'emoji_only';
-  is_explicit_search: boolean;
-  has_mixed_languages: boolean;
-  needs_web_search: boolean;
-};
+// Unified content classification schema
+const ContentClassificationSchema = z.object({
+  content_type: z.enum(['travel', 'system', 'policy', 'unrelated', 'budget', 'restaurant', 'flight', 'gibberish', 'emoji_only']),
+  is_explicit_search: z.boolean(),
+  has_mixed_languages: z.boolean().optional().default(false),
+  needs_web_search: z.boolean().optional().default(false)
+});
+
+export type ContentClassification = z.infer<typeof ContentClassificationSchema>;
 
 export type IntentClassification = {
   intent: 'weather' | 'packing' | 'attractions' | 'destinations' | 'web_search' | 'unknown';
@@ -237,34 +240,46 @@ export async function classifyContent(
   try {
     const promptTemplate = await getPrompt('nlp_content_classification');
     const prompt = promptTemplate.replace('{message}', message);
-    const response = await callLLM(prompt, { log }); // Remove responseFormat: 'json'
+    const response = await callLLM(prompt, { responseFormat: 'json', log });
     
-    if (log) log.debug({ message, response: response.substring(0, 200) }, 'content_classification_response');
+    if (log?.debug) {
+      log.debug({ 
+        message: message.substring(0, 120), 
+        response: response.substring(0, 120),
+        responseType: typeof response 
+      }, 'content_classification_response');
+    }
     
-    // Try to extract JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      if (log) log.debug({ response }, 'content_classification_no_json_found');
+    // Parse JSON response with Zod schema validation
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(response);
+    } catch {
+      // Fallback: extract JSON from response if wrapped in text
+      const extracted = safeExtractJson(response);
+      if (!extracted) {
+        if (log?.debug) log.debug({ response }, 'content_classification_no_json_found');
+        return null;
+      }
+      parsed = extracted;
+    }
+    
+    // Validate with Zod schema
+    const result = ContentClassificationSchema.safeParse(parsed);
+    if (!result.success) {
+      if (log?.debug) log.debug({ 
+        parsed, 
+        errors: result.error.errors 
+      }, 'content_classification_schema_validation_failed');
       return null;
     }
     
-    const parsed = JSON.parse(jsonMatch[0]);
-    
-    // Validate required fields
-    if (typeof parsed.is_explicit_search !== 'boolean' || 
-        typeof parsed.content_type !== 'string') {
-      if (log) log.debug({ parsed }, 'content_classification_invalid_format');
-      return null;
-    }
-    
-    return {
-      content_type: parsed.content_type,
-      is_explicit_search: parsed.is_explicit_search,
-      has_mixed_languages: parsed.has_mixed_languages || false,
-      needs_web_search: parsed.needs_web_search || false,
-    };
+    return result.data;
   } catch (error) {
-    if (log) log.debug({ error: String(error), message }, 'content_classification_failed');
+    if (log?.debug) log.debug({ 
+      error: String(error), 
+      message: message.substring(0, 120) 
+    }, 'content_classification_failed');
     return null;
   }
 }

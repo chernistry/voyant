@@ -503,7 +503,7 @@ Type 'yes' to proceed with web search, or ask me something else.`;
         value: citation.url || citation.title || 'Internal Knowledge Base',
         url: citation.url
       }));
-      const decisions = [`RAG answer from Vectara corpus for policy query: "${ctx.msg}"`];
+      const decisions = [`RAG answer from Vectara corpus for policy query: "${ctx.msg.replace(/&quot;/g, '"')}"`];
       setLastReceipts(ctx.threadId, facts, decisions, answer);
       
       if (logger?.log?.debug) {
