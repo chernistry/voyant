@@ -594,6 +594,7 @@ export async function blendWithFacts(
   if (input.route.intent === 'attractions' && !cityHint) {
     return { reply: 'What city are you interested in?', citations: undefined };
   }
+  
   const cits: string[] = [];
   let facts = '';
   const factsArr: Fact[] = [];
@@ -649,18 +650,22 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'destinations') {
       // Use destinations catalog for recommendations
+      ctx.log.debug({ intent: input.route.intent, slots: input.route.slots }, 'destinations_block_entered');
       try {
         const { recommendDestinations } = await import('../tools/destinations.js');
+        ctx.log.debug('destinations_function_imported');
         const destinationFacts = await recommendDestinations(input.route.slots);
+        ctx.log.debug({ factsCount: destinationFacts.length }, 'destinations_function_called');
         
         if (destinationFacts.length > 0) {
           cits.push('Catalog+REST Countries');
           const destinations = destinationFacts.map(f => 
-            `${f.value.city}, ${f.value.country} (${f.value.tags.climate}, ${f.value.tags.budget} budget)`
+            `${f.value.city}, ${f.value.country} (${f.value.tags.climate}, ${f.value.tags.budget} budget, family-friendly: ${f.value.tags.family ? 'yes' : 'no'})`
           ).join('; ');
-          facts += `Recommended destinations: ${destinations}\n`;
+          facts += `DESTINATION OPTIONS: ${destinations}\n`;
           factsArr.push(...destinationFacts);
           decisions.push('Filtered destinations catalog by month/profile with factual anchors.');
+          ctx.log.debug({ destinationCount: destinationFacts.length, destinations }, 'destinations_facts_added');
         }
       } catch (e) {
         ctx.log.debug({ error: e }, 'destinations_catalog_failed');

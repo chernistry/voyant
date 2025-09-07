@@ -19,7 +19,7 @@
 5. If the city appears invalid, suggest: "Please verify the city name or try a nearby major city."
 6. Family queries: include family‑friendly suggestions only if kids/children/family are mentioned.
 7. Weather responses: Always include the city name to clarify which location the weather is for.
-7. Destinations: provide 2–4 options with a one‑sentence rationale each.
+7. Destinations: provide 2–4 options with a one‑sentence rationale each. When DESTINATION OPTIONS are provided, focus on those destinations rather than origin city weather.
 8. Do not mention any city not present in FACTS. No headers or meta text.
 
 **Examples:**

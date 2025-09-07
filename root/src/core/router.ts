@@ -661,10 +661,10 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
         reason: `high_entity_count: ${entityCount} entities`
       },
       
-      // Strategy 2: Multiple constraint types (>=3 = complex)
+      // Strategy 2: Multiple constraint types (>=4 = complex)
       { 
-        isComplex: constraintCount >= 3, 
-        confidence: Math.min(0.7 + (constraintCount - 3) * 0.1, 0.95),
+        isComplex: constraintCount >= 4, 
+        confidence: Math.min(0.7 + (constraintCount - 4) * 0.1, 0.95),
         reason: `multiple_constraints: ${Array.from(constraints).join(', ')}`
       },
       
@@ -789,7 +789,7 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
       const densityScore = Math.min(totalEntities * 0.1, 0.3);
       
       const confidence = Math.min(0.6 + categoryScore * 0.1 + entityScore + densityScore, 0.95);
-      const isComplex = uniqueCategories.length >= 3 || (uniqueCategories.length >= 2 && totalEntities >= 4);
+      const isComplex = uniqueCategories.length >= 4 || (uniqueCategories.length >= 3 && totalEntities >= 6);
       
       if (log?.debug) {
         log.debug({

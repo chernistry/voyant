@@ -48,13 +48,26 @@ function monthFromDates(dates?: string): string | undefined {
   return undefined;
 }
 
+function normalizeMonth(month?: string): string | undefined {
+  if (!month) return undefined;
+  const monthMap: Record<string, string> = {
+    'january': 'Jan', 'february': 'Feb', 'march': 'Mar', 'april': 'Apr',
+    'may': 'May', 'june': 'Jun', 'july': 'Jul', 'august': 'Aug',
+    'september': 'Sep', 'october': 'Oct', 'november': 'Nov', 'december': 'Dec',
+    'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'apr': 'Apr',
+    'jun': 'Jun', 'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep',
+    'oct': 'Oct', 'nov': 'Nov', 'dec': 'Dec'
+  };
+  return monthMap[month.toLowerCase()] || month;
+}
+
 export async function recommendDestinations(slots: Slots): Promise<DestinationFact[]> {
   try {
     const catalogPath = join(process.cwd(), 'data', 'destinations_catalog.json');
     const catalogData = await readFile(catalogPath, 'utf-8');
     const catalog = JSON.parse(catalogData) as CatalogItem[];
     
-    const month = slots.month ?? monthFromDates(slots.dates);
+    const month = normalizeMonth(slots.month) ?? monthFromDates(slots.dates);
     const isFamily = slots.travelerProfile?.toLowerCase().includes('family') || 
                      slots.travelerProfile?.toLowerCase().includes('kid') ||
                      slots.travelerProfile?.toLowerCase().includes('child');

@@ -267,16 +267,16 @@ export async function runGraphTurn(
   // Combine current and previous cities, but only if we have real cities
   const allCities = [...new Set([...uniqueDestinations, ...previousCities])];
   
-  // Only trigger conflict detection if we have multiple actual cities
-  if (allCities.length > 1 && uniqueDestinations.length > 0 && previousCities.length > 0) {
+  // Skip destination conflict detection for complex travel planning queries
+  const isComplexTravelQuery = /\b(budget|cost|price|\$\d+|adults?|kids?|children|toddler|family|days?|weeks?|flights?|dislikes?|ideas?)\b/i.test(message);
+  
+  // Only trigger conflict detection if we have multiple actual cities AND it's not a complex travel query
+  if (!isComplexTravelQuery && allCities.length > 1 && uniqueDestinations.length > 0 && previousCities.length > 0) {
     return {
       done: true,
       reply: `I see you've mentioned multiple cities: ${allCities.join(', ')}. Which specific destination would you like information about?`,
     };
   }
-  
-  // Skip destination conflict detection for complex travel planning queries
-  const isComplexTravelQuery = /\b(budget|cost|price|\$\d+|adults?|kids?|children|toddler|family|days?|weeks?|flights?|dislikes?|ideas?)\b/i.test(message);
   
   if (!isComplexTravelQuery && uniqueDestinations.length > 1) {
     return {

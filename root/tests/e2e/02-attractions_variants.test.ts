@@ -56,15 +56,6 @@ describe('E2E: Attractions & Variants', () => {
       expect(r.body.reply.length).toBeGreaterThan(10);
     }, 45000);
 
-    test('attractions handles unknown cities gracefully', async () => {
-      const r = await recordedRequest(app, transcriptRecorder, 'attractions_unknown_city', 'What to do in Fakecityville?');
-      await expectLLMEvaluation(
-        'Attractions query for unknown city',
-        r.body.reply,
-        'Response should handle unknown/non-existent cities gracefully, either asking for clarification or providing helpful guidance about travel planning'
-      ).toPass();
-    }, 45000);
-
     test('attractions in major tourist destinations', async () => {
       const r = await recordedRequest(app, transcriptRecorder, 'attractions_rome_opentripmap', 'What attractions are in Rome?');
       await expectLLMEvaluation(

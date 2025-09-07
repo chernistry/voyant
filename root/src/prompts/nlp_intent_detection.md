@@ -39,5 +39,14 @@ Output: {"intent":"weather","confidence":0.90,"needExternal":true,"slots":{"city
 Input: "what to pack for Tokyo in March"
 Output: {"intent":"packing","confidence":0.85,"needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"}}
 
+Input: "Make it kid-friendly"
+Output: {"intent":"destinations","confidence":0.75,"needExternal":false,"slots":{}}
+
+Input: "Make it more budget-friendly"
+Output: {"intent":"destinations","confidence":0.75,"needExternal":false,"slots":{}}
+
+Input: "Add family activities"
+Output: {"intent":"attractions","confidence":0.75,"needExternal":false,"slots":{}}
+
 Input: "Any festivals or events that week we should plan around?"
 Output: {"intent":"unknown","confidence":0.90,"needExternal":true,"slots":{}}
