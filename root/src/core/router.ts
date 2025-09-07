@@ -630,17 +630,22 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
     const isSimplePacking = /\b(pack|packing|bring|clothes|items|luggage|suitcase|wear)\b/i.test(m) &&
                            !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus|itinerary|plan)\b/i.test(m);
     
-    if (isSimpleWeather || isSimplePacking) {
+    const isSimpleAttractions = /\b(attraction|do in|what to do|museum|activities)\b/i.test(m) &&
+                               !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus|itinerary|plan)\b/i.test(m);
+    
+    if (isSimpleWeather || isSimplePacking || isSimpleAttractions) {
       if (log?.debug) {
         log.debug({ 
           message: m.substring(0, 100),
-          reason: isSimpleWeather ? 'simple_weather_query' : 'simple_packing_query'
+          reason: isSimpleWeather ? 'simple_weather_query' : 
+                  isSimplePacking ? 'simple_packing_query' : 'simple_attractions_query'
         }, '🌤️ COMPLEXITY: Simple query - not complex');
       }
       return { 
         isComplex: false, 
         confidence: 0.9, 
-        reasoning: isSimpleWeather ? 'simple_weather_query' : 'simple_packing_query' 
+        reasoning: isSimpleWeather ? 'simple_weather_query' : 
+                   isSimplePacking ? 'simple_packing_query' : 'simple_attractions_query'
       };
     }
     
