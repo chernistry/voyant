@@ -54,6 +54,9 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.0.0",
+    "@types/express": "^4.17.21",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.12.12",
     "bottleneck": "^2.19.5",
     "brave-search": "^0.9.0",
     "chalk": "^5.6.0",
@@ -66,17 +69,15 @@
     "pino": "^9.0.0",
     "playwright": "^1.55.0",
     "sharp": "^0.34.3",
+    "typescript": "^5.5.4",
     "undici": "^6.19.8",
-    "zod": "^3.23.8",
-    "@types/express": "^4.17.21",
-    "@types/markdown-it": "^14.1.2",
-    "@types/node": "^20.12.12",
-    "typescript": "^5.5.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
     "@types/chalk": "^0.4.31",
     "@types/jest": "^30.0.0",
+    "@types/langdetect": "^0.2.2",
     "@types/nock": "^10.0.3",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.4.0",

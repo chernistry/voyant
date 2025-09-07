@@ -16,8 +16,8 @@ async function getLangDetector(): Promise<any> {
   if (!langDetector) {
     try {
       // Try to use langdetect library if available
-      const { LanguageDetect } = await import('langdetect');
-      langDetector = new LanguageDetect();
+      const langdetect = await import('langdetect');
+      langDetector = langdetect;
       return langDetector;
     } catch {
       // Fallback to script-based detection if library not available
@@ -68,11 +68,11 @@ export async function detectLanguage(text: string, log?: pino.Logger): Promise<L
   try {
     const detector = await getLangDetector();
     if (detector && cleanText.length > 10) {
-      const results = detector.detect(cleanText, 3); // Get top 3 results
+      const results = detector.detect(cleanText); // Use detect method directly
       if (results && results.length > 0) {
         const topResult = results[0];
-        language = topResult[0]; // Language code
-        confidence = Math.min(topResult[1], 0.95); // Confidence score, capped at 0.95
+        language = topResult.lang; // Language code
+        confidence = Math.min(topResult.prob, 0.95); // Confidence score, capped at 0.95
         
         if (log?.debug) {
           log.debug({ 

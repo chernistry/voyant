@@ -11,6 +11,28 @@ import type pino from 'pino';
 
 // No winkNLP; use regex + transformers signals
 
+// Early simple intent detection to avoid complexity check for basic queries
+function detectSimpleIntent(message: string, log?: pino.Logger): { intent: string; needExternal: boolean; confidence: number } | null {
+  const m = message.toLowerCase();
+  
+  // Weather patterns (English + Russian)
+  if (/\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
+    return { intent: 'weather', needExternal: true, confidence: 0.9 };
+  }
+  
+  // Packing patterns
+  if (/\b(pack|пак|bring|clothes|items|luggage|suitcase|wear)\b/i.test(m)) {
+    return { intent: 'packing', needExternal: false, confidence: 0.85 };
+  }
+  
+  // Attractions patterns  
+  if (/\b(attraction|достопримечательност|do in|what to do|museum|activities)\b/i.test(m)) {
+    return { intent: 'attractions', needExternal: false, confidence: 0.8 };
+  }
+  
+  return null;
+}
+
 export async function routeIntent(input: { message: string; threadId?: string; logger?: { log: pino.Logger } }): Promise<RouterResultT> {
   if (typeof input.logger?.log?.info === 'function') {
     input.logger.log.debug({ message: input.message }, 'router_start');
@@ -27,10 +49,33 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
+  // EARLY SIMPLE INTENT DETECTION - but still extract entities via cascade
+  const simpleIntent = detectSimpleIntent(input.message, input.logger?.log);
+  if (simpleIntent) {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ 
+        intent: simpleIntent.intent,
+        confidence: simpleIntent.confidence,
+        reason: 'early_simple_detection'
+      }, '⚡ ROUTER: Early simple intent detected, extracting entities');
+    }
+    
+    // Extract slots using NER>LLM cascade even for simple intents
+    const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
+    const extractedSlots = await extractSlots(input.message, ctxSlots, input.logger?.log);
+    
+    return RouterResult.parse({
+      intent: simpleIntent.intent,
+      needExternal: simpleIntent.needExternal,
+      slots: { ...ctxSlots, ...extractedSlots },
+      confidence: simpleIntent.confidence
+    });
+  }
+
   // Use LLM for content classification first (kept for early overrides like system/policy/search)
   const contentClassification = await classifyContent(input.message, input.logger?.log);
   
-  // COMPLEXITY CHECK FIRST - before any routing
+  // COMPLEXITY CHECK ONLY FOR NON-SIMPLE QUERIES
   if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ 
@@ -462,7 +507,15 @@ export async function routeViaTransformersFirst(
   logger?: { log: pino.Logger },
 ): Promise<RouterResultT | undefined> {
   const log = logger?.log;
-  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '2000'));
+  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '3000')); // Increased from 2000ms
+  
+  if (log?.debug) {
+    log.debug({
+      timeoutMs,
+      envValue: process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS,
+      message: message.substring(0, 50)
+    }, '⏱️ TRANSFORMERS: Timeout configuration');
+  }
   let timedOut = false;
 
   const timer = new Promise<undefined>((resolve) => {
@@ -584,6 +637,20 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
     if (/\b(hotel|accommodation|stay|night|room|airbnb)\b/.test(lower)) constraints.add('accommodation');
     if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower)) constraints.add('transport');
     if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m)) constraints.add('time');
+    
+    // Quick check for simple weather queries - don't trigger deep research
+    const isSimpleWeather = /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) &&
+                           !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus)\b/i.test(m);
+    
+    if (isSimpleWeather) {
+      if (log?.debug) {
+        log.debug({ 
+          message: m.substring(0, 100),
+          reason: 'simple_weather_query'
+        }, '🌤️ COMPLEXITY: Simple weather query - not complex');
+      }
+      return { isComplex: false, confidence: 0.9, reasoning: 'simple_weather_query' };
+    }
     
     const entityCount = entities?.length || 0;
     const constraintCount = constraints.size;
@@ -857,6 +924,19 @@ function classifyIntentFromTransformers(
   log?: pino.Logger
 ): { intent: string; needExternal: boolean; confidence: number } | undefined {
   
+  if (log?.debug) {
+    log.debug({
+      message: message.substring(0, 50),
+      intentResult,
+      entityResult: {
+        totalEntities: entityResult.entities.length,
+        locations: entityResult.locations.length,
+        locationTexts: entityResult.locations.map((l: any) => l.text)
+      },
+      slots
+    }, '🔍 TRANSFORMERS: Detailed classification input');
+  }
+  
   // Use transformers intent classification as primary signal
   if (intentResult.confidence > 0.8) {
     const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
@@ -877,22 +957,23 @@ function classifyIntentFromTransformers(
     };
   }
   
-  // Fallback to enhanced pattern matching with entity context
+  // Enhanced pattern matching with Russian support
   const m = message.toLowerCase();
   
-  // Weather patterns - enhanced with entity context
+  // Weather patterns - enhanced with Russian
   if (intentResult.intent === 'weather' || 
-      /\b(weather|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
+      /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city || /\b(в|in)\s+\w+/i.test(message);
     const confidence = hasLocation ? 0.95 : 0.8;
     
     if (log?.debug) {
       log.debug({ 
-        pattern: 'weather', 
+        pattern: 'weather_enhanced', 
         hasLocation, 
         locations: entityResult.locations.length,
         confidence,
-        reason: 'enhanced_pattern_matching'
+        reason: 'enhanced_pattern_matching_with_russian',
+        russianPattern: /погода/i.test(m)
       }, '🎯 TRANSFORMERS: Weather intent detected');
     }
     return { intent: 'weather', needExternal: true, confidence };
@@ -961,25 +1042,4 @@ function determineExternalNeed(intent: string, entityResult: any, slots: any): b
     default:
       return false;
   }
-}
-    const hasOrigin = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.originCity;
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'destinations', 
-        hasOrigin, 
-        confidence: hasOrigin ? 0.8 : 0.6
-      }, '🎯 TRANSFORMERS: Destinations intent detected');
-    }
-    return { intent: 'destinations', needExternal: false, confidence: hasOrigin ? 0.8 : 0.6 };
-  }
-  
-  if (log?.debug) {
-    log.debug({ 
-      message: m.substring(0, 50),
-      entityCount: entities.length,
-      reason: 'no_pattern_match'
-    }, '❓ TRANSFORMERS: No intent pattern matched');
-  }
-  
-  return undefined;
 }
