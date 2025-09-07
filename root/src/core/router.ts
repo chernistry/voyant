@@ -49,31 +49,16 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  // EARLY SIMPLE INTENT DETECTION - but still extract entities via cascade
-  const simpleIntent = detectSimpleIntent(input.message, input.logger?.log);
-  if (simpleIntent) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        intent: simpleIntent.intent,
-        confidence: simpleIntent.confidence,
-        reason: 'early_simple_detection'
-      }, '⚡ ROUTER: Early simple intent detected, extracting entities');
-    }
-    
-    // Extract slots using NER>LLM cascade even for simple intents
-    const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
-    const extractedSlots = await extractSlots(input.message, ctxSlots, input.logger?.log);
-    
-    return RouterResult.parse({
-      intent: simpleIntent.intent,
-      needExternal: simpleIntent.needExternal,
-      slots: { ...ctxSlots, ...extractedSlots },
-      confidence: simpleIntent.confidence
-    });
-  }
-
   // Use LLM for content classification first (kept for early overrides like system/policy/search)
   const contentClassification = await classifyContent(input.message, input.logger?.log);
+  
+  // Debug environment variables
+  if (typeof input.logger?.log?.debug === 'function') {
+    input.logger.log.debug({
+      DEEP_RESEARCH_ENABLED: process.env.DEEP_RESEARCH_ENABLED,
+      shouldCheckComplexity: process.env.DEEP_RESEARCH_ENABLED === 'true'
+    }, '🔧 ROUTER: Environment check');
+  }
   
   // COMPLEXITY CHECK ONLY FOR NON-SIMPLE QUERIES
   if (process.env.DEEP_RESEARCH_ENABLED === 'true') {

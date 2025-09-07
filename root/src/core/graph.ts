@@ -275,7 +275,10 @@ export async function runGraphTurn(
     };
   }
   
-  if (uniqueDestinations.length > 1) {
+  // Skip destination conflict detection for complex travel planning queries
+  const isComplexTravelQuery = /\b(budget|cost|price|\$\d+|adults?|kids?|children|toddler|family|days?|weeks?|flights?|dislikes?|ideas?)\b/i.test(message);
+  
+  if (!isComplexTravelQuery && uniqueDestinations.length > 1) {
     return {
       done: true,
       reply: `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. Which specific destination would you like information about?`,
