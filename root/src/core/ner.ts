@@ -17,6 +17,7 @@ import type pino from 'pino';
 export type NerSpan = { entity_group: string; score: number; text: string };
 
 const DEFAULT_MODEL = 'Davlan/xlm-roberta-base-ner-hrl';
+const LOCAL_MODEL = 'Xenova/bert-base-multilingual-cased-ner-hrl';
 const HF_INFERENCE_URL = 'https://router.huggingface.co/hf-inference/models';
 const DEFAULT_TIMEOUT_MS = 800;
 const REMOTE_TIMEOUT_MS = 5000;
@@ -24,8 +25,11 @@ const MAX_TEXT_LENGTH = 512;
 
 let nerReady: Promise<((text: string) => Promise<NerSpan[]>)> | null = null;
 
-function getModelName(): string {
-  return process.env.TRANSFORMERS_NER_MODEL || DEFAULT_MODEL;
+function getModelName(isLocal: boolean = false): string {
+  if (process.env.TRANSFORMERS_NER_MODEL) {
+    return process.env.TRANSFORMERS_NER_MODEL;
+  }
+  return isLocal ? LOCAL_MODEL : DEFAULT_MODEL;
 }
 
 function getNerMode(): 'local' | 'remote' | 'auto' {
@@ -38,6 +42,10 @@ function shouldUseLocal(): boolean {
   const mode = getNerMode();
   if (mode === 'local') return true;
   if (mode === 'remote') return false;
+  
+  // Backward compatibility: check legacy NER_USE_LOCAL flag
+  if (process.env.NER_USE_LOCAL === 'true') return true;
+  
   // auto mode: use local in test environment
   return process.env.NODE_ENV === 'test' || !!process.env.JEST_WORKER_ID;
 }
@@ -46,7 +54,7 @@ async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => P
   try {
     const { pipeline } = await import('@huggingface/transformers');
     
-    const model = getModelName();
+    const model = getModelName(true); // Use local model
     if (log?.debug) {
       log.debug({ model, hasToken: !!process.env.HF_TOKEN }, '🤖 NER: Loading local pipeline');
     }
@@ -103,7 +111,7 @@ async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => P
 }
 
 async function callRemoteAPI(text: string, log?: pino.Logger): Promise<NerSpan[]> {
-  const model = getModelName();
+  const model = getModelName(false); // Use remote model
   const url = `${HF_INFERENCE_URL}/${model}`;
   
   if (log?.debug) {
@@ -206,7 +214,7 @@ export async function extractEntities(text: string, log?: pino.Logger, opts?: { 
     log.debug({ 
       mode: getNerMode(),
       useLocal: shouldUseLocal(),
-      model: getModelName(),
+      model: getModelName(shouldUseLocal()),
       hasToken: !!process.env.HF_TOKEN,
       entityCount: 'pending'
     }, '🔍 NER: Starting extraction');

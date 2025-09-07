@@ -14,47 +14,20 @@ export async function deepResearchPages(urls: string[], query: string): Promise<
 }> {
   if (urls.length === 0) return { ok: false, results: [] };
   
+  const engine = process.env.CRAWLEE_ENGINE || 'cheerio';
+  console.log(`🔍 Crawlee engine: ${engine}`);
+  
   try {
-    // Dynamic import to handle missing dependency gracefully
-    const { CheerioCrawler } = await import('crawlee');
-    
     const results: CrawlResult[] = [];
     const maxPages = Math.min(urls.length, parseInt(process.env.CRAWLEE_MAX_PAGES || '8'));
     
-    console.log(`🔍 Crawlee config: CRAWLEE_MAX_PAGES=${process.env.CRAWLEE_MAX_PAGES}, maxPages=${maxPages}, urls.length=${urls.length}`);
+    console.log(`🔍 Crawlee config: CRAWLEE_ENGINE=${engine}, CRAWLEE_MAX_PAGES=${process.env.CRAWLEE_MAX_PAGES}, maxPages=${maxPages}, urls.length=${urls.length}`);
     
-    const crawler = new CheerioCrawler({
-      maxRequestsPerCrawl: maxPages,
-      requestHandlerTimeoutSecs: 15,
-      async requestHandler({ $, request }) {
-        try {
-          const title = $('title').text().trim();
-          const content = extractMainContent($);
-          
-          console.log(`📄 Crawling: ${request.url}`);
-          console.log(`📝 Title: ${title.slice(0, 100)}${title.length > 100 ? '...' : ''}`);
-          console.log(`📊 Content length: ${content.length} chars`);
-          
-          if (content.length > 100) {
-            results.push({
-              url: request.url,
-              title,
-              content: content.slice(0, 2000)
-            });
-            console.log(`✅ Added to results (${results.length}/${maxPages})`);
-          } else {
-            console.log(`❌ Content too short, skipping`);
-          }
-        } catch (e) {
-          console.warn(`❌ Failed to process ${request.url}:`, e);
-        }
-      },
-      failedRequestHandler({ request }) {
-        console.warn(`Failed to crawl: ${request.url}`);
-      },
-    });
-
-    await crawler.run(urls.slice(0, maxPages));
+    if (engine === 'playwright') {
+      await runPlaywrightCrawler(urls, maxPages, results);
+    } else {
+      await runCheerioCrawler(urls, maxPages, results);
+    }
     
     if (results.length === 0) {
       console.log(`❌ No content extracted from any pages`);
@@ -87,6 +60,127 @@ export async function deepResearchPages(urls: string[], query: string): Promise<
     console.error('Crawlee error:', error);
     return { ok: false, results: [] };
   }
+}
+
+async function runCheerioCrawler(urls: string[], maxPages: number, results: CrawlResult[]): Promise<void> {
+  // Dynamic import to handle missing dependency gracefully
+  const { CheerioCrawler } = await import('crawlee');
+  
+  const crawler = new CheerioCrawler({
+    maxRequestsPerCrawl: maxPages,
+    requestHandlerTimeoutSecs: 15,
+    async requestHandler({ $, request }) {
+      try {
+        const title = $('title').text().trim();
+        const content = extractMainContent($);
+        
+        console.log(`📄 Crawling (Cheerio): ${request.url}`);
+        console.log(`📝 Title: ${title.slice(0, 100)}${title.length > 100 ? '...' : ''}`);
+        console.log(`📊 Content length: ${content.length} chars`);
+        
+        if (content.length > 100) {
+          results.push({
+            url: request.url,
+            title,
+            content: content.slice(0, 2000)
+          });
+          console.log(`✅ Added to results (${results.length}/${maxPages})`);
+        } else {
+          console.log(`❌ Content too short, skipping`);
+        }
+      } catch (e) {
+        console.warn(`❌ Failed to process ${request.url}:`, e);
+      }
+    },
+    failedRequestHandler({ request }) {
+      console.warn(`Failed to crawl: ${request.url}`);
+    },
+  });
+
+  await crawler.run(urls.slice(0, maxPages));
+}
+
+async function runPlaywrightCrawler(urls: string[], maxPages: number, results: CrawlResult[]): Promise<void> {
+  // Dynamic import to handle missing dependency gracefully
+  const { PlaywrightCrawler } = await import('crawlee');
+  
+  const crawler = new PlaywrightCrawler({
+    maxRequestsPerCrawl: maxPages,
+    requestHandlerTimeoutSecs: 15,
+    navigationTimeoutSecs: 10,
+    launchContext: {
+      launchOptions: {
+        headless: true,
+        timeout: 10000
+      }
+    },
+    async requestHandler({ page, request }) {
+      try {
+        // Wait for main content selectors with timeout
+        const contentSelectors = ['main', 'article', '.content', 'body'];
+        let content = '';
+        let title = '';
+        
+        try {
+          // Get title
+          title = await page.title();
+          
+          // Try to wait for and extract from main content areas
+          for (const selector of contentSelectors) {
+            try {
+              await page.waitForSelector(selector, { timeout: 3000 });
+              const element = await page.$(selector);
+              if (element) {
+                const text = await element.innerText();
+                if (text && text.trim().length > 200) {
+                  content = text.trim();
+                  break;
+                }
+              }
+            } catch {
+              // Continue to next selector
+            }
+          }
+          
+          // Fallback to page content if no main content found
+          if (!content || content.length < 100) {
+            content = await page.content();
+            // Strip HTML tags for plain text
+            content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                           .replace(/<[^>]*>/g, ' ')
+                           .replace(/\s+/g, ' ')
+                           .trim();
+          }
+        } catch (e) {
+          console.warn(`❌ Failed to extract content from ${request.url}:`, e);
+          return;
+        }
+        
+        console.log(`📄 Crawling (Playwright): ${request.url}`);
+        console.log(`📝 Title: ${title.slice(0, 100)}${title.length > 100 ? '...' : ''}`);
+        console.log(`📊 Content length: ${content.length} chars`);
+        
+        if (content.length > 100) {
+          results.push({
+            url: request.url,
+            title,
+            content: content.slice(0, 2000)
+          });
+          console.log(`✅ Added to results (${results.length}/${maxPages})`);
+        } else {
+          console.log(`❌ Content too short, skipping`);
+        }
+      } catch (e) {
+        console.warn(`❌ Failed to process ${request.url}:`, e);
+      }
+    },
+    failedRequestHandler({ request }) {
+      console.warn(`Failed to crawl: ${request.url}`);
+    },
+  });
+
+  await crawler.run(urls.slice(0, maxPages));
 }
 
 function extractMainContent($: any): string {

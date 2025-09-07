@@ -477,11 +477,43 @@ Would you like me to search the web for current information? This will take a bi
 
 Type 'yes' to proceed with web search, or ask me something else.`;
       
+      // Store empty receipts for no results case
+      try {
+        const { setLastReceipts } = await import('./slot_memory.js');
+        const facts = [{ source: 'Vectara', key: 'no_results', value: 'Internal Knowledge Base (No Results)' }];
+        const decisions = [`Policy query attempted: "${ctx.msg}"`];
+        setLastReceipts(ctx.threadId, facts, decisions, noDataMessage);
+      } catch {
+        // ignore receipt storage errors
+      }
+      
       return { 
         done: true, 
         reply: noDataMessage, 
         citations: ['Internal Knowledge Base (No Results)']
       };
+    }
+    
+    // Store policy receipts
+    try {
+      const { setLastReceipts } = await import('./slot_memory.js');
+      const facts = citations.slice(0, 5).map((citation, index) => ({
+        source: 'Vectara',
+        key: `policy_${index}`,
+        value: citation.url || citation.title || 'Internal Knowledge Base',
+        url: citation.url
+      }));
+      const decisions = [`RAG answer from Vectara corpus for policy query: "${ctx.msg}"`];
+      setLastReceipts(ctx.threadId, facts, decisions, answer);
+      
+      if (logger?.log?.debug) {
+        logger.log.debug({ 
+          citationsCount: citations.length, 
+          factsStored: facts.length 
+        }, 'policy_receipts_persisted');
+      }
+    } catch {
+      // ignore receipt storage errors
     }
     
     const formattedAnswer = formatPolicyAnswer(answer, citations);

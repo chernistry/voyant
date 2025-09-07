@@ -6,3 +6,4 @@ assignment/node_modules/*
 root/node_modules/*
 root/.env
 root/storage/*
+docs/.dev/*
