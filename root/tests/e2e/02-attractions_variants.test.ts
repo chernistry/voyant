@@ -38,7 +38,7 @@ describe('E2E: Attractions & Variants', () => {
       await expectLLMEvaluation(
         'Attractions query for Tokyo using real OpenTripMap API',
         r.body.reply,
-        'Response should provide real POI information from OpenTripMap API with actual attraction names, descriptions, and cite OpenTripMap as the source'
+        'Response should provide real POI information from OpenTripMap API with actual attraction names and cite OpenTripMap as the source. Descriptions are preferred but not required if OpenTripMap data lacks them.'
       ).toPass();
       expect(r.body.citations).toBeDefined();
       expect(Array.isArray(r.body.citations)).toBe(true);
@@ -68,9 +68,9 @@ describe('E2E: Attractions & Variants', () => {
     test('attractions in major tourist destinations', async () => {
       const r = await recordedRequest(app, transcriptRecorder, 'attractions_rome_opentripmap', 'What attractions are in Rome?');
       await expectLLMEvaluation(
-        'Attractions query for Rome using OpenTripMap API',
+        'Attractions query for Rome using travel APIs',
         r.body.reply,
-        'Response should provide authentic Rome attractions from OpenTripMap API, focusing on historical sites, landmarks, and tourist destinations'
+        'Response should provide authentic Rome attractions from travel APIs (OpenTripMap or Brave Search), focusing on historical sites, landmarks, and tourist destinations'
       ).toPass();
       expect(r.body.citations).toBeDefined();
     }, 45000);

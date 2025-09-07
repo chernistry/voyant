@@ -722,11 +722,16 @@ export async function blendWithFacts(
       // Prefer OpenTripMap results; avoid listing specific POIs from generic web search
       const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
       const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
-      if (at.ok && at.source === 'opentripmap') {
-        cits.push('OpenTripMap');
-        facts += `POIs: ${at.summary} (OpenTripMap)\n`;
-        factsArr.push({ source: 'OpenTripMap', key: 'poi_list', value: at.summary });
-        decisions.push(wantsKid ? 'Listed kid-friendly attractions from OpenTripMap.' : 'Listed top attractions from OpenTripMap.');
+      if (at.ok && (at.source === 'opentripmap' || at.source === 'brave-search')) {
+        cits.push(at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search');
+        facts += `POIs: ${at.summary} (${at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search'})\n`;
+        factsArr.push({ source: at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search', key: 'poi_list', value: at.summary });
+        decisions.push(wantsKid ? 'Listed kid-friendly attractions from travel APIs.' : 'Listed top attractions from travel APIs.');
+      } else if (!at.ok && at.reason === 'unknown_city') {
+        // Handle unknown cities gracefully - don't fabricate attractions
+        facts += `City: ${cityHint} (location not found)\n`;
+        factsArr.push({ source: 'System', key: 'unknown_city', value: cityHint });
+        decisions.push('City not found; will ask for clarification or suggest general travel guidance.');
       } else {
         ctx.log.debug({ reason: at.ok ? `unexpected_source_${at.source}` : at.reason }, 'attractions_adapter_failed');
         decisions.push('Attractions lookup unavailable; avoided fabricating POIs.');
