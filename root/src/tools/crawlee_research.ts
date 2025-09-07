@@ -66,6 +66,8 @@ async function runCheerioCrawler(urls: string[], maxPages: number, results: Craw
   // Dynamic import to handle missing dependency gracefully
   const { CheerioCrawler } = await import('crawlee');
   
+  const failedUrls: string[] = [];
+  
   const crawler = new CheerioCrawler({
     maxRequestsPerCrawl: maxPages,
     requestHandlerTimeoutSecs: 15,
@@ -90,14 +92,26 @@ async function runCheerioCrawler(urls: string[], maxPages: number, results: Craw
         }
       } catch (e) {
         console.warn(`❌ Failed to process ${request.url}:`, e);
+        failedUrls.push(request.url);
       }
     },
     failedRequestHandler({ request }) {
       console.warn(`Failed to crawl: ${request.url}`);
+      failedUrls.push(request.url);
     },
   });
 
   await crawler.run(urls.slice(0, maxPages));
+  
+  // Retry failed URLs with Playwright if available
+  if (failedUrls.length > 0) {
+    console.log(`🔄 Retrying ${failedUrls.length} failed URLs with Playwright...`);
+    try {
+      await runPlaywrightCrawler(failedUrls, failedUrls.length, results);
+    } catch (e) {
+      console.warn(`❌ Playwright fallback also failed:`, e);
+    }
+  }
 }
 
 async function runPlaywrightCrawler(urls: string[], maxPages: number, results: CrawlResult[]): Promise<void> {
