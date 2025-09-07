@@ -623,18 +623,25 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
     if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower)) constraints.add('transport');
     if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m)) constraints.add('time');
     
-    // Quick check for simple weather queries - don't trigger deep research
+    // Quick check for simple queries - don't trigger deep research
     const isSimpleWeather = /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) &&
                            !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus)\b/i.test(m);
     
-    if (isSimpleWeather) {
+    const isSimplePacking = /\b(pack|packing|bring|clothes|items|luggage|suitcase|wear)\b/i.test(m) &&
+                           !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus|itinerary|plan)\b/i.test(m);
+    
+    if (isSimpleWeather || isSimplePacking) {
       if (log?.debug) {
         log.debug({ 
           message: m.substring(0, 100),
-          reason: 'simple_weather_query'
-        }, '🌤️ COMPLEXITY: Simple weather query - not complex');
+          reason: isSimpleWeather ? 'simple_weather_query' : 'simple_packing_query'
+        }, '🌤️ COMPLEXITY: Simple query - not complex');
       }
-      return { isComplex: false, confidence: 0.9, reasoning: 'simple_weather_query' };
+      return { 
+        isComplex: false, 
+        confidence: 0.9, 
+        reasoning: isSimpleWeather ? 'simple_weather_query' : 'simple_packing_query' 
+      };
     }
     
     const entityCount = entities?.length || 0;
