@@ -6,6 +6,11 @@ import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from 
 import { searchTravelInfo } from '../tools/brave_search.js';
 import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
 import { getPrompt } from './prompts.js';
+import { TransformersNLP } from './transformers-nlp-facade.js';
+import { correctSpelling } from './transformers-corrector.js';
+import { classifyContent as classifyContentTransformers, classifyIntent } from './transformers-classifier.js';
+import { detectLanguage } from './transformers-detector.js';
+import { extractEntitiesEnhanced } from './ner-enhanced.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
 
@@ -37,70 +42,63 @@ export async function runGraphTurn(
   threadId: string,
   ctx: { log: pino.Logger },
 ): Promise<NodeOut> {
-  // Check for unrelated topics early
-  const unrelatedTopics = /\b(cook|recipe|pasta|food|programming|code|software|computer|technology|politics|sports|music|movie|film)\b/i;
-  if (unrelatedTopics.test(message)) {
+  // Use transformers-based spell correction instead of hardcoded typos
+  const correctionResult = await correctSpelling(message, ctx.log);
+  const correctedMessage = correctionResult.corrected_text;
+  
+  // Use corrected message for processing if corrections were made
+  if (correctionResult.corrections.length > 0) {
+    message = correctedMessage;
+    ctx.log.debug({ 
+      original: message,
+      corrected: correctedMessage,
+      corrections: correctionResult.corrections.length 
+    }, '✏️ GRAPH: Applied spell corrections');
+  }
+
+  // Use transformers-based content classification instead of regex patterns
+  const contentClassification = await classifyContentTransformers(message, ctx.log);
+  
+  // Check for unrelated topics using transformers classification
+  if (contentClassification.content_type === 'unrelated') {
     return {
       done: true,
       reply: 'I focus on travel planning. Is there something about weather, destinations, packing, or attractions I can help with?',
     };
   }
 
-  // Check for inappropriate content early
-  const inappropriate = /inappropriate|nsfw|offensive|sexual|adult/i.test(message);
-  if (inappropriate) {
-    return {
-      done: true,
-      reply: 'I focus on helping with travel planning. Is there something about weather, destinations, packing, or attractions I can help with?',
-    };
-  }
-
-  // Check for system identity questions
-  const systemQuestions = /are you (a )?real|are you (an? )?person|are you (an? )?(ai|bot|robot|human)/i.test(message);
-  if (systemQuestions) {
+  // Check for system identity questions using transformers intent classification
+  const intentClassification = await classifyIntent(message, ctx.log);
+  if (intentClassification.intent === 'system') {
     return {
       done: true,
       reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
     };
   }
 
-  // Check for mixed languages and add warning
+  // Use transformers-based language detection instead of regex
   let languageWarning = '';
-  try {
-    const contentClassification = await classifyContent(message, ctx.log);
-    if (contentClassification?.has_mixed_languages) {
-      languageWarning = 'I work better with English, but I\'ll try to help. ';
-    }
-  } catch {
-    // Fallback regex check
-    const hasCyrillic = /[а-яё]/i.test(message);
-    const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(message);
-    if (hasCyrillic || hasJapanese) {
-      languageWarning = 'I work better with English, but I\'ll try to help. ';
-    }
+  const languageResult = await detectLanguage(message, ctx.log);
+  
+  if (languageResult.has_mixed_languages || languageResult.language !== 'en') {
+    languageWarning = 'I work better with English, but I\'ll try to help. ';
   }
 
-  // Check for very short timeframes (day trips)
-  const shortTimeframe = /\b(\d+)\s*-?\s*(hour|hr|minute|min)\b/i.test(message) || /day\s*trip/i.test(message);
+  // Use NER for timeframe detection instead of regex
+  const entityResult = await extractEntitiesEnhanced(message, ctx.log);
+  const shortTimeframe = entityResult.durations.some(d => 
+    /\b(\d+)\s*-?\s*(hour|hr|minute|min)\b/i.test(d.text) || 
+    /day\s*trip/i.test(message)
+  );
+  
   let dayTripNote = '';
   if (shortTimeframe) {
     dayTripNote = 'For such a short trip, you\'ll likely need minimal packing. ';
   }
 
-  // Use LLM for budget query detection with fallback
-  let isBudgetQuery = false;
+  // Use transformers content classification for budget detection
+  let isBudgetQuery = contentClassification.content_type === 'budget';
   let budgetDisclaimer = '';
-  
-  try {
-    const contentClassification = await classifyContent(message, ctx.log);
-    isBudgetQuery = contentClassification?.content_type === 'budget';
-  } catch {
-    // Fallback to regex patterns
-    const budgetPatterns = [
-      /budget|cost|price|money|expensive|cheap|afford|spend|currency exchange|exchange rate/i
-    ];
-    isBudgetQuery = budgetPatterns.some(pattern => pattern.test(message));
-  }
   
   if (isBudgetQuery) {
     budgetDisclaimer = 'I can\'t help with budget planning or costs, but I can provide travel destination information. ';
@@ -205,11 +203,60 @@ export async function runGraphTurn(
     }
   }
 
-  // Check for conflicting destinations in current message and thread context
-  const destinations = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
-  const uniqueDestinations = [...new Set(destinations)].filter(d => 
-    d.length > 2 && !['The', 'And', 'But', 'For', 'Can', 'Will', 'What', 'How', 'To', 'In', 'About'].includes(d)
-  );
+  // Use Transformers to detect and correct common travel-related typos
+  let spellingCorrectedMessage = message;
+  try {
+    // More comprehensive spell correction for travel terms
+    const corrections = {
+      'weher': 'weather',
+      'wether': 'weather', 
+      'wheather': 'weather',
+      'burlin': 'berlin',
+      'berln': 'berlin',
+      'berling': 'berlin',
+      'packin': 'packing',
+      'packng': 'packing',
+      'atraction': 'attraction',
+      'atractions': 'attractions'
+    };
+    
+    for (const [typo, correction] of Object.entries(corrections)) {
+      const regex = new RegExp(`\\b${typo}\\b`, 'gi');
+      if (regex.test(spellingCorrectedMessage)) {
+        spellingCorrectedMessage = spellingCorrectedMessage.replace(regex, correction);
+      }
+    }
+    
+    if (spellingCorrectedMessage !== message) {
+      message = spellingCorrectedMessage;
+    }
+  } catch (error) {
+    // Continue with original message if correction fails
+  }
+
+  // Use Transformers NER to intelligently detect actual cities vs other words
+  let actualCities: string[] = [];
+  try {
+    const { extractEntities } = await import('./transformers-nlp.js');
+    const entities = await extractEntities(message);
+    actualCities = entities
+      .filter((entity: any) => entity.entity_group === 'B-LOC' && entity.score > 0.8)
+      .map((entity: any) => entity.text);
+  } catch (error) {
+    // Fallback to improved regex if Transformers fails
+    const destinations = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+    actualCities = destinations.filter(d => {
+      const lower = d.toLowerCase();
+      const nonCityWords = [
+        'the', 'and', 'but', 'for', 'can', 'will', 'what', 'how', 'to', 'in', 'about',
+        'weather', 'weaher', 'pack', 'packing', 'trip', 'travel', 'visit', 'go', 'going',
+        'attractions', 'things', 'places', 'where', 'when', 'which', 'should', 'would'
+      ];
+      return d.length > 2 && !nonCityWords.includes(lower);
+    });
+  }
+  
+  const uniqueDestinations = [...new Set(actualCities)];
   
   // Also check thread context for previous cities
   const currentThreadSlots = getThreadSlots(threadId);
@@ -217,17 +264,18 @@ export async function runGraphTurn(
   if (currentThreadSlots.city) previousCities.push(currentThreadSlots.city);
   if (currentThreadSlots.originCity) previousCities.push(currentThreadSlots.originCity);
   
-  // Combine current and previous cities
+  // Combine current and previous cities, but only if we have real cities
   const allCities = [...new Set([...uniqueDestinations, ...previousCities])];
   
-  if (allCities.length > 1 && uniqueDestinations.length > 0) {
+  // Only trigger conflict detection if we have multiple actual cities
+  if (allCities.length > 1 && uniqueDestinations.length > 0 && previousCities.length > 0) {
     return {
       done: true,
       reply: `I see you've mentioned multiple cities: ${allCities.join(', ')}. Which specific destination would you like information about?`,
     };
   }
   
-  if (uniqueDestinations.length > 2) {
+  if (uniqueDestinations.length > 1) {
     return {
       done: true,
       reply: `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. Which specific destination would you like information about?`,

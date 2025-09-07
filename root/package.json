@@ -60,6 +60,7 @@
     "crawlee": "^3.14.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "langdetect": "^0.2.1",
     "markdown-it": "^14.1.0",
     "opossum": "^8.0.0",
     "pino": "^9.0.0",

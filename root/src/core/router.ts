@@ -805,14 +805,21 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
 
 async function tryRouteViaTransformers(message: string, threadId?: string, log?: pino.Logger): Promise<RouterResultT | undefined> {
   try {
-    // Extract entities using Transformers.js NER
-    const entities = await extractEntities(message, log);
+    // Use enhanced NER for better entity extraction
+    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
+    const entityResult = await extractEntitiesEnhanced(message, log);
+    
+    // Use transformers-based intent classification
+    const { classifyIntent } = await import('./transformers-classifier.js');
+    const intentResult = await classifyIntent(message, log);
     
     if (log?.debug) {
       log.debug({ 
-        entities: entities.map(e => ({ type: e.entity_group, text: e.text, score: e.score })),
-        count: entities.length 
-      }, '🔍 TRANSFORMERS: Extracted entities');
+        entities: entityResult.entities.length,
+        locations: entityResult.locations.length,
+        intent: intentResult.intent,
+        confidence: intentResult.confidence
+      }, '🔍 TRANSFORMERS: Enhanced processing complete');
     }
 
     // Get thread context for slot merging
@@ -821,8 +828,8 @@ async function tryRouteViaTransformers(message: string, threadId?: string, log?:
     // Extract slots using our parsers (which now use Transformers internally)
     const extractedSlots = await extractSlots(message, ctxSlots, log);
     
-    // Simple rule-based intent classification based on entities and patterns
-    const intent = classifyIntentFromEntities(message, entities, extractedSlots, log);
+    // Enhanced intent classification based on transformers results
+    const intent = classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
     
     if (intent && intent.confidence > 0.7) {
       return RouterResult.parse({
@@ -842,62 +849,119 @@ async function tryRouteViaTransformers(message: string, threadId?: string, log?:
   }
 }
 
-function classifyIntentFromEntities(
+function classifyIntentFromTransformers(
   message: string, 
-  entities: any[], 
+  intentResult: any,
+  entityResult: any,
   slots: any, 
   log?: pino.Logger
 ): { intent: string; needExternal: boolean; confidence: number } | undefined {
+  
+  // Use transformers intent classification as primary signal
+  if (intentResult.confidence > 0.8) {
+    const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
+    
+    if (log?.debug) {
+      log.debug({ 
+        intent: intentResult.intent,
+        confidence: intentResult.confidence,
+        needExternal,
+        reason: 'transformers_high_confidence'
+      }, '🎯 TRANSFORMERS: High confidence intent classification');
+    }
+    
+    return { 
+      intent: intentResult.intent, 
+      needExternal, 
+      confidence: intentResult.confidence 
+    };
+  }
+  
+  // Fallback to enhanced pattern matching with entity context
   const m = message.toLowerCase();
   
-  // Weather patterns - prioritize explicit weather keywords
-  if (/\b(weather|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) || 
-      /what'?s?\s+(the\s+)?weather/i.test(m)) {
-    const hasLocation = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.city;
+  // Weather patterns - enhanced with entity context
+  if (intentResult.intent === 'weather' || 
+      /\b(weather|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.95 : 0.8;
+    
     if (log?.debug) {
       log.debug({ 
         pattern: 'weather', 
         hasLocation, 
-        entities: entities.length,
-        confidence: 0.95,
-        reason: 'explicit_weather_keywords'
+        locations: entityResult.locations.length,
+        confidence,
+        reason: 'enhanced_pattern_matching'
       }, '🎯 TRANSFORMERS: Weather intent detected');
     }
-    return { intent: 'weather', needExternal: true, confidence: 0.95 };
+    return { intent: 'weather', needExternal: true, confidence };
   }
   
-  // Attractions with location
-  if (/attraction|do in|what to do|museum|activities/.test(m)) {
-    const hasLocation = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.city;
+  // Attractions with enhanced location detection
+  if (intentResult.intent === 'attractions' || 
+      /attraction|do in|what to do|museum|activities/.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.9 : 0.7;
+    
     if (log?.debug) {
       log.debug({ 
         pattern: 'attractions', 
         hasLocation, 
-        confidence: hasLocation ? 0.8 : 0.6
+        confidence 
       }, '🎯 TRANSFORMERS: Attractions intent detected');
     }
-    return { intent: 'attractions', needExternal: false, confidence: hasLocation ? 0.8 : 0.6 };
+    return { intent: 'attractions', needExternal: false, confidence };
   }
   
-  // Packing advice
-  if (/pack|bring|clothes|items|luggage|suitcase|wear/.test(m)) {
+  // Packing advice with duration context
+  if (intentResult.intent === 'packing' || 
+      /pack|bring|clothes|items|luggage|suitcase|wear/.test(m)) {
+    const hasDuration = entityResult.durations.length > 0;
+    const confidence = hasDuration ? 0.9 : 0.8;
+    
     if (log?.debug) {
-      log.debug({ pattern: 'packing', confidence: 0.8 }, '🎯 TRANSFORMERS: Packing intent detected');
+      log.debug({ 
+        pattern: 'packing', 
+        hasDuration,
+        confidence 
+      }, '🎯 TRANSFORMERS: Packing intent detected');
     }
-    return { intent: 'packing', needExternal: false, confidence: 0.8 };
+    return { intent: 'packing', needExternal: false, confidence };
   }
   
-  // Country information queries
-  if (/tell me about.*(?:country|spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia|uk|usa|america)/i.test(m) || 
-      /(?:spain|france|italy|germany|japan|canada|australia|brazil|mexico|india|china|russia).*(?:country|as a country)/i.test(m)) {
+  // Destinations with enhanced pattern matching
+  if (intentResult.intent === 'destinations' || 
+      /where should i go|destination|where to go|tell me about.*country/.test(m)) {
+    const confidence = 0.85;
+    
     if (log?.debug) {
-      log.debug({ pattern: 'country_info', confidence: 0.9 }, '🎯 TRANSFORMERS: Country information intent detected');
+      log.debug({ 
+        pattern: 'destinations', 
+        confidence 
+      }, '🎯 TRANSFORMERS: Destinations intent detected');
     }
-    return { intent: 'destinations', needExternal: true, confidence: 0.9 };
+    return { intent: 'destinations', needExternal: true, confidence };
   }
   
-  // Destinations with origin detection
-  if (/where should i go|destination|where to go|budget|options/.test(m)) {
+  return undefined;
+}
+
+function determineExternalNeed(intent: string, entityResult: any, slots: any): boolean {
+  switch (intent) {
+    case 'weather':
+    case 'destinations':
+      return true;
+    case 'attractions':
+      // Need external data if we have a specific location
+      return entityResult.locations.length > 0 || !!slots.city;
+    case 'packing':
+      // Usually don't need external data for packing advice
+      return false;
+    default:
+      return false;
+  }
+}
     const hasOrigin = entities.some(e => /LOC|GPE/i.test(e.entity_group)) || slots.originCity;
     if (log?.debug) {
       log.debug({ 
