@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use ../core/ner.js instead - unified NER facade
+ * TODO: Remove after migration complete
+ */
 import 'dotenv/config';
 import type pino from 'pino';
 

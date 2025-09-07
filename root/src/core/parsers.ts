@@ -81,7 +81,7 @@ export async function parseCity(
 
   // Transformers.js NER
   try {
-    const { extractEntities } = await import('../tools/ner.js');
+    const { extractEntities } = await import('./ner.js');
     const spans = await extractEntities(text, logger as pino.Logger);
     // Prefer LOC spans; simple filters to avoid months and placeholders
     const locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
@@ -188,7 +188,7 @@ export async function parseDate(
 
   // Transformers.js NER for DATE/TIME entities (preferred)
   try {
-    const { extractEntities } = await import('../tools/ner.js');
+    const { extractEntities } = await import('./ner.js');
     const spans: Array<{ entity_group: string; text: string }> = await extractEntities(text, logger);
     const dateLike = (spans || []).filter(s => /DATE|TIME/i.test(String(s.entity_group || '')));
     const picked = dateLike[0];

@@ -2,7 +2,7 @@ import type pino from 'pino';
 import { VectaraClient } from '../tools/vectara.js';
 import { VECTARA } from '../config/vectara.js';
 import { callLLM } from './llm.js';
-import { extractEntities } from './transformers-nlp.js';
+import { extractEntities } from './ner.js';
 
 export type PolicyAnswer = { 
   answer: string; 
