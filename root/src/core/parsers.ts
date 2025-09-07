@@ -261,13 +261,85 @@ export async function parseDate(
 // wink-based date fallback removed
 
 /**
- * LLM-first origin/destination parser
+ * Transformers-first origin/destination parser (NER + heuristics), then LLM fallback
  */
 export async function parseOriginDestination(
   text: string,
   context?: Record<string, any>,
   logger?: any,
 ): Promise<ParseResponse<z.infer<typeof OriginDestinationParseResult>>> {
+  // Transformers.js NER first
+  try {
+    const { extractEntities } = await import('./ner.js');
+    const spans = await extractEntities(text, logger as pino.Logger);
+    
+    // Extract LOC/GPE entities in order of appearance
+    const locations = (spans || [])
+      .filter(s => /LOC|GPE|MISC/i.test(s.entity_group || ''))
+      .filter(s => {
+        const t = (s.text || '').trim();
+        const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
+        const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
+        return looksProper && !isTemporal && t.length > 1;
+      })
+      .map(s => ({ text: s.text?.trim(), index: text.indexOf(s.text || '') }));
+
+    if (locations.length > 0) {
+      let originCity: string | undefined;
+      let destinationCity: string | undefined;
+      
+      // Scan for preposition patterns to bind entities
+      const fromMatch = text.match(/\bfrom\s+([A-Za-z\- ]+)/i);
+      const toMatch = text.match(/\bto\s+([A-Za-z\- ]+)/i);
+      const inMatch = text.match(/\bin\s+([A-Za-z\- ]+)/i);
+      
+      // Bind entities to patterns based on proximity
+      if (fromMatch) {
+        const fromText = fromMatch[1]?.trim();
+        const matchingLoc = locations.find(loc => 
+          loc.text && fromText && fromText.toLowerCase().includes(loc.text.toLowerCase())
+        );
+        if (matchingLoc?.text) originCity = matchingLoc.text;
+      }
+      
+      if (toMatch) {
+        const toText = toMatch[1]?.trim();
+        const matchingLoc = locations.find(loc => 
+          loc.text && toText && toText.toLowerCase().includes(loc.text.toLowerCase())
+        );
+        if (matchingLoc?.text) destinationCity = matchingLoc.text;
+      }
+      
+      if (inMatch && !destinationCity) {
+        const inText = inMatch[1]?.trim();
+        const matchingLoc = locations.find(loc => 
+          loc.text && inText && inText.toLowerCase().includes(loc.text.toLowerCase())
+        );
+        if (matchingLoc?.text) destinationCity = matchingLoc.text;
+      }
+      
+      // If we found both or one with good confidence, return
+      if (originCity || destinationCity) {
+        const confidence = (originCity && destinationCity) ? 0.7 : 0.6;
+        if (logger?.debug) {
+          logger.debug({ 
+            entities: locations.map(l => l.text), 
+            originCity, 
+            destinationCity, 
+            confidence 
+          }, 'od_transformers_success');
+        }
+        return {
+          success: true,
+          data: { originCity, destinationCity, confidence },
+          confidence,
+        };
+      }
+    }
+  } catch (error) {
+    if (logger?.debug) logger.debug({ error: String(error) }, 'od_transformers_failed');
+  }
+
   // LLM fallback
   try {
     const prompt = `Extract origin and destination cities from this text. Return JSON with originCity and destinationCity fields (null if not found) and confidence (0-1).
@@ -285,6 +357,7 @@ Return only valid JSON.`;
     const json = JSON.parse(raw);
     const result = OriginDestinationParseResult.parse(json);
     if (result.confidence > 0.5) {
+      if (logger?.debug) logger.debug({ result }, 'od_llm_success');
       return {
         success: true,
         data: result,
@@ -293,14 +366,26 @@ Return only valid JSON.`;
     }
     throw new Error('Low confidence result');
   } catch (error) {
+    if (logger?.debug) logger.debug({ error: String(error) }, 'od_llm_failed');
+    
     // Regex as last resort
     const mFrom = text.match(/\bfrom\s+([A-Z][A-Za-z\- ]+)/i);
     const mTo = text.match(/\bto\s+([A-Z][A-Za-z\- ]+)/i);
     const mIn = text.match(/\bin\s+([A-Z][A-Za-z\- ]+)/i);
     const originCity = mFrom?.[1]?.trim();
     const destinationCity = (mTo?.[1] || mIn?.[1])?.trim();
+    
     if (originCity || destinationCity) {
-      return { success: true, data: { originCity: originCity || undefined, destinationCity: destinationCity || undefined, confidence: 0.6 }, confidence: 0.6 };
+      if (logger?.debug) logger.debug({ originCity, destinationCity }, 'od_regex_fallback');
+      return { 
+        success: true, 
+        data: { 
+          originCity: originCity || undefined, 
+          destinationCity: destinationCity || undefined, 
+          confidence: 0.6 
+        }, 
+        confidence: 0.6 
+      };
     }
     return { success: false, data: null, confidence: 0 };
   }
