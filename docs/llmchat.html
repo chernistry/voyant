@@ -497,6 +497,86 @@
             }
         }
 
+        /* Simple Warning Block */
+        .warning-block {
+            display: flex;
+            background: #fff;
+            border: 2px solid #f39c12;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        .warning-block-icon {
+            flex: 0 0 50px;
+            background: #f39c12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .warning-block-content {
+            flex: 1;
+            padding: 10px 12px;
+        }
+
+        .warning-block h3 {
+            color: #333;
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .warning-block .warning-intro {
+            color: #666;
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        .warning-block .warning-list {
+            margin: -4px 0 0 0;
+            padding: 0;
+            line-height: 1.0;
+        }
+
+        .warning-block .warning-item {
+            color: #555;
+            padding: 0 16px 0 16px;
+            font-size: 12px;
+            position: relative;
+            display: inline-block;
+            margin-right: 8px;
+            line-height: 1.0;
+        }
+
+        .warning-block .warning-item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            color: #f39c12;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .warning-block .warning-item strong {
+            color: #333;
+        }
+
+        .warning-block .recommendation {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 6px 8px;
+            margin-top: 6px;
+            color: #495057;
+            font-size: 12px;
+            text-align: center;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .app-container {
@@ -718,13 +798,27 @@
             // Add welcome message
             const welcomeMessage = `✈️ **Welcome to Voyant Travel Assistant!**
 
+<div class="warning-block">
+    <div class="warning-block-icon">!</div>
+    <div class="warning-block-content">
+        <h3>WEB VERSION LIMITATIONS</h3>
+        <div class="warning-intro">This web interface is <strong>significantly limited</strong> compared to the full CLI version due to free tier resource constraints:</div>
+        <div class="warning-list">
+            <div class="warning-item"><strong>Deep Research Disabled</strong> - Advanced analysis and multi-source research capabilities are not available</div>
+            <div class="warning-item"><strong>Limited Data Sources</strong> - Access to external APIs and comprehensive databases is restricted</div>
+            <div class="warning-item"><strong>Performance Constraints</strong> - Response times may be slower due to shared hosting limitations</div>
+            <div class="warning-item"><strong>Infrequent Updates</strong> - This demo version is not actively maintained or regularly updated</div>
+            <div class="warning-item"><strong>Demo Purpose Only</strong> - Serves as a practical demonstration rather than a production-ready solution</div>
+        </div>
+        <div class="recommendation">For full functionality, please use the CLI version with proper API keys and local deployment.</div>
+    </div>
+</div>
+
 I can help you with:
 • 🌤️ Weather in any city
-• 🏖️ Attractions and places to visit  
+• 🏖️ Attractions and places to visit
 • 🎒 What to pack for your trip
 • 🗺️ Destination information and advice
-
-**NOTE:** Deep Research is disabled for this deployment due to free tier resource limitations. Basic travel queries work perfectly!
 
 Ask me anything about your travel plans!`;
             
