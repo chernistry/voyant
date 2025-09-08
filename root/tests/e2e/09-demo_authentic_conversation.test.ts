@@ -1,15 +1,14 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
-import { configureNock, createTestApp, createRecorderIfEnabled, makeRequest, TranscriptRecorder, nock } from './_setup.js';
-import { expectLLMEvaluation } from '../../src/test/llm-evaluator.js';
-import express from 'express';
-import { promises as fs } from 'fs';
+const { configureNock, createTestApp, createRecorderIfEnabled, makeRequest, TranscriptRecorder, nock } = require('./_setup.js');
+const { expectLLMEvaluation } = require('../../src/test/llm-evaluator.js');
+const express = require('express');
+const { promises: fs } = require('fs');
 
 configureNock();
 process.env.NODE_ENV = 'test';
 
 describe('E2E: Demo Authentic Conversation - Comprehensive Travel Planning Showcase', () => {
-  let app: express.Express;
-  let transcriptRecorder: TranscriptRecorder | undefined;
+  let app: any;
+  let transcriptRecorder: any;
   let originalDeepResearchFlag: string | undefined;
 
   beforeAll(() => {

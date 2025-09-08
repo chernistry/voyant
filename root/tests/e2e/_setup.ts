@@ -1,6 +1,6 @@
 // ✅ Configure Transformers.js FIRST, before other imports
-import { env } from '@huggingface/transformers';
-import path from 'node:path';
+const { env } = require('@huggingface/transformers');
+const path = require('path');
 
 // Local-only models + WASM backend knobs
 env.allowRemoteModels = false;
@@ -17,18 +17,18 @@ if (env.backends?.onnx?.wasm) {
 }
 
 // (now it's safe to import the rest of your test deps)
-import { describe, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
-import express from 'express';
-import pino from 'pino';
-import nock from 'nock';
-import { router } from '../../src/api/routes.js';
-import { handleChat } from '../../src/core/blend.js';
-import { snapshot } from '../../src/util/metrics.js';
-import { TranscriptRecorder } from '../../src/test/transcript-recorder.js';
-import { recordedRequest } from '../../src/test/transcript-helper.js';
-import { createLogger } from '../../src/util/logging.js';
+const { describe, beforeAll, afterAll, beforeEach, afterEach } = require('@jest/globals');
+const express = require('express');
+const pino = require('pino');
+const nock = require('nock');
+const { router } = require('../../src/api/routes.js');
+const { handleChat } = require('../../src/core/blend.js');
+const { snapshot } = require('../../src/util/metrics.js');
+const { TranscriptRecorder } = require('../../src/test/transcript-recorder.js');
+const { recordedRequest } = require('../../src/test/transcript-helper.js');
+const { createLogger } = require('../../src/util/logging.js');
 
-export function configureNock() {
+function configureNock() {
   // Configure nock to work with undici and allow only whitelisted hosts
   nock.disableNetConnect();
   nock.enableNetConnect((host) => {
@@ -43,7 +43,7 @@ export function configureNock() {
   });
 }
 
-export function createTestApp(): express.Express {
+function createTestApp() {
   const log = createLogger();
   const app = express();
   app.use(express.json());
@@ -51,12 +51,12 @@ export function createTestApp(): express.Express {
   return app;
 }
 
-export const shouldSaveTranscripts: boolean =
+const shouldSaveTranscripts = 
   process.env.RECORD_TRANSCRIPTS === 'true' ||
   process.argv.includes('--save-transcripts') ||
   process.argv.includes('--with-transcripts');
 
-export function createRecorderIfEnabled(): TranscriptRecorder | undefined {
+function createRecorderIfEnabled() {
   if (shouldSaveTranscripts) {
     return new TranscriptRecorder();
   }
@@ -64,13 +64,13 @@ export function createRecorderIfEnabled(): TranscriptRecorder | undefined {
 }
 
 // Helper wrapper to optionally record transcripts while preserving the same ergonomics
-export function makeRequest(app: express.Express, transcriptRecorder?: TranscriptRecorder) {
+function makeRequest(app, transcriptRecorder) {
   return {
-    post: (path: string) => {
+    post: (path) => {
       return {
-        set: (_header: string, _value: string) => ({
-          send: (data: any) => ({
-            expect: async (_status: number) => {
+        set: (_header, _value) => ({
+          send: (data) => ({
+            expect: async (_status) => {
               if (shouldSaveTranscripts && transcriptRecorder) {
                 const testName = data.message
                   ? String(data.message).substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_')
@@ -78,12 +78,12 @@ export function makeRequest(app: express.Express, transcriptRecorder?: Transcrip
                 return recordedRequest(app, transcriptRecorder, testName, data.message, data.threadId);
               }
               const body = await handleChat({ message: data.message, threadId: data.threadId }, { log: createLogger() });
-              return { body } as { body: any };
+              return { body };
             },
           }),
         }),
-        send: (data: any) => ({
-          expect: async (_status: number) => {
+        send: (data) => ({
+          expect: async (_status) => {
             if (shouldSaveTranscripts && transcriptRecorder) {
               const testName = data.message
                 ? String(data.message).substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_')
@@ -91,18 +91,27 @@ export function makeRequest(app: express.Express, transcriptRecorder?: Transcrip
               return recordedRequest(app, transcriptRecorder, testName, data.message, data.threadId);
             }
             const body = await handleChat({ message: data.message, threadId: data.threadId }, { log: createLogger() });
-            return { body } as { body: any };
+            return { body };
           },
         }),
       };
     },
-    get: (_path: string) => ({
-      expect: async (_status: number) => {
+    get: (_path) => ({
+      expect: async (_status) => {
         // Provide JSON snapshot metrics by default
-        return { body: snapshot() } as { body: any };
+        return { body: snapshot() };
       },
     }),
   };
 }
 
-export { nock, recordedRequest, TranscriptRecorder };
+module.exports = { 
+  configureNock, 
+  createTestApp, 
+  shouldSaveTranscripts, 
+  createRecorderIfEnabled, 
+  makeRequest, 
+  nock, 
+  recordedRequest, 
+  TranscriptRecorder 
+};
