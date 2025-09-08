@@ -167,12 +167,30 @@ export function extractWeatherFromResults(results: BraveSearchResult[], city: st
 /**
  * Extract country facts from search results
  */
-export function extractCountryFromResults(results: BraveSearchResult[], country: string): string | null {
-  const countryKeywords = ['currency', 'language', 'capital', 'population', 'travel'];
+export async function extractCountryFromResults(results: BraveSearchResult[], country: string): Promise<string | null> {
+  // Semantic extraction using LLM first
+  const llmResult = await llmExtractCountryFromResults(results, country);
+  if (llmResult) return llmResult;
+  
+  // Fallback to enhanced keyword matching
+  const travelKeywords = ['currency', 'language', 'capital', 'visa', 'travel', 'timezone', 'culture'];
   
   for (const result of results) {
     const text = `${result.title} ${result.description}`.toLowerCase();
-    if (countryKeywords.some(keyword => text.includes(keyword)) && text.includes(country.toLowerCase())) {
+    const countryLower = country.toLowerCase();
+    
+    if (text.includes(countryLower) && travelKeywords.some(keyword => text.includes(keyword))) {
+      // Extract relevant sentence containing travel info
+      const sentences = result.description.split(/[.!?]+/);
+      const relevantSentence = sentences.find(s => 
+        s.toLowerCase().includes(countryLower) && 
+        travelKeywords.some(k => s.toLowerCase().includes(k))
+      );
+      
+      if (relevantSentence) {
+        return `${country}: ${relevantSentence.trim()}`;
+      }
+      
       return `Travel info for ${country}: ${result.description.slice(0, 150)}...`;
     }
   }

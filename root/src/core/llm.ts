@@ -337,18 +337,27 @@ export async function optimizeSearchQuery(
   intent: string = 'unknown',
   log?: any,
 ): Promise<string> {
-  // Check cache first
-  const cacheKey = `${query}:${intent}:${JSON.stringify(context)}`;
+  // Enhanced context prioritization: if new location is mentioned, prioritize it
+  const currentLocation = context.city || context.destinationCity;
+  const contextKey = currentLocation ? `${currentLocation}:${intent}` : `${intent}:${JSON.stringify(context)}`;
+  const cacheKey = `${query}:${contextKey}`;
+  
   if (queryCache.has(cacheKey)) {
-    if (log) log.debug('Using cached optimized query');
+    if (log) log.debug({ currentLocation, intent }, 'Using cached optimized query');
     return queryCache.get(cacheKey)!;
   }
 
   try {
     const promptTemplate = await getPrompt('search_query_optimizer');
+    
+    // Enhanced context with location priority
+    const enhancedContext = currentLocation 
+      ? { ...context, primaryLocation: currentLocation }
+      : context;
+    
     const prompt = promptTemplate
       .replace('{query}', query)
-      .replace('{context}', JSON.stringify(context))
+      .replace('{context}', JSON.stringify(enhancedContext))
       .replace('{intent}', intent);
     
     const response = await callLLM(prompt, { log });
@@ -357,15 +366,34 @@ export async function optimizeSearchQuery(
     // Remove quotes that LLM might add
     optimized = optimized.replace(/^["']|["']$/g, '');
     
+    // Ensure current location is included if not already present
+    if (currentLocation && !optimized.toLowerCase().includes(currentLocation.toLowerCase())) {
+      optimized = `${currentLocation} ${optimized}`;
+    }
+    
     // Validate length constraint (≤12 words)
     const wordCount = optimized.split(/\s+/).filter(Boolean).length;
     if (wordCount > 12) {
-      // Truncate to first 12 words
-      optimized = optimized.split(/\s+/).filter(Boolean).slice(0, 12).join(' ');
+      // Truncate to first 12 words, preserving location if possible
+      const words = optimized.split(/\s+/).filter(Boolean);
+      if (currentLocation && words.length > 0 && words[0]?.toLowerCase() === currentLocation.toLowerCase()) {
+        optimized = words.slice(0, 12).join(' ');
+      } else {
+        optimized = words.slice(0, 12).join(' ');
+      }
     }
     
     // Cache the result
     queryCache.set(cacheKey, optimized);
+    
+    if (log) {
+      log.debug({ 
+        original: query, 
+        optimized, 
+        currentLocation, 
+        intent 
+      }, '🔍 Query optimized with location context');
+    }
     
     // Limit cache size
     if (queryCache.size > 100) {

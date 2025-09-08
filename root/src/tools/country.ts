@@ -1,5 +1,7 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchTravelInfo, extractCountryFromResults, llmExtractCountryFromResults } from './brave_search.js';
+import { extractEntities } from '../core/ner.js';
+import { callLLM } from '../core/llm.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
 
@@ -7,13 +9,12 @@ export async function getCountryFacts(input: { city?: string; country?: string }
   const target = input.country || input.city;
   if (!target) return { ok: false, reason: 'no_city' };
   
-  // Check if target is likely a country name
-  const countryNames = ['spain', 'france', 'italy', 'germany', 'japan', 'canada', 'australia', 'brazil', 'mexico', 'india', 'china', 'russia', 'uk', 'usa', 'america', 'united states', 'united kingdom'];
-  const isCountryName = countryNames.some(country => target.toLowerCase().includes(country));
+  // NLP-enhanced country detection
+  const locationInfo = await detectLocationWithNLP(target);
   
-  if (isCountryName) {
+  if (locationInfo.isCountry) {
     // Direct country lookup
-    const directResult = await tryDirectCountryAPI(target);
+    const directResult = await tryDirectCountryAPI(locationInfo.resolvedName);
     if (directResult.ok) {
       return directResult;
     }
@@ -38,27 +39,152 @@ export async function getCountryFacts(input: { city?: string; country?: string }
   return primaryResult; // Return original error
 }
 
+/**
+ * NLP-enhanced location detection with disambiguation
+ */
+async function detectLocationWithNLP(target: string): Promise<{
+  isCountry: boolean;
+  resolvedName: string;
+  confidence: number;
+}> {
+  try {
+    // Extract location entities using NER
+    const entities = await extractEntities(target);
+    const locationEntities = entities.filter(e => 
+      ['LOC', 'LOCATION', 'GPE'].includes(e.entity_group.toUpperCase())
+    );
+
+    if (locationEntities.length === 0) {
+      // Fallback: use LLM for disambiguation
+      return await llmDisambiguateLocation(target);
+    }
+
+    // Use highest confidence location entity
+    const primaryLocation = locationEntities.reduce((best, current) => 
+      current.score > best.score ? current : best
+    );
+
+    // Context-aware classification
+    const isCountry = await classifyAsCountry(target, primaryLocation.text);
+    
+    return {
+      isCountry,
+      resolvedName: primaryLocation.text,
+      confidence: primaryLocation.score
+    };
+  } catch {
+    // Fallback to simple heuristics
+    return {
+      isCountry: await isLikelyCountry(target),
+      resolvedName: target,
+      confidence: 0.5
+    };
+  }
+}
+
+/**
+ * LLM-based location disambiguation for ambiguous cases
+ */
+async function llmDisambiguateLocation(target: string): Promise<{
+  isCountry: boolean;
+  resolvedName: string;
+  confidence: number;
+}> {
+  try {
+    const prompt = `Analyze this location name and determine if it refers to a country or city/region:
+
+Location: "${target}"
+
+Consider context clues like:
+- "Georgia travel" → country (not US state)
+- "Paris vacation" → city
+- "UK visa" → country
+- "New York attractions" → city
+
+Respond with JSON:
+{
+  "isCountry": boolean,
+  "resolvedName": "standardized name",
+  "confidence": 0.0-1.0
+}`;
+
+    const response = await callLLM(prompt, { timeoutMs: 5000 });
+    const parsed = JSON.parse(response.trim());
+    
+    return {
+      isCountry: Boolean(parsed.isCountry),
+      resolvedName: String(parsed.resolvedName || target),
+      confidence: Math.max(0, Math.min(1, Number(parsed.confidence || 0.7)))
+    };
+  } catch {
+    return {
+      isCountry: await isLikelyCountry(target),
+      resolvedName: target,
+      confidence: 0.6
+    };
+  }
+}
+
+/**
+ * Context-aware country classification
+ */
+async function classifyAsCountry(fullText: string, locationName: string): Promise<boolean> {
+  const countryIndicators = ['visa', 'currency', 'travel to', 'country', 'nation'];
+  const cityIndicators = ['attractions', 'things to do', 'visit', 'hotel', 'restaurant'];
+  
+  const text = fullText.toLowerCase();
+  const countryScore = countryIndicators.filter(ind => text.includes(ind)).length;
+  const cityScore = cityIndicators.filter(ind => text.includes(ind)).length;
+  
+  if (countryScore > cityScore) return true;
+  if (cityScore > countryScore) return false;
+  
+  // Fallback to known country patterns
+  return await isLikelyCountry(locationName);
+}
+
+/**
+ * Simple heuristic fallback for country detection
+ */
+async function isLikelyCountry(name: string): Promise<boolean> {
+  const knownCountries = [
+    'spain', 'france', 'italy', 'germany', 'japan', 'canada', 'australia', 
+    'brazil', 'mexico', 'india', 'china', 'russia', 'uk', 'usa', 'america', 
+    'united states', 'united kingdom', 'netherlands', 'sweden', 'norway'
+  ];
+  return knownCountries.some(country => name.toLowerCase().includes(country));
+}
+
 async function tryDirectCountryAPI(countryName: string): Promise<Out> {
   try {
     const url = `https://restcountries.com/v3.1/name/${encodeURIComponent(
       countryName,
-    )}?fields=name,currencies,languages,region,capital`;
+    )}?fields=name,currencies,languages,region,capital,timezones,borders`;
     type Country = {
       name?: { common?: string };
-      currencies?: Record<string, unknown>;
+      currencies?: Record<string, { name?: string; symbol?: string }>;
       languages?: Record<string, string>;
       region?: string;
       capital?: string[];
+      timezones?: string[];
+      borders?: string[];
     };
     const res = await fetchJSON<unknown>(url, { target: 'restcountries' });
     const c: Country | undefined = Array.isArray(res)
       ? (res as Country[])[0]
       : (res as Country);
-    const cur = c?.currencies ? Object.keys(c.currencies)[0] : 'N/A';
+    
+    // Enhanced fact extraction
+    const currency = c?.currencies ? Object.entries(c.currencies)[0] : null;
+    const currencyInfo = currency ? `${currency[1].name} (${currency[1].symbol || currency[0]})` : 'N/A';
+    
     const langs = c?.languages ? Object.values(c.languages) : [];
-    const lang = langs.length > 1 ? langs.join(', ') : langs[0] || 'N/A';
+    const language = langs.length > 1 ? langs.slice(0, 2).join(', ') + (langs.length > 2 ? '...' : '') : langs[0] || 'N/A';
+    
     const capital = c?.capital?.[0] || 'N/A';
-    const summary = `${c?.name?.common} • Capital: ${capital} • Region: ${c?.region} • Currency: ${cur} • Language: ${lang}`;
+    const timezone = c?.timezones?.[0] || 'N/A';
+    
+    const summary = `${c?.name?.common} • Capital: ${capital} • Region: ${c?.region} • Currency: ${currencyInfo} • Language: ${language} • Timezone: ${timezone}`;
     return { ok: true, summary, source: 'rest-countries' };
   } catch (e) {
     if (e instanceof ExternalFetchError) {
@@ -137,8 +263,8 @@ async function tryCountryFallback(city: string): Promise<Out> {
     return { ok: true, summary: countryInfoLLM };
   }
 
-  // Heuristic fallback
-  const countryInfo = extractCountryFromResults(searchResult.results, country);
+  // Enhanced semantic fallback
+  const countryInfo = await extractCountryFromResults(searchResult.results, country);
   if (countryInfo) {
     return { ok: true, summary: countryInfo };
   }

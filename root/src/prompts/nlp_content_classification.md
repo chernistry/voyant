@@ -22,6 +22,8 @@ Examples:
 - "What to pack for Tokyo" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.8}
 - "What is United baggage allowance?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "Marriott cancellation policy" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "Delta risk-free cancellation policy" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "What is the timeframe for Delta's cancellation policy?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 
 System questions (about the AI assistant):
 - "can you help", "what can you do", "who are you", "how do you work", "tell me about yourself"
@@ -39,8 +41,9 @@ Travel requests (destinations, recommendations, packing, weather):
 Policy questions (airline/hotel/visa policies):
 - "baggage allowance", "cancellation policy", "change fee", "refund policy"
 - "visa requirements", "entry requirements", "passport", "check-in policy"
-- Questions about specific company policies (United, Marriott, etc.)
-- NOT explicit search - these use internal policy documents
+- Questions about specific company policies (United, Delta, American, Marriott, Hilton, etc.)
+- Questions asking "what is [company] policy", "timeframe for [company] cancellation", "conditions for [policy]"
+- ALWAYS policy type, NEVER explicit search - these use internal policy documents (RAG)
 
 Explicit search indicators:
 - "find", "search", "google", "look up", "search for", "get info", "information about"

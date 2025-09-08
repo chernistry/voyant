@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { callLLM } from './llm.js';
 import { getPrompt } from './prompts.js';
+import { extractEntities } from './ner.js';
 import type pino from 'pino';
 
 // Confidence thresholds (tunable)
@@ -479,13 +480,43 @@ function parseIntentWithPatterns(text: string, context?: Record<string, any>): P
 export async function extractSlots(text: string, context?: Record<string, any>, logger?: any): Promise<Record<string, string>> {
   const slots: Record<string, string> = {};
   
-  // NLP-first: extract city via Transformers NER
-  const cityResult = await parseCity(text, context, logger);
-  if (cityResult.success && cityResult.data?.normalized && cityResult.confidence > 0.5) {
-    slots.city = cityResult.data.normalized;
+  // Enhanced NER-first location extraction
+  try {
+    const entities = await extractEntities(text, logger);
+    const locationEntities = entities.filter(e => 
+      ['LOC', 'LOCATION', 'GPE'].includes(e.entity_group.toUpperCase()) && e.score > 0.5
+    );
+    
+    if (locationEntities.length > 0) {
+      // Use highest confidence location as primary city
+      const primaryLocation = locationEntities.reduce((best, current) => 
+        current.score > best.score ? current : best
+      );
+      slots.city = primaryLocation.text;
+      
+      if (logger?.debug) {
+        logger.debug({ 
+          extractedLocation: primaryLocation.text, 
+          confidence: primaryLocation.score,
+          allLocations: locationEntities.map(e => e.text)
+        }, '📍 Location extracted via NER');
+      }
+    }
+  } catch (error) {
+    if (logger?.debug) {
+      logger.debug({ error: String(error) }, '❌ NER location extraction failed');
+    }
+  }
+  
+  // Fallback: LLM-based city extraction if NER didn't find anything
+  if (!slots.city) {
+    const cityResult = await parseCity(text, context, logger);
+    if (cityResult.success && cityResult.data?.normalized && cityResult.confidence > 0.5) {
+      slots.city = cityResult.data.normalized;
+    }
   }
 
-  // Then parse origin/destination; do not overwrite an already-detected city
+  // Parse origin/destination; do not overwrite an already-detected city
   const originDestResult = await parseOriginDestination(text, context, logger);
   if (originDestResult.success && originDestResult.data) {
     if (originDestResult.data.originCity) {
