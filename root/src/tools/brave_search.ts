@@ -2,6 +2,8 @@ import { BraveSearch } from 'brave-search';
 import { getPrompt } from '../core/prompts.js';
 import { callLLM } from '../core/llm.js';
 import { deepResearchPages } from './crawlee_research.js';
+import { CircuitBreaker } from '../core/circuit-breaker.js';
+import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
 
 interface BraveSearchResult {
   title: string;
@@ -10,6 +12,9 @@ interface BraveSearchResult {
 }
 
 type Out = { ok: true; results: BraveSearchResult[]; deepSummary?: string } | { ok: false; reason: string };
+
+// Circuit breaker for Brave Search API
+const braveSearchCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'brave-search');
 
 /**
  * Search for travel information using Brave Search API
@@ -35,11 +40,13 @@ export async function searchTravelInfo(query: string, log?: any, deepResearch = 
     
     const startTime = Date.now();
     
-    // Use the wrapper's web search method
-    const response = await braveSearch.webSearch(query, {
-      count: 20,
-      text_decorations: false, // Cleaner text without HTML markup
-      spellcheck: true
+    // Use circuit breaker to protect API call
+    const response = await braveSearchCircuitBreaker.execute(async () => {
+      return await braveSearch.webSearch(query, {
+        count: 20,
+        text_decorations: false, // Cleaner text without HTML markup
+        spellcheck: true
+      });
     });
     
     const duration = Date.now() - startTime;
@@ -97,6 +104,12 @@ export async function searchTravelInfo(query: string, log?: any, deepResearch = 
         message: e instanceof Error ? e.message : 'Unknown error',
         name: e instanceof Error ? e.name : undefined
       });
+    }
+    
+    // Handle circuit breaker errors
+    if (e instanceof Error && e.name === 'CircuitBreakerError') {
+      if (log) log.debug(`🔌 Brave Search circuit breaker is open`);
+      return { ok: false, reason: 'circuit_breaker_open' };
     }
     
     // Handle different error types from the wrapper

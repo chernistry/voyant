@@ -6,10 +6,15 @@ import MarkdownIt from 'markdown-it';
 import { handleChat } from './core/blend.js';
 import { createLogger } from './util/logging.js';
 import { silenceNoisyLibLogs } from './util/noise_filter.js';
+import { RateLimiter } from './core/rate-limiter.js';
+import { RATE_LIMITER_CONFIG } from './config/resilience.js';
 
 const rl = readline.createInterface({ input, output });
 const log = createLogger();
 let threadId = 'local';
+
+// Rate limiter for CLI commands
+const cliRateLimiter = new RateLimiter(RATE_LIMITER_CONFIG);
 
 const md = new MarkdownIt({
   breaks: true,
@@ -142,38 +147,53 @@ async function main() {
     const q = await rl.question(chalk.blue.bold('You> '));
     if (q.trim().toLowerCase() === 'exit') break;
 
+    // Check rate limit
+    if (!(await cliRateLimiter.acquire())) {
+      console.log(chalk.red('⚠️  Rate limit exceeded. Please wait a moment before trying again.'));
+      continue;
+    }
+
     log.debug({ message: q, threadId }, 'Processing user message');
     
     spinner.start();
     const wantReceipts = /^\s*\/why\b/i.test(q);
-    const res = await handleChat({ message: q, threadId, receipts: wantReceipts }, { log });
-    spinner.stop();
-
-    // Update threadId if returned
-    if (res.threadId && res.threadId !== threadId) {
-      threadId = res.threadId;
-    }
-
-    log.debug({ threadId, responseThreadId: res.threadId }, 'cli_thread_debug');
-
-    process.stdout.write(chalk.green.bold('Assistant> '));
-    let outputText = res.reply;
     
-    // Only append receipts if this isn't a /why command (which already includes receipts in reply)
-    if (res.receipts && !wantReceipts) {
-      outputText += '\n\n--- RECEIPTS ---\n';
-      outputText += `Sources: ${(res.sources || []).join(', ')}\n`;
-      outputText += `Decisions: ${res.receipts.decisions.join(' ')}\n`;
-      outputText += `Self-Check: ${res.receipts.selfCheck.verdict}`;
-      if (res.receipts.selfCheck.notes.length > 0) {
-        outputText += ` (${res.receipts.selfCheck.notes.join(', ')})`;
+    try {
+      const res = await handleChat({ message: q, threadId, receipts: wantReceipts }, { log });
+      spinner.stop();
+
+      // Update threadId if returned
+      if (res.threadId && res.threadId !== threadId) {
+        threadId = res.threadId;
       }
-      outputText += '\n';
-      outputText += `Budget: ${res.receipts.budgets.ext_api_latency_ms || 0}ms API, ~${res.receipts.budgets.token_estimate || 0} tokens`;
+
+      log.debug({ threadId, responseThreadId: res.threadId }, 'cli_thread_debug');
+
+      process.stdout.write(chalk.green.bold('Assistant> '));
+      let outputText = res.reply;
+      
+      // Only append receipts if this isn't a /why command (which already includes receipts in reply)
+      if (res.receipts && !wantReceipts) {
+        outputText += '\n\n--- RECEIPTS ---\n';
+        outputText += `Sources: ${(res.sources || []).join(', ')}\n`;
+        outputText += `Decisions: ${res.receipts.decisions.join(' ')}\n`;
+        outputText += `Self-Check: ${res.receipts.selfCheck.verdict}`;
+        if (res.receipts.selfCheck.notes.length > 0) {
+          outputText += ` (${res.receipts.selfCheck.notes.join(', ')})`;
+        }
+        outputText += '\n';
+        outputText += `Budget: ${res.receipts.budgets.ext_api_latency_ms || 0}ms API, ~${res.receipts.budgets.token_estimate || 0} tokens`;
+      }
+      const renderedReply = renderMarkdownToTerminal(outputText);
+      await streamText(renderedReply);
+      console.log(); // new line after completion
+    } catch (error) {
+      spinner.stop();
+      console.log(chalk.red('❌ Error processing request:', error instanceof Error ? error.message : String(error)));
+    } finally {
+      // Release rate limiter
+      cliRateLimiter.release();
     }
-    const renderedReply = renderMarkdownToTerminal(outputText);
-    await streamText(renderedReply);
-    console.log(); // new line after completion
   }
   rl.close();
 }

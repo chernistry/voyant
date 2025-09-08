@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { getContext } from './memory.js';
 import { fetch as undiciFetch } from 'undici';
 import { getPrompt } from './prompts.js';
+import { CircuitBreaker } from './circuit-breaker.js';
+import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
+
+// Circuit breaker for LLM API calls
+const llmCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'llm');
 
 type ResponseFormat = 'text' | 'json';
 
@@ -91,32 +96,38 @@ async function tryModel(
   try {
     if (log?.debug) log.debug(`🔗 Trying model: ${model} at ${baseUrl}`);
     const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error('llm_timeout')), Math.max(500, timeoutMs));
-    const res = await undiciFetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: format === 'json' ? 0.2 : 0.5,
-        max_tokens: 2000,
-        ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
-      }),
-      signal: controller.signal,
+    
+    const result = await llmCircuitBreaker.execute(async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(new Error('llm_timeout')), Math.max(500, timeoutMs));
+      
+      const res = await undiciFetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: format === 'json' ? 0.2 : 0.5,
+          max_tokens: 2000,
+          ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        if (log?.debug) log.debug(`❌ Model ${model} failed: ${res.status} - ${errorText.substring(0, 200)}`);
+        throw new Error(`HTTP ${res.status}: ${errorText.substring(0, 100)}`);
+      }
+      
+      return res;
     });
-    clearTimeout(timer);
     
-    if (!res.ok) {
-      const errorText = await res.text();
-      if (log?.debug) log.debug(`❌ Model ${model} failed: ${res.status} - ${errorText.substring(0, 200)}`);
-      return null;
-    }
-    
-    const data = (await res.json()) as { 
+    const data = (await result.json()) as { 
       choices?: { message?: { content?: string } }[];
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     };
@@ -130,6 +141,12 @@ async function tryModel(
     if (log?.debug) log.debug(`❌ Model ${model} returned empty content`);
     return null;
   } catch (e) {
+    // Handle circuit breaker errors
+    if (e instanceof Error && e.name === 'CircuitBreakerError') {
+      if (log?.debug) log.debug(`🔌 Model ${model} circuit breaker is open`);
+      return null;
+    }
+    
     if (log?.debug) log.debug(`❌ Model ${model} error: ${String(e)}`);
     return null;
   }

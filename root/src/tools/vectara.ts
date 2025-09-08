@@ -1,6 +1,11 @@
 import { VECTARA } from '../config/vectara.js';
 import { VectaraQueryResponse, VectaraQueryResponseT } from '../schemas/vectara.js';
 import { ExternalFetchError } from '../util/fetch.js';
+import { CircuitBreaker } from '../core/circuit-breaker.js';
+import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
+
+// Circuit breaker for Vectara API
+const vectaraCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'vectara');
 
 /**
  * TTL cache for Vectara query responses to reduce latency on repeated queries.
@@ -114,10 +119,12 @@ export class VectaraClient {
     const body = JSON.stringify(isV2 ? bodyV2 : bodyV1);
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body,
+      const response = await vectaraCircuitBreaker.execute(async () => {
+        return await fetch(url, {
+          method: 'POST',
+          headers,
+          body,
+        });
       });
 
       if (!response.ok) {
@@ -151,6 +158,11 @@ export class VectaraClient {
       qCache.set(cacheKey, normalized);
       return normalized;
     } catch (e) {
+      // Handle circuit breaker errors
+      if (e instanceof Error && e.name === 'CircuitBreakerError') {
+        throw new ExternalFetchError('network', 'vectara_circuit_breaker_open');
+      }
+      
       if (e instanceof ExternalFetchError) throw e;
       throw new ExternalFetchError('network', 'vectara_query_failed');
     }
@@ -188,13 +200,15 @@ export class VectaraClient {
     };
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.auth,
-        },
-        body: JSON.stringify(body),
+      const response = await vectaraCircuitBreaker.execute(async () => {
+        return await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.auth,
+          },
+          body: JSON.stringify(body),
+        });
       });
 
       if (!response.ok) {
@@ -204,6 +218,11 @@ export class VectaraClient {
       const resp = await response.json();
       return Boolean(resp?.ok ?? true);
     } catch (e) {
+      // Handle circuit breaker errors
+      if (e instanceof Error && e.name === 'CircuitBreakerError') {
+        throw new ExternalFetchError('network', 'vectara_circuit_breaker_open');
+      }
+      
       if (e instanceof ExternalFetchError) throw e;
       throw new ExternalFetchError('network', 'vectara_index_failed');
     }

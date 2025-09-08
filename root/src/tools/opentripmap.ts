@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
+import { CircuitBreaker } from '../core/circuit-breaker.js';
+import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
 
 const BASE_URL = 'https://api.opentripmap.com/0.1/en/places';
+
+// Circuit breaker for OpenTripMap API
+const openTripMapCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'opentripmap');
 
 // Two possible formats from OpenTripMap:
 // 1) format=json → features: [{ xid, name, kinds, point: { lat, lon } }]
@@ -56,11 +61,13 @@ export async function searchPOIs(input: {
     `&radius=${radius}&format=geojson&limit=${limit}` +
     `&kinds=${encodeURIComponent(kinds)}&apikey=${encodeURIComponent(key)}`;
   try {
-    const json = await fetchJSON<unknown>(url, {
-      timeoutMs: 5000,
-      retries: 2,
-      target: 'opentripmap',
-      headers: { 'Accept': 'application/json' },
+    const json = await openTripMapCircuitBreaker.execute(async () => {
+      return await fetchJSON<unknown>(url, {
+        timeoutMs: 5000,
+        retries: 2,
+        target: 'opentripmap',
+        headers: { 'Accept': 'application/json' },
+      });
     });
     // Try GeoJSON first, then JSON fallback
     const geo = GeoResponseSchema.safeParse(json);
@@ -85,6 +92,11 @@ export async function searchPOIs(input: {
     }
     return { ok: false, reason: 'invalid_schema', source: 'opentripmap' };
   } catch (e) {
+    // Handle circuit breaker errors
+    if (e instanceof Error && e.name === 'CircuitBreakerError') {
+      return { ok: false, reason: 'circuit_breaker_open', source: 'opentripmap' };
+    }
+    
     if (e instanceof ExternalFetchError) {
       if (e.kind === 'timeout') return { ok: false, reason: 'timeout', source: 'opentripmap' };
       if (e.kind === 'http') {
@@ -126,11 +138,13 @@ export async function getPOIDetail(xid: string): Promise<
   if (!key) return { ok: false, reason: 'missing_api_key' };
   const url = `${BASE_URL}/xid/${encodeURIComponent(xid)}?apikey=${encodeURIComponent(key)}`;
   try {
-    const json = await fetchJSON<unknown>(url, {
-      timeoutMs: 5000,
-      retries: 1,
-      target: 'opentripmap',
-      headers: { Accept: 'application/json' },
+    const json = await openTripMapCircuitBreaker.execute(async () => {
+      return await fetchJSON<unknown>(url, {
+        timeoutMs: 5000,
+        retries: 1,
+        target: 'opentripmap',
+        headers: { Accept: 'application/json' },
+      });
     });
     const parsed = PoiDetailSchema.safeParse(json);
     if (!parsed.success) return { ok: false, reason: 'invalid_schema', source: 'opentripmap' };
@@ -146,6 +160,11 @@ export async function getPOIDetail(xid: string): Promise<
       source: 'opentripmap',
     };
   } catch (e) {
+    // Handle circuit breaker errors
+    if (e instanceof Error && e.name === 'CircuitBreakerError') {
+      return { ok: false, reason: 'circuit_breaker_open', source: 'opentripmap' };
+    }
+    
     if (e instanceof ExternalFetchError) {
       if (e.kind === 'timeout') return { ok: false, reason: 'timeout', source: 'opentripmap' };
       if (e.kind === 'http') {

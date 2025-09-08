@@ -3,9 +3,15 @@ import express from 'express';
 import { createLogger } from '../util/logging.js';
 import { router } from './routes.js';
 import { preloadPrompts } from '../core/prompts.js';
+import { RateLimiter } from '../core/rate-limiter.js';
+import { RATE_LIMITER_CONFIG } from '../config/resilience.js';
 
 const log = createLogger();
 const app = express();
+
+// Rate limiter for API endpoints
+const apiRateLimiter = new RateLimiter(RATE_LIMITER_CONFIG);
+
 app.use(express.json({ limit: '512kb' }));
 
 // CORS support for frontend integration
@@ -18,6 +24,28 @@ app.use((req, res, next) => {
   } else {
     next();
   }
+});
+
+// Rate limiting middleware (skip for health checks and OPTIONS)
+app.use(async (req, res, next) => {
+  if (req.path === '/healthz' || req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  if (!(await apiRateLimiter.acquire())) {
+    log.warn({ method: req.method, path: req.path, ip: req.ip }, 'Rate limit exceeded');
+    return res.status(429).json({ 
+      error: 'Rate limit exceeded',
+      message: 'Too many requests. Please try again later.'
+    });
+  }
+  
+  // Auto-release after request completes
+  resOnFinish(res, () => {
+    apiRateLimiter.release();
+  });
+  
+  next();
 });
 
 // Basic request logging
