@@ -658,14 +658,28 @@ export async function blendWithFacts(
         decisions.push('Weather unavailable; providing general packing guidance without numbers.');
       }
     } else if (input.route.intent === 'destinations') {
-      // Use destinations catalog for recommendations
-      ctx.onStatus?.('Finding travel destinations...');
-      ctx.log.debug({ intent: input.route.intent, slots: input.route.slots }, 'destinations_block_entered');
-      try {
-        const { recommendDestinations } = await import('../tools/destinations.js');
-        ctx.log.debug('destinations_function_imported');
-        const destinationFacts = await recommendDestinations(input.route.slots);
-        ctx.log.debug({ factsCount: destinationFacts.length }, 'destinations_function_called');
+      // Check if this is a refinement of existing context
+      const isRefinement = /\b(make it|kid[- ]?friendly|family|children|kids?)\b/i.test(input.message);
+      const hasExistingContext = cityHint && whenHint;
+      
+      if (isRefinement && hasExistingContext) {
+        // For refinements, use the existing context and add refinement guidance
+        ctx.onStatus?.('Refining your travel recommendations...');
+        ctx.log.debug({ intent: input.route.intent, slots: input.route.slots, isRefinement: true }, 'destinations_refinement_detected');
+        
+        // Add context-specific facts for the existing destination
+        const contextFact = `EXISTING CONTEXT: Traveling from ${cityHint} in ${whenHint}. User requested refinement: ${input.message}`;
+        facts += `${contextFact}\n`;
+        decisions.push('Detected refinement request - preserving existing travel context and adding specific adjustments.');
+      } else {
+        // Use destinations catalog for new recommendations
+        ctx.onStatus?.('Finding travel destinations...');
+        ctx.log.debug({ intent: input.route.intent, slots: input.route.slots }, 'destinations_block_entered');
+        try {
+          const { recommendDestinations } = await import('../tools/destinations.js');
+          ctx.log.debug('destinations_function_imported');
+          const destinationFacts = await recommendDestinations(input.route.slots);
+          ctx.log.debug({ factsCount: destinationFacts.length }, 'destinations_function_called');
         
         if (destinationFacts.length > 0) {
           cits.push('Catalog+REST Countries');
@@ -680,6 +694,7 @@ export async function blendWithFacts(
       } catch (e) {
         ctx.log.debug({ error: e }, 'destinations_catalog_failed');
         decisions.push('Destinations catalog unavailable; using generic guidance.');
+      }
       }
       
       // Get weather for origin city (use originCity if available, fallback to city)

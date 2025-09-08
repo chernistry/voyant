@@ -72,7 +72,7 @@ async function nerInChild(
 export { nerInChild };
 
 export const ContentClassification = z.object({
-  content_type: z.enum(['travel', 'system', 'unrelated', 'budget']),
+  content_type: z.enum(['travel', 'system', 'unrelated', 'budget', 'refinement']),
   confidence: z.number().min(0).max(1),
   intent: z.enum(['weather', 'packing', 'attractions', 'destinations']).optional()
 });
@@ -185,7 +185,7 @@ export async function classifyContent(text: string, log?: pino.Logger): Promise<
   try {
     const classifier = await loadContentClassifier(log);
     
-    const candidateLabels = ['travel', 'system', 'unrelated', 'budget'];
+    const candidateLabels = ['travel', 'system', 'unrelated', 'budget', 'refinement'];
     const result = await classifier.classify(text, candidateLabels);
     
     const topLabel = result.labels[0];
@@ -224,6 +224,11 @@ export async function classifyContent(text: string, log?: pino.Logger): Promise<
     
     if (/are you (a )?real|are you (an? )?person|are you (an? )?(ai|bot|robot|human)/i.test(m)) {
       return { content_type: 'system', confidence: 0.95 };
+    }
+    
+    // Handle refinement patterns as travel content
+    if (/\b(make it|kid-friendly|family-friendly|budget-friendly|shorter flight|less expensive|more luxury)\b/i.test(m)) {
+      return { content_type: 'travel', confidence: 0.9 };
     }
     
     if (/budget|cost|price|money|expensive|cheap|afford|spend|currency exchange|exchange rate/i.test(m)) {
@@ -270,6 +275,11 @@ export async function classifyIntent(text: string, log?: pino.Logger): Promise<I
     
     if (/are you (a )?real|are you (an? )?person|are you (an? )?(ai|bot|robot|human)/i.test(m)) {
       return { intent: 'system', confidence: 0.95 };
+    }
+    
+    // Handle refinement patterns - these should not be classified as system
+    if (/\b(make it|kid-friendly|family-friendly|budget-friendly|shorter flight|less expensive|more luxury)\b/i.test(m)) {
+      return { intent: 'unknown', confidence: 0.3 }; // Low confidence to let graph handle refinement
     }
     
     if (/\b(weather|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) || 

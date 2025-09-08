@@ -9,7 +9,10 @@ Hard requirements:
 Examples:
 - "Hey can you help plan a trip?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "From NYC, end of June. Ideas?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "Where should I go in June from NYC?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "What should we pack?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "Make it kid-friendly" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
+- "Make it family-friendly" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "What can you do?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "confidence": 0.9}
 - "Find visa requirements for Germans" → {"content_type": "travel", "is_explicit_search": true, "needs_web_search": true, "confidence": 0.9}
 - "Search for flights to Paris" → {"content_type": "flight", "is_explicit_search": true, "needs_web_search": true, "confidence": 0.9}
@@ -30,6 +33,7 @@ Travel requests (destinations, recommendations, packing, weather):
 - "what should we pack", "what to pack", "packing list", "what to bring"
 - "weather", "temperature", "forecast"
 - Requests with origin/dates asking for destination ideas
+- Refinement requests: "make it kid-friendly", "family-friendly", "budget-friendly", "shorter flights"
 - NOT explicit search unless using search command words
 
 Policy questions (airline/hotel/visa policies):
@@ -41,7 +45,7 @@ Policy questions (airline/hotel/visa policies):
 Explicit search indicators:
 - "find", "search", "google", "look up", "search for", "get info", "information about"
 - Commands requesting information that requires web search
-- NOT basic travel questions like packing, weather, attractions
+- NOT basic travel questions like "where should I go", "what should I pack", weather, attractions
 
 Content types:
 - system: questions about the AI assistant itself or requests for help

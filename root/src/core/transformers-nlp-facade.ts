@@ -8,7 +8,7 @@ import { extractEntities } from './ner.js';
 export const NLPResult = z.object({
   corrected_text: z.string(),
   content_classification: z.object({
-    content_type: z.enum(['travel', 'system', 'unrelated', 'budget']),
+    content_type: z.enum(['travel', 'system', 'unrelated', 'budget', 'refinement']),
     confidence: z.number(),
     intent: z.enum(['weather', 'packing', 'attractions', 'destinations']).optional()
   }),

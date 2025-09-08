@@ -68,8 +68,9 @@ export async function runGraphTurn(
   }
 
   // Check for system identity questions using transformers intent classification
+  // Skip system check for refinement messages
   const intentClassification = await classifyIntent(message, ctx.log);
-  if (intentClassification.intent === 'system') {
+  if (intentClassification.intent === 'system' && contentClassification.content_type !== 'refinement') {
     return {
       done: true,
       reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
