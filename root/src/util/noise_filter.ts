@@ -4,6 +4,9 @@
 const NOISY_PATTERNS: RegExp[] = [
   /dtype not specified for "model"/i,
   /Using the default dtype \(fp32\) for this device \(cpu\)/i,
+  /ERROR CheerioCrawler:/i,
+  /Request failed and reached maximum retries/i,
+  /Request blocked - received 403 status code/i,
 ];
 
 function shouldFilter(chunk: any): boolean {
