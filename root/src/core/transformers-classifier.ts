@@ -1,5 +1,17 @@
 import type pino from 'pino';
 import { z } from 'zod';
+import path from 'node:path';
+
+// Configure Transformers.js environment for offline mode in tests
+if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+  import('@huggingface/transformers').then(({ env }) => {
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.useFS = true;
+    env.useFSCache = true;
+    env.localModelPath = path.resolve(process.cwd(), 'models');
+  });
+}
 
 export const ContentClassification = z.object({
   content_type: z.enum(['travel', 'system', 'unrelated', 'budget']),
@@ -18,20 +30,28 @@ export type IntentClassificationT = z.infer<typeof IntentClassification>;
 let contentClassifier: Promise<any> | null = null;
 let intentClassifier: Promise<any> | null = null;
 
+function getClassificationModel(): string {
+  const useLocal = process.env.NER_USE_LOCAL === 'true';
+  return useLocal 
+    ? (process.env.TRANSFORMERS_CLASSIFICATION_MODEL_LOCAL || 'Xenova/nli-deberta-v3-base')
+    : (process.env.TRANSFORMERS_CLASSIFICATION_MODEL_REMOTE || 'facebook/bart-large-mnli');
+}
+
 async function loadContentClassifier(log?: pino.Logger): Promise<any> {
   if (!contentClassifier) {
     contentClassifier = (async () => {
       try {
         const { pipeline } = await import('@huggingface/transformers');
+        const modelName = getClassificationModel();
         
         if (log?.debug) {
-          log.debug({}, '🤖 TRANSFORMERS: Loading content classification pipeline');
+          log.debug({ model: modelName }, '🤖 TRANSFORMERS: Loading content classification pipeline');
         }
         
-        const classifier = await pipeline('zero-shot-classification', 'facebook/bart-large-mnli');
+        const classifier = await pipeline('zero-shot-classification', modelName);
         
         if (log?.debug) {
-          log.debug({}, '✅ TRANSFORMERS: Content classification pipeline loaded');
+          log.debug({ model: modelName }, '✅ TRANSFORMERS: Content classification pipeline loaded');
         }
         
         return classifier;
@@ -51,15 +71,16 @@ async function loadIntentClassifier(log?: pino.Logger): Promise<any> {
     intentClassifier = (async () => {
       try {
         const { pipeline } = await import('@huggingface/transformers');
+        const modelName = getClassificationModel();
         
         if (log?.debug) {
-          log.debug({}, '🤖 TRANSFORMERS: Loading intent classification pipeline');
+          log.debug({ model: modelName }, '🤖 TRANSFORMERS: Loading intent classification pipeline');
         }
         
-        const classifier = await pipeline('zero-shot-classification', 'facebook/bart-large-mnli');
+        const classifier = await pipeline('zero-shot-classification', modelName);
         
         if (log?.debug) {
-          log.debug({}, '✅ TRANSFORMERS: Intent classification pipeline loaded');
+          log.debug({ model: modelName }, '✅ TRANSFORMERS: Intent classification pipeline loaded');
         }
         
         return classifier;

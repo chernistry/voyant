@@ -2,12 +2,20 @@ import { describe, beforeAll, afterAll, beforeEach, afterEach } from '@jest/glob
 import express from 'express';
 import pino from 'pino';
 import nock from 'nock';
+import path from 'node:path';
 import { router } from '../../src/api/routes.js';
 import { handleChat } from '../../src/core/blend.js';
 import { snapshot } from '../../src/util/metrics.js';
 import { TranscriptRecorder } from '../../src/test/transcript-recorder.js';
 import { recordedRequest } from '../../src/test/transcript-helper.js';
 import { createLogger } from '../../src/util/logging.js';
+
+// Configure Transformers.js for offline mode in tests - must be synchronous
+if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+  process.env.TRANSFORMERS_CACHE = path.resolve(process.cwd(), 'models');
+  process.env.HF_HUB_DISABLE_TELEMETRY = '1';
+  process.env.TRANSFORMERS_OFFLINE = '1';
+}
 
 export function configureNock() {
   // Configure nock to work with undici and allow only whitelisted hosts

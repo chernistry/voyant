@@ -7,3 +7,4 @@ root/node_modules/*
 root/.env
 root/storage/*
 docs/.dev/*
+/root/models/*
