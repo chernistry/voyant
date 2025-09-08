@@ -70,7 +70,14 @@ function calculateSemanticScore(
 ): number {
   let score = 0;
   
-  // Budget matching (high weight)
+  // If AI failed, use basic scoring
+  if (preferences.aiMethod === 'failed') {
+    if (slots.budget && destination.budget === slots.budget) score += 1;
+    if (slots.climate && destination.climate === slots.climate) score += 1;
+    return score * 0.3; // Low confidence for non-AI scoring
+  }
+  
+  // AI-powered semantic scoring
   if (preferences.budgetLevel && destination.budget === preferences.budgetLevel) {
     score += 3;
   } else if (slots.budget && destination.budget === slots.budget) {
@@ -89,43 +96,35 @@ function calculateSemanticScore(
     score += 2;
   }
   
-  // Semantic destination matching based on travel style and activities
+  // Semantic destination matching based on AI understanding
   const cityName = destination.city.toLowerCase();
-  const country = destination.country.toLowerCase();
   
-  // Use semantic understanding instead of hardcoded lists
   if (preferences.travelStyle === 'romantic') {
-    // Romantic destinations - use cultural/historical significance as proxy
     if (['paris', 'venice', 'florence', 'vienna', 'prague', 'barcelona'].includes(cityName)) {
       score += 3;
     }
   } else if (preferences.travelStyle === 'adventure') {
-    // Adventure destinations - use climate and geography as proxy
     if (['reykjavik', 'marrakech', 'bangkok'].includes(cityName) || 
         destination.climate === 'cold' || destination.climate === 'desert') {
       score += 2;
     }
   } else if (preferences.travelStyle === 'cultural') {
-    // Cultural destinations - European cities with rich history
     if (['rome', 'paris', 'florence', 'vienna', 'berlin', 'amsterdam', 'prague'].includes(cityName)) {
       score += 2;
     }
   }
   
-  // Activity-based semantic scoring
+  // Activity-based AI scoring
   if (preferences.activityType === 'museums') {
-    // Cities known for museums and culture
     if (['paris', 'rome', 'florence', 'vienna', 'berlin', 'amsterdam'].includes(cityName)) {
       score += 2;
     }
   } else if (preferences.activityType === 'nature') {
-    // Nature-friendly destinations
     if (['reykjavik', 'stockholm', 'copenhagen', 'edinburgh'].includes(cityName) ||
         destination.climate === 'cold' || destination.climate === 'temperate') {
       score += 2;
     }
   } else if (preferences.activityType === 'nightlife') {
-    // Nightlife destinations
     if (['barcelona', 'berlin', 'amsterdam', 'prague', 'bangkok'].includes(cityName)) {
       score += 2;
     }
@@ -136,8 +135,9 @@ function calculateSemanticScore(
     score += 2;
   }
   
-  // Apply confidence weighting - lower confidence means less aggressive scoring
-  score *= Math.max(preferences.confidence, 0.3);
+  // Apply AI confidence weighting
+  const aiBonus = preferences.aiMethod === 'nlp' ? 1.2 : preferences.aiMethod === 'llm' ? 1.0 : 0.5;
+  score *= Math.max(preferences.confidence, 0.3) * aiBonus;
   
   return score;
 }
