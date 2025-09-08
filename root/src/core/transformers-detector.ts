@@ -5,7 +5,7 @@ export const LanguageResult = z.object({
   language: z.string(),
   confidence: z.number().min(0).max(1),
   has_mixed_languages: z.boolean(),
-  script_type: z.enum(['latin', 'cyrillic', 'japanese', 'mixed', 'unknown'])
+  script_type: z.enum(['latin', 'cyrillic', 'japanese', 'hebrew', 'mixed', 'unknown'])
 });
 
 export type LanguageResultT = z.infer<typeof LanguageResult>;
@@ -46,17 +46,20 @@ export async function detectLanguage(text: string, log?: pino.Logger): Promise<L
   const hasLatin = /[a-zA-Z]/.test(text);
   const hasArabic = /[\u0600-\u06FF]/.test(text);
   const hasChinese = /[\u4E00-\u9FAF]/.test(text);
+  const hasHebrew = /[\u0590-\u05FF]/.test(text);
   
-  const scriptCount = [hasCyrillic, hasJapanese, hasLatin, hasArabic, hasChinese].filter(Boolean).length;
+  const scriptCount = [hasCyrillic, hasJapanese, hasLatin, hasArabic, hasChinese, hasHebrew].filter(Boolean).length;
   const has_mixed_languages = scriptCount > 1;
   
-  let script_type: 'latin' | 'cyrillic' | 'japanese' | 'mixed' | 'unknown' = 'unknown';
+  let script_type: 'latin' | 'cyrillic' | 'japanese' | 'hebrew' | 'mixed' | 'unknown' = 'unknown';
   if (scriptCount > 1) {
     script_type = 'mixed';
   } else if (hasCyrillic) {
     script_type = 'cyrillic';
   } else if (hasJapanese || hasChinese) {
     script_type = 'japanese';
+  } else if (hasHebrew) {
+    script_type = 'hebrew';
   } else if (hasLatin) {
     script_type = 'latin';
   }
@@ -100,6 +103,9 @@ export async function detectLanguage(text: string, log?: pino.Logger): Promise<L
     } else if (hasChinese) {
       language = 'zh';
       confidence = 0.75;
+    } else if (hasHebrew) {
+      language = 'he';
+      confidence = 0.75;
     } else if (hasArabic) {
       language = 'ar';
       confidence = 0.75;
@@ -116,7 +122,7 @@ export async function detectLanguage(text: string, log?: pino.Logger): Promise<L
       has_mixed_languages,
       confidence,
       textLength: cleanText.length,
-      scriptCounts: { hasCyrillic, hasJapanese, hasLatin, hasArabic, hasChinese }
+      scriptCounts: { hasCyrillic, hasJapanese, hasLatin, hasArabic, hasChinese, hasHebrew }
     }, '🌐 LANGUAGE: Final detection result');
   }
   

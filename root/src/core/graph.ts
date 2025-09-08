@@ -7,7 +7,7 @@ import { searchTravelInfo } from '../tools/brave_search.js';
 import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
 import { getPrompt } from './prompts.js';
 import { TransformersNLP } from './transformers-nlp-facade.js';
-import { correctSpelling } from './transformers-corrector.js';
+
 import { classifyContent as classifyContentTransformers, classifyIntent } from './transformers-classifier.js';
 import { detectLanguage } from './transformers-detector.js';
 import { extractEntitiesEnhanced } from './ner-enhanced.js';
@@ -42,21 +42,7 @@ export async function runGraphTurn(
   threadId: string,
   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ): Promise<NodeOut> {
-  // Use transformers-based spell correction instead of hardcoded typos
-  const correctionResult = await correctSpelling(message, ctx.log);
-  const correctedMessage = correctionResult.corrected_text;
-  
-  // Use corrected message for processing if corrections were made
-  if (correctionResult.corrections.length > 0) {
-    message = correctedMessage;
-    ctx.log.debug({ 
-      original: message,
-      corrected: correctedMessage,
-      corrections: correctionResult.corrections.length 
-    }, '✏️ GRAPH: Applied spell corrections');
-  }
-
-  // Use transformers-based content classification instead of regex patterns
+  // Use transformers-based content classification directly
   const contentClassification = await classifyContentTransformers(message, ctx.log);
   
   // Check for unrelated topics using transformers classification
@@ -202,20 +188,6 @@ export async function runGraphTurn(
         };
       }
     }
-  }
-
-  // Use unified Transformers spell correction
-  let spellingCorrectedMessage = message;
-  try {
-    const { correctSpelling } = await import('./transformers-corrector.js');
-    const correctionResult = await correctSpelling(message, ctx.log);
-    spellingCorrectedMessage = correctionResult.corrected_text;
-    
-    if (spellingCorrectedMessage !== message) {
-      message = spellingCorrectedMessage;
-    }
-  } catch (error) {
-    // Continue with original message if correction fails
   }
 
   // Use Transformers NER to intelligently detect actual cities vs other words
