@@ -11,6 +11,9 @@
  * - HF_TOKEN: Optional for remote API
  * - NER_MODE: local|remote|auto
  */
+// Configure Transformers.js environment FIRST
+import './transformers-env.js';
+
 import 'dotenv/config';
 import type pino from 'pino';
 
@@ -52,52 +55,82 @@ function shouldUseLocal(): boolean {
 
 async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => Promise<NerSpan[]>> {
   try {
-    const { pipeline } = await import('@huggingface/transformers');
-    
     const model = getModelName(true); // Use local model
+    const isJest = !!process.env.JEST_WORKER_ID;
+    
     if (log?.debug) {
-      log.debug({ model, hasToken: !!process.env.HF_TOKEN }, '🤖 NER: Loading local pipeline');
+      log.debug({ 
+        model, 
+        hasToken: !!process.env.HF_TOKEN, 
+        isJest,
+        jestWorkerId: process.env.JEST_WORKER_ID 
+      }, '🤖 NER: Loading local pipeline');
     }
     
-    // Suppress console output from transformers.js if LOG_LEVEL is info or higher
-    const originalConsole = { ...console };
-    const shouldSuppressConsole = ['info', 'warn', 'error'].includes(process.env.LOG_LEVEL || '');
-    
-    if (shouldSuppressConsole) {
-      console.log = () => {};
-      console.warn = () => {};
-      console.info = () => {};
-    }
-    
-    const ner = await pipeline('token-classification', model as any, {} as any);
-    
-    // Restore console
-    if (shouldSuppressConsole) {
-      Object.assign(console, originalConsole);
-    }
-
-    if (log?.debug) {
-      log.debug({ model }, '✅ NER: Local pipeline loaded');
-    }
-
-    return async (text: string) => {
-      try {
-        const truncated = text.slice(0, MAX_TEXT_LENGTH);
-        // @ts-ignore transformers.js aggregation API
-        const out = await ner(truncated, { aggregation_strategy: 'simple' });
-        const arr: NerSpan[] = Array.isArray(out)
-          ? out.map((o: any) => ({
-              entity_group: String(o.entity_group || o.entity || ''),
-              score: Number(o.score || 0),
-              text: String(o.word || o.text || ''),
-            }))
-          : [];
-        return arr;
-      } catch (e) {
-        if (log?.debug) log.debug({ err: String(e) }, '❌ NER: Local inference failed');
-        return [];
+    if (isJest) {
+      // ✅ Avoid Float32Array realm mismatch inside Jest
+      const { nerInChild } = await import('./transformers-classifier.js');
+      
+      if (log?.debug) {
+        log.debug({ model }, '✅ NER: Local pipeline loaded (child process)');
       }
-    };
+      
+      return async (text: string): Promise<NerSpan[]> => {
+        try {
+          const truncated = text.slice(0, MAX_TEXT_LENGTH);
+          const result = await nerInChild(model, truncated);
+          return result || [];
+        } catch (error) {
+          if (log?.debug) {
+            log.debug({ error: String(error), text: text.slice(0, 50) }, '❌ NER: Child process failed');
+          }
+          return [];
+        }
+      };
+    } else {
+      // Normal path (CLI / prod)
+      const { pipeline } = await import('@huggingface/transformers');
+      
+      // Suppress console output from transformers.js if LOG_LEVEL is info or higher
+      const originalConsole = { ...console };
+      const shouldSuppressConsole = ['info', 'warn', 'error'].includes(process.env.LOG_LEVEL || '');
+      
+      if (shouldSuppressConsole) {
+        console.log = () => {};
+        console.warn = () => {};
+        console.info = () => {};
+      }
+      
+      const ner = await pipeline('token-classification', model as any, {} as any);
+      
+      // Restore console
+      if (shouldSuppressConsole) {
+        Object.assign(console, originalConsole);
+      }
+
+      if (log?.debug) {
+        log.debug({ model }, '✅ NER: Local pipeline loaded');
+      }
+
+      return async (text: string) => {
+        try {
+          const truncated = text.slice(0, MAX_TEXT_LENGTH);
+          // @ts-ignore transformers.js aggregation API
+          const out = await ner(truncated, { aggregation_strategy: 'simple' });
+          const arr: NerSpan[] = Array.isArray(out)
+            ? out.map((o: any) => ({
+                entity_group: String(o.entity_group || o.entity || ''),
+                score: Number(o.score || 0),
+                text: String(o.word || o.text || ''),
+              }))
+            : [];
+          return arr;
+        } catch (e) {
+          if (log?.debug) log.debug({ err: String(e) }, '❌ NER: Local inference failed');
+          return [];
+        }
+      };
+    }
   } catch (e) {
     if (log?.debug) {
       log.debug({ 

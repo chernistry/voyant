@@ -4,25 +4,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export default {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  preset: 'ts-jest/presets/default-esm',
+  extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', { 
-      useESM: false,  // Use CommonJS to avoid Jest ESM realm issues
-      tsconfig: {
-        module: 'commonjs'
-      }
-    }],
+    '^.+\\.ts$': ['ts-jest', { useESM: true }],
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.ts'],
   testTimeout: 45000,
   forceExit: true,
   detectOpenHandles: true,
   testSequencer: '<rootDir>/tests/custom-sequencer.js',
-  resetModules: true,
-  // Run tests in single process to minimize realm issues
   maxWorkers: 1,
 };

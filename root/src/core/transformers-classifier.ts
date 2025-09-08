@@ -1,24 +1,75 @@
+// Configure Transformers.js environment FIRST
+import './transformers-env.js';
+
 import type pino from 'pino';
 import { z } from 'zod';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 
-// Configure Transformers.js for local models
-let envConfigured = false;
-async function configureEnv() {
-  if (envConfigured) return;
-  const { env } = await import('@huggingface/transformers');
-  env.allowRemoteModels = false;
-  env.allowLocalModels = true;
-  env.useFS = true;
-  env.useFSCache = true;
-  env.localModelPath = path.resolve(process.cwd(), 'models');
-  if (env.backends?.onnx?.wasm) {
-    env.backends.onnx.wasm.numThreads = 1;
-    env.backends.onnx.wasm.simd = false;       // ARM64 compatibility
-    env.backends.onnx.wasm.proxy = false;
-  }
-  envConfigured = true;
+/** Run zero-shot classification in a child Node process (avoids Jest realm issues). */
+async function zeroShotInChild(
+  modelName: string,
+  text: string,
+  candidateLabels: string[],
+): Promise<any> {
+  const runner = path.resolve(process.cwd(), 'scripts/transformers-child.cjs');
+  const child = spawn(process.execPath, [runner], { stdio: ['pipe', 'pipe', 'inherit'] });
+
+  const payload = JSON.stringify({
+    task: 'zero-shot-classification',
+    model: modelName,
+    text,
+    candidateLabels,
+  });
+
+  return await new Promise((resolve, reject) => {
+    let out = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (c) => (out += c));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        try { resolve(JSON.parse(out)); } catch (e) { reject(e); }
+      } else {
+        reject(new Error(`transformers-child exited with code ${code}`));
+      }
+    });
+    child.stdin.end(payload);
+  });
 }
+
+/** Run NER in a child Node process (avoids Jest realm issues). */
+async function nerInChild(
+  modelName: string,
+  text: string,
+): Promise<any> {
+  const runner = path.resolve(process.cwd(), 'scripts/transformers-child.cjs');
+  const child = spawn(process.execPath, [runner], { stdio: ['pipe', 'pipe', 'inherit'] });
+
+  const payload = JSON.stringify({
+    task: 'token-classification',
+    model: modelName,
+    text,
+  });
+
+  return await new Promise((resolve, reject) => {
+    let out = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (c) => (out += c));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        try { resolve(JSON.parse(out)); } catch (e) { reject(e); }
+      } else {
+        reject(new Error(`transformers-child exited with code ${code}`));
+      }
+    });
+    child.stdin.end(payload);
+  });
+}
+
+// Export the NER helper for use in ner.ts
+export { nerInChild };
 
 export const ContentClassification = z.object({
   content_type: z.enum(['travel', 'system', 'unrelated', 'budget']),
@@ -48,21 +99,34 @@ async function loadContentClassifier(log?: pino.Logger): Promise<any> {
   if (!contentClassifier) {
     contentClassifier = (async () => {
       try {
-        await configureEnv();
-        const { pipeline } = await import('@huggingface/transformers');
         const modelName = getClassificationModel();
         
         if (log?.debug) {
           log.debug({ model: modelName }, '🤖 TRANSFORMERS: Loading content classification pipeline');
         }
         
-        const classifier = await pipeline('zero-shot-classification', modelName);
+        const isJest = !!process.env.JEST_WORKER_ID;
         
-        if (log?.debug) {
-          log.debug({ model: modelName }, '✅ TRANSFORMERS: Content classification pipeline loaded');
+        if (isJest) {
+          // ✅ Avoid Float32Array realm mismatch inside Jest
+          if (log?.debug) {
+            log.debug({ model: modelName }, '✅ TRANSFORMERS: Content classification pipeline loaded (child process)');
+          }
+          return { 
+            classify: (text: string, candidateLabels: string[]) => 
+              zeroShotInChild(modelName, text, candidateLabels)
+          };
+        } else {
+          // Normal path (CLI / prod)
+          const { pipeline } = await import('@huggingface/transformers');
+          const classifier = await pipeline('zero-shot-classification', modelName);
+          
+          if (log?.debug) {
+            log.debug({ model: modelName }, '✅ TRANSFORMERS: Content classification pipeline loaded');
+          }
+          
+          return { classify: classifier };
         }
-        
-        return classifier;
       } catch (e) {
         if (log?.debug) {
           log.debug({ error: String(e) }, '❌ TRANSFORMERS: Content classification pipeline failed');
@@ -78,21 +142,34 @@ async function loadIntentClassifier(log?: pino.Logger): Promise<any> {
   if (!intentClassifier) {
     intentClassifier = (async () => {
       try {
-        await configureEnv();
-        const { pipeline } = await import('@huggingface/transformers');
         const modelName = getClassificationModel();
         
         if (log?.debug) {
           log.debug({ model: modelName }, '🤖 TRANSFORMERS: Loading intent classification pipeline');
         }
         
-        const classifier = await pipeline('zero-shot-classification', modelName);
+        const isJest = !!process.env.JEST_WORKER_ID;
         
-        if (log?.debug) {
-          log.debug({ model: modelName }, '✅ TRANSFORMERS: Intent classification pipeline loaded');
+        if (isJest) {
+          // ✅ Avoid Float32Array realm mismatch inside Jest
+          if (log?.debug) {
+            log.debug({ model: modelName }, '✅ TRANSFORMERS: Intent classification pipeline loaded (child process)');
+          }
+          return { 
+            classify: (text: string, candidateLabels: string[]) => 
+              zeroShotInChild(modelName, text, candidateLabels)
+          };
+        } else {
+          // Normal path (CLI / prod)
+          const { pipeline } = await import('@huggingface/transformers');
+          const classifier = await pipeline('zero-shot-classification', modelName);
+          
+          if (log?.debug) {
+            log.debug({ model: modelName }, '✅ TRANSFORMERS: Intent classification pipeline loaded');
+          }
+          
+          return { classify: classifier };
         }
-        
-        return classifier;
       } catch (e) {
         if (log?.debug) {
           log.debug({ error: String(e) }, '❌ TRANSFORMERS: Intent classification pipeline failed');
@@ -109,7 +186,7 @@ export async function classifyContent(text: string, log?: pino.Logger): Promise<
     const classifier = await loadContentClassifier(log);
     
     const candidateLabels = ['travel', 'system', 'unrelated', 'budget'];
-    const result = await classifier(text, candidateLabels);
+    const result = await classifier.classify(text, candidateLabels);
     
     const topLabel = result.labels[0];
     const confidence = result.scores[0];
@@ -166,7 +243,7 @@ export async function classifyIntent(text: string, log?: pino.Logger): Promise<I
     const classifier = await loadIntentClassifier(log);
     
     const candidateLabels = ['weather', 'packing', 'attractions', 'destinations', 'system', 'unknown'];
-    const result = await classifier(text, candidateLabels);
+    const result = await classifier.classify(text, candidateLabels);
     
     const topLabel = result.labels[0];
     const confidence = result.scores[0];
