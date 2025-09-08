@@ -16,7 +16,9 @@ const ContentClassificationSchema = z.object({
   content_type: z.enum(['travel', 'system', 'policy', 'unrelated', 'budget', 'restaurant', 'flight', 'gibberish', 'emoji_only']),
   is_explicit_search: z.boolean(),
   has_mixed_languages: z.boolean().optional().default(false),
-  needs_web_search: z.boolean().optional().default(false)
+  needs_web_search: z.boolean().optional().default(false),
+  categories: z.array(z.string()).optional().default([]),
+  confidence: z.number().min(0).max(1).optional().default(0.5)
 });
 
 export type ContentClassification = z.infer<typeof ContentClassificationSchema>;

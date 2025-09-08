@@ -212,23 +212,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       }, '✅ ROUTING_CASCADE: LLM intent classification succeeded');
     }
 
-    // Simple weather override for obvious cases
-    const isObviousWeather = /weather|temperature|climate/i.test(input.message);
-    
-    if (isObviousWeather && llmIntentResult.intent !== 'weather') {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          originalIntent: llmIntentResult.intent, 
-          correctedIntent: 'weather' 
-        }, 'overriding_llm_weather_misclassification');
-      }
-      return RouterResult.parse({
-        intent: 'weather',
-        needExternal: true,
-        slots: finalSlots,
-        confidence: 0.8
-      });
-    }
+    // AI-first: Trust LLM classification, no hardcoded overrides
 
     // Override LLM result if we detected unrelated content
     if (isUnrelated && llmIntentResult.intent === 'unknown') {
@@ -270,20 +254,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       }, '✅ ROUTING_CASCADE: Strict LLM succeeded');
     }
 
-    // Simple weather override for obvious cases
-    const isObviousWeather = /weather|temperature|climate/i.test(input.message);
-    
-    if (isObviousWeather && intent !== 'weather') {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: intent, correctedIntent: 'weather' }, 'overriding_llm_weather_misclassification');
-      }
-      return RouterResult.parse({
-        intent: 'weather',
-        needExternal: true,
-        slots: finalSlots,
-        confidence: 0.8
-      });
-    }
+    // AI-first: Trust LLM classification completely
 
     // Only override LLM result if it's NOT a travel intent but we detected unrelated content
     if (isUnrelated && intent === 'unknown') {
@@ -361,10 +332,12 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Fallback heuristic patterns (simplified)
   const m = input.message.toLowerCase();
   
-  // Policy questions - check before other patterns
-  if (/baggage|carry.?on|checked.?bag|luggage|personal.?item|refund|cancellation|change.?fee|rebooking|no.?show|check.?in|boarding|seat.?selection|fare.?rules|basic.?economy|visa|passport|entry.?requirements|esta|schengen/.test(m)) {
+  // AI-first policy detection - use LLM classification
+  const policyClassification = await classifyContent(input.message, input.logger?.log);
+  if (policyClassification?.content_type === 'policy' || 
+      (policyClassification && input.message.toLowerCase().includes('policy'))) {
     if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_policy');
+      input.logger.log.debug({ slots: finalSlots }, 'ai_intent_policy');
     }
     return RouterResult.parse({ 
       intent: 'policy', 
@@ -374,9 +347,9 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
   
-  // Events/festivals should trigger web search (check first before attractions)
-  if (/festival|event|concert|show|happening|going on|plan around/.test(m) && 
-      !/attraction|museum|do in/.test(m)) {
+  // AI-first event detection - use intent classification
+  const intentClassification = await classifyIntent(input.message, {}, input.logger?.log);
+  if (intentClassification?.intent === 'web_search' && (intentClassification.confidence || 0) > 0.6) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_web_search_events');
     }
@@ -388,29 +361,32 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
   
-  if (/pack|bring|clothes|items|luggage|suitcase|wear|what to wear/.test(m) ||
-      (m.includes('what about') && /kids|children|family/.test(m))) {
+  // AI-first packing detection - use intent classification
+  if (intentClassification?.intent === 'packing' && (intentClassification.confidence || 0) > 0.6) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_packing');
     }
     return RouterResult.parse({ intent: 'packing', ...base });
   }
   
-  if (/attraction|do in|what to do|what should we do|museum|activities/.test(m)) {
+  // AI-first attractions detection
+  if (intentClassification?.intent === 'attractions' && (intentClassification.confidence || 0) > 0.6) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_attractions');
     }
     return RouterResult.parse({ intent: 'attractions', ...base });
   }
   
-  if (/weather|what's the weather|what is the weather|temperature|forecast/.test(m)) {
+  // AI-first weather detection
+  if (intentClassification?.intent === 'weather' && (intentClassification.confidence || 0) > 0.6) {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_weather');
     }
     return RouterResult.parse({ intent: 'weather', ...base });
   }
   
-  if (/where should i go|destination|where to go|budget|options/.test(m)) {
+  // AI-first destinations detection
+  if (intentClassification?.intent === 'destinations' && (intentClassification.confidence || 0) > 0.6) {
     // Check if message has origin preposition to avoid treating origin as destination
     const hasOriginPreposition = /\b(?:from|out of|leaving|ex)\s+[A-Z]/i.test(input.message);
     if (hasOriginPreposition && finalSlots.originCity) {
@@ -581,48 +557,61 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
   const m = message || '';
   
   try {
+    // Get AI classification for complexity detection
+    const intentClassification = await classifyIntent(message, {}, log);
+    
     // Extract entities using Transformers.js
     const entities = await extractEntities(m, log);
     
     // Count constraint indicators
     const constraints = new Set<string>();
     
-    // Entity-based constraints
+    // Entity-based constraints - use AI classification for entity types
     if (entities && entities.length > 0) {
-      entities.forEach(entity => {
+      for (const entity of entities) {
         const type = entity.entity_group?.toUpperCase() || '';
-        if (/LOC|GPE|PLACE/.test(type)) constraints.add('location');
-        if (/PER|PERSON/.test(type)) constraints.add('person');
-        if (/DATE|TIME/.test(type)) constraints.add('time');
-        if (/MONEY|CURRENCY/.test(type)) constraints.add('budget');
-      });
+        // Use AI classification for entity categorization with fallback to regex
+        const entityClassification = await classifyContent(entity.text, log);
+        if (entityClassification?.confidence && entityClassification.confidence > 0.7) {
+          entityClassification.categories?.forEach(cat => constraints.add(cat));
+        } else {
+          // Minimal fallback
+          if (/LOC|GPE|PLACE/.test(type)) constraints.add('location');
+          if (/PER|PERSON/.test(type)) constraints.add('person');
+          if (/DATE|TIME/.test(type)) constraints.add('time');
+          if (/MONEY|CURRENCY/.test(type)) constraints.add('budget');
+        }
+      }
     }
     
-    // Text-based constraint detection
-    const lower = m.toLowerCase();
-    if (/[£$€]|\b(budget|cost|price|afford|expensive|cheap|spend|\$\d+)\b/.test(m)) constraints.add('budget');
-    if (/\b(kids?|children|family|adults|people|toddler|parents|\d+\s*(year|month)s?\s*old)\b/.test(lower)) constraints.add('group');
-    if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?|direct|connecting)\b/.test(lower)) constraints.add('special');
-    if (/\b(hotel|accommodation|stay|night|room|airbnb)\b/.test(lower)) constraints.add('accommodation');
-    if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower)) constraints.add('transport');
-    if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m)) constraints.add('time');
+    // AI-first constraint detection
+    const constraintClassification = await classifyContent(m, log);
+    if (constraintClassification?.categories && constraintClassification.categories.length > 0) {
+      constraintClassification.categories.forEach(cat => constraints.add(cat));
+    }
+
+    // Minimal fallback for critical patterns only if AI didn't detect anything
+    if (constraints.size === 0) {
+      const lower = m.toLowerCase();
+      if (/[£$€]|\$\d+/.test(m)) constraints.add('budget');
+      if (/\b(from|to)\b.*\b(from|to)\b/i.test(m)) constraints.add('transport');
+    }
     
-    // Quick check for simple queries - don't trigger deep research
-    const isSimpleWeather = /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m) &&
-                           !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus)\b/i.test(m);
+    // AI-first complexity detection - use constraint count and confidence
+    const constraintCount = constraints.size;
+    const isSimpleQuery = constraintCount <= 1 && (intentClassification?.confidence || 0) > 0.8;
     
-    const isSimplePacking = /\b(pack|packing|bring|clothes|items|luggage|suitcase|wear)\b/i.test(m) &&
-                           !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus|itinerary|plan)\b/i.test(m);
+    // Derive simple query types from AI classification
+    const isSimpleWeather = intentClassification?.intent === 'weather';
+    const isSimplePacking = intentClassification?.intent === 'packing';
     
-    const isSimpleAttractions = /\b(attraction|do in|what to do|museum|activities)\b/i.test(m) &&
-                               !/\b(budget|cost|price|hotel|flight|visa|multiple|several|compare|vs|versus|itinerary|plan)\b/i.test(m);
-    
-    if (isSimpleWeather || isSimplePacking || isSimpleAttractions) {
+    if (isSimpleQuery) {
       if (log?.debug) {
         log.debug({ 
           message: m.substring(0, 100),
-          reason: isSimpleWeather ? 'simple_weather_query' : 
-                  isSimplePacking ? 'simple_packing_query' : 'simple_attractions_query'
+          reason: 'simple_query_ai_confident',
+          constraints: constraintCount,
+          confidence: intentClassification?.confidence || 0
         }, '🌤️ COMPLEXITY: Simple query - not complex');
       }
       return { 
@@ -634,11 +623,17 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
     }
     
     const entityCount = entities?.length || 0;
-    const constraintCount = constraints.size;
     
     // Complexity scoring - multiple strategies
     const strategies = [
-      // Strategy 1: High entity count (>4 entities = complex)
+      // Strategy 1: Use AI confidence and constraint count for complexity detection
+      { 
+        isComplex: (intentClassification?.confidence || 0) < 0.6 || constraintCount > 2, 
+        confidence: Math.min(0.7 + (constraintCount > 2 ? (constraintCount - 2) * 0.1 : 0), 0.95),
+        reason: `ai_confidence_low_or_many_constraints: confidence=${intentClassification?.confidence || 0}, constraints=${constraintCount}`
+      },
+      
+      // Strategy 2: High entity count (>4 entities = complex)
       { 
         isComplex: entityCount >= 4, 
         confidence: Math.min(0.7 + (entityCount - 4) * 0.05, 0.95),
@@ -704,8 +699,36 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
       log.debug({ error: String(error) }, '❌ COMPLEXITY: Fast detection failed');
     }
     
-    // Fallback to simple heuristics
+    // Initialize constraints set for fallback
+    const constraints = new Set<string>();
+    
+    // Populate constraints with regex patterns as fallback
     const lower = m.toLowerCase();
+    if (/[£$€]|\b(budget|cost|price|afford|expensive|cheap|spend|\$\d+)\b/.test(m)) constraints.add('budget');
+    if (/\b(kids?|children|family|adults|people|toddler|parents|\d+\s*(year|month)s?\s*old)\b/.test(lower)) constraints.add('group');
+    if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?|direct|connecting)\b/.test(lower)) constraints.add('special');
+    if (/\b(hotel|accommodation|stay|night|room|airbnb)\b/.test(lower)) constraints.add('accommodation');
+    if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower)) constraints.add('transport');
+    if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m)) constraints.add('time');
+    
+    const constraintCount = constraints.size;
+    
+    // AI-first fallback using classifyIntent for complexity detection
+    const intentClassification = await classifyIntent(message, {}, log);
+    
+    // Use AI confidence and constraint count for complexity detection
+    const isComplex = (intentClassification?.confidence || 0) < 0.6 || constraintCount > 2;
+    const confidence = Math.min(0.7 + (constraintCount > 2 ? (constraintCount - 2) * 0.1 : 0), 0.95);
+    
+    if (isComplex) {
+      return { 
+        isComplex: true, 
+        confidence, 
+        reasoning: `ai_fallback: confidence=${intentClassification?.confidence || 0}, constraints=${constraintCount}` 
+      };
+    }
+    
+    // Fallback to simple heuristics
     const hasMultipleIndicators = [
       /[£$€]|\$\d+/.test(m),
       /\b(kids?|children|family|\d+\s*year)/i.test(m),
@@ -877,7 +900,7 @@ async function tryRouteViaTransformers(message: string, threadId?: string, log?:
     const extractedSlots = await extractSlots(message, ctxSlots, log);
     
     // Enhanced intent classification based on transformers results
-    const intent = classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
+    const intent = await classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
     
     if (intent && intent.confidence > 0.7) {
       return RouterResult.parse({
@@ -897,13 +920,13 @@ async function tryRouteViaTransformers(message: string, threadId?: string, log?:
   }
 }
 
-function classifyIntentFromTransformers(
+async function classifyIntentFromTransformers(
   message: string, 
   intentResult: any,
   entityResult: any,
   slots: any, 
   log?: pino.Logger
-): { intent: string; needExternal: boolean; confidence: number } | undefined {
+): Promise<{ intent: string; needExternal: boolean; confidence: number } | undefined> {
   
   if (log?.debug) {
     log.debug({
@@ -922,8 +945,9 @@ function classifyIntentFromTransformers(
   const m = message.toLowerCase();
   
   // Attractions with enhanced location detection (prioritize over destinations)
-  if (intentResult.intent === 'attractions' || 
-      /attraction|do in|what to do|what should.*do|museum|activities|things to do/.test(m)) {
+  // AI-first: Use intent classification first
+  const attractionsIntent = await classifyIntent(message, {}, log);
+  if (attractionsIntent?.intent === 'attractions' && (attractionsIntent.confidence || 0) > 0.6) {
     const hasLocation = entityResult.locations.length > 0 || slots.city;
     const confidence = hasLocation ? 0.9 : 0.7;
     
@@ -933,6 +957,20 @@ function classifyIntentFromTransformers(
         hasLocation, 
         confidence 
       }, '🎯 TRANSFORMERS: Attractions intent detected');
+    }
+    return { intent: 'attractions', needExternal: false, confidence };
+  }
+  // Fallback to regex only for critical patterns
+  if (/attraction|do in|what to do|what should.*do|museum|activities|things to do/.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.9 : 0.7;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'attractions_regex_fallback', 
+        hasLocation, 
+        confidence 
+      }, '🎯 TRANSFORMERS: Attractions intent detected (regex fallback)');
     }
     return { intent: 'attractions', needExternal: false, confidence };
   }
@@ -959,27 +997,45 @@ function classifyIntentFromTransformers(
   }
   
   // Weather patterns - enhanced with Russian
-  if (intentResult.intent === 'weather' || 
-      /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city || /\b(в|in)\s+\w+/i.test(message);
+  // AI-first: Use intent classification first
+  const weatherIntent = await classifyIntent(message, {}, log);
+  if (weatherIntent?.intent === 'weather' && (weatherIntent.confidence || 0) > 0.6) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
     const confidence = hasLocation ? 0.95 : 0.8;
     
     if (log?.debug) {
       log.debug({ 
-        pattern: 'weather_enhanced', 
+        pattern: 'weather_ai_first', 
+        hasLocation, 
+        locations: entityResult.locations.length,
+        confidence,
+        reason: 'ai_classification_with_russian_support'
+      }, '🎯 TRANSFORMERS: Weather intent detected');
+    }
+    return { intent: 'weather', needExternal: true, confidence };
+  }
+  // Fallback to regex only for critical patterns
+  if (/\\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\\b/i.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
+    const confidence = hasLocation ? 0.95 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'weather_regex_fallback', 
         hasLocation, 
         locations: entityResult.locations.length,
         confidence,
         reason: 'enhanced_pattern_matching_with_russian',
         russianPattern: /погода/i.test(m)
-      }, '🎯 TRANSFORMERS: Weather intent detected');
+      }, '🎯 TRANSFORMERS: Weather intent detected (regex fallback)');
     }
     return { intent: 'weather', needExternal: true, confidence };
   }
   
   // Packing advice with duration context
-  if (intentResult.intent === 'packing' || 
-      /pack|bring|clothes|items|luggage|suitcase|wear/.test(m)) {
+  // AI-first: Use intent classification first
+  const packingIntent = await classifyIntent(message, {}, log);
+  if (packingIntent?.intent === 'packing' && (packingIntent.confidence || 0) > 0.6) {
     const hasDuration = entityResult.durations.length > 0;
     const confidence = hasDuration ? 0.9 : 0.8;
     
@@ -992,10 +1048,25 @@ function classifyIntentFromTransformers(
     }
     return { intent: 'packing', needExternal: false, confidence };
   }
+  // Fallback to regex for critical patterns
+  if (intentResult.intent === 'packing' && intentResult.confidence > 0.6) {
+    const hasDuration = entityResult.durations.length > 0;
+    const confidence = hasDuration ? 0.9 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'packing_regex_fallback', 
+        hasDuration,
+        confidence 
+      }, '🎯 TRANSFORMERS: Packing intent detected (regex fallback)');
+    }
+    return { intent: 'packing', needExternal: false, confidence };
+  }
   
   // Destinations with enhanced pattern matching
-  if (intentResult.intent === 'destinations' || 
-      /where should i go|destination|where to go|tell me about.*country/.test(m)) {
+  // AI-first: Use intent classification first
+  const destinationsIntent = await classifyIntent(message, {}, log);
+  if (destinationsIntent?.intent === 'destinations' && (destinationsIntent.confidence || 0) > 0.6) {
     const confidence = 0.85;
     
     if (log?.debug) {
@@ -1003,6 +1074,18 @@ function classifyIntentFromTransformers(
         pattern: 'destinations', 
         confidence 
       }, '🎯 TRANSFORMERS: Destinations intent detected');
+    }
+    return { intent: 'destinations', needExternal: true, confidence };
+  }
+  // Fallback to regex for critical patterns
+  if (/where should i go|destination|where to go|tell me about.*country/.test(m)) {
+    const confidence = 0.85;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'destinations_regex_fallback', 
+        confidence 
+      }, '🎯 TRANSFORMERS: Destinations intent detected (regex fallback)');
     }
     return { intent: 'destinations', needExternal: true, confidence };
   }
