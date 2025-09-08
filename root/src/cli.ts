@@ -82,19 +82,58 @@ class Spinner {
   private frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   private interval: NodeJS.Timeout | null = null;
   private currentFrame = 0;
+  private currentStatus = 'Thinking...';
+
+  private statusMessages = [
+    'Analyzing your request...',
+    'Processing travel data...',
+    'Searching for information...',
+    'Checking weather conditions...',
+    'Finding attractions...',
+    'Looking up destinations...',
+    'Consulting travel policies...',
+    'Gathering recommendations...',
+    'Verifying information...',
+    'Preparing response...',
+    'Cross-referencing data...',
+    'Calculating travel options...',
+    'Checking visa requirements...',
+    'Finding best routes...',
+    'Comparing prices...',
+    'Validating details...',
+    'Organizing results...',
+    'Finalizing recommendations...',
+    'Almost ready...',
+    'Just a moment more...'
+  ];
 
   start() {
+    this.currentStatus = this.getRandomStatus();
     this.interval = setInterval(() => {
-      process.stdout.write(`\r${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray('Thinking...')}`);
+      process.stdout.write(`\r${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(this.currentStatus)}`);
       this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+      
+      // Change status every 2 seconds (25 frames * 80ms)
+      if (this.currentFrame % 25 === 0) {
+        this.currentStatus = this.getRandomStatus();
+      }
     }, 80);
+  }
+
+  setStatus(status: string) {
+    this.currentStatus = status || 'Processing...';
+  }
+
+  private getRandomStatus(): string {
+    if (this.statusMessages.length === 0) return 'Processing...';
+    return this.statusMessages[Math.floor(Math.random() * this.statusMessages.length)] || 'Processing...';
   }
 
   stop() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
-      process.stdout.write('\r'.padEnd(20, ' ') + '\r'); // clear the line
+      process.stdout.write('\r'.padEnd(50, ' ') + '\r'); // clear the line
     }
   }
 }
@@ -159,7 +198,13 @@ async function main() {
     const wantReceipts = /^\s*\/why\b/i.test(q);
     
     try {
-      const res = await handleChat({ message: q, threadId, receipts: wantReceipts }, { log });
+      const res = await handleChat(
+        { message: q, threadId, receipts: wantReceipts }, 
+        { 
+          log,
+          onStatus: (status: string) => spinner.setStatus(status)
+        }
+      );
       spinner.stop();
 
       // Update threadId if returned

@@ -32,7 +32,7 @@ async function detectConsent(
   }
 }
 
-export type NodeCtx = { msg: string; threadId: string };
+export type NodeCtx = { msg: string; threadId: string; onStatus?: (status: string) => void };
 export type NodeOut =
   | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
@@ -40,7 +40,7 @@ export type NodeOut =
 export async function runGraphTurn(
   message: string,
   threadId: string,
-  ctx: { log: pino.Logger },
+  ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ): Promise<NodeOut> {
   // Use transformers-based spell correction instead of hardcoded typos
   const correctionResult = await correctSpelling(message, ctx.log);
@@ -278,7 +278,7 @@ export async function runGraphTurn(
     };
   }
 
-  const routeCtx: NodeCtx = { msg: message, threadId };
+  const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
   const routeResult = await routeIntentNode(routeCtx, ctx);
   if ('done' in routeResult) {
     return routeResult;
@@ -506,7 +506,7 @@ async function weatherNode(
       },
       threadId: ctx.threadId,
     },
-    logger || { log: pinoLib({ level: 'silent' }) },
+    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   const finalReply = disclaimer ? disclaimer + reply : reply;
   return { done: true, reply: finalReply, citations };
@@ -533,7 +533,7 @@ async function destinationsNode(
       },
       threadId: ctx.threadId,
     },
-    logger || { log: pinoLib({ level: 'silent' }) },
+    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   const finalReply = disclaimer ? disclaimer + reply : reply;
   return { done: true, reply: finalReply, citations };
@@ -560,7 +560,7 @@ async function packingNode(
       },
       threadId: ctx.threadId,
     },
-    logger || { log: pinoLib({ level: 'silent' }) },
+    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   const finalReply = disclaimer ? disclaimer + reply : reply;
   return { done: true, reply: finalReply, citations };
@@ -587,7 +587,7 @@ async function attractionsNode(
       },
       threadId: ctx.threadId,
     },
-    logger || { log: pinoLib({ level: 'silent' }) },
+    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   const finalReply = disclaimer ? disclaimer + reply : reply;
   return { done: true, reply: finalReply, citations };
@@ -891,7 +891,7 @@ async function unknownNode(ctx: NodeCtx, logger?: { log: pino.Logger }): Promise
       },
       threadId: ctx.threadId,
     },
-    logger || { log: pinoLib({ level: 'silent' }) },
+    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   return { done: true, reply, citations };
 }

@@ -143,7 +143,7 @@ function formatSearchResultsFallback(
 }
 async function performWebSearch(
   query: string,
-  ctx: { log: pino.Logger },
+  ctx: { log: pino.Logger; onStatus?: (status: string) => void },
   threadId?: string,
 ): Promise<{ reply: string; citations?: string[] }> {
   ctx.log.debug({ query }, 'performing_web_search');
@@ -172,6 +172,8 @@ async function performWebSearch(
                          /budget.*plan|itinerary|guide/.test(query);
   
   ctx.log.debug({ query, isComplexQuery, queryLength: query.length }, 'complex_query_detection');
+  
+  ctx.onStatus?.('Searching the web for information...');
   
   const searchResult = await searchTravelInfo(query, ctx.log, isComplexQuery);
   
@@ -224,7 +226,7 @@ async function performWebSearch(
 
 export async function handleChat(
   input: ChatInputT,
-  ctx: { log: pino.Logger },
+  ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ) {
   // Early handling for empty/emoji-only or non-informative inputs
   const raw = input.message || '';
@@ -236,6 +238,9 @@ export async function handleChat(
     const threadId = getThreadId(input.threadId);
     return ChatOutput.parse({ reply, threadId });
   }
+  
+  ctx.onStatus?.('Analyzing your request...');
+  
   const threadId = getThreadId(input.threadId);
   const wantReceipts = Boolean((input as { receipts?: boolean }).receipts) ||
     /^\s*\/why\b/i.test(input.message);
@@ -276,6 +281,7 @@ export async function handleChat(
     }
   }
   pushMessage(threadId, { role: 'user', content: input.message });
+  ctx.onStatus?.('Processing your travel request...');
   const result = await runGraphTurn(input.message, threadId, ctx);
   if ('done' in result) {
     pushMessage(threadId, { role: 'assistant', content: result.reply });
@@ -349,7 +355,7 @@ async function loadPackingOnce() {
 
 export async function blendWithFacts(
   input: { message: string; route: RouterResultT; threadId?: string },
-  ctx: { log: pino.Logger },
+  ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ) {
   // Use LLM for mixed language detection with fallback
   let hasMixedLanguages = false;
@@ -384,6 +390,7 @@ export async function blendWithFacts(
       if (!searchQuery) searchQuery = input.message;
       
       // Optimize the search query
+      ctx.onStatus?.('Searching for travel information...');
       const optimizedQuery = await optimizeSearchQuery(
         searchQuery,
         input.route.slots,
@@ -601,6 +608,7 @@ export async function blendWithFacts(
   const decisions: string[] = [];
   try {
     if (input.route.intent === 'weather') {
+      ctx.onStatus?.('Checking weather conditions...');
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
@@ -624,6 +632,7 @@ export async function blendWithFacts(
         decisions.push('Weather API unavailable; avoided numbers and provided generic guidance.');
       }
     } else if (input.route.intent === 'packing') {
+      ctx.onStatus?.('Preparing packing recommendations...');
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
@@ -650,6 +659,7 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'destinations') {
       // Use destinations catalog for recommendations
+      ctx.onStatus?.('Finding travel destinations...');
       ctx.log.debug({ intent: input.route.intent, slots: input.route.slots }, 'destinations_block_entered');
       try {
         const { recommendDestinations } = await import('../tools/destinations.js');
@@ -725,6 +735,7 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'attractions') {
       // Prefer OpenTripMap results; avoid listing specific POIs from generic web search
+      ctx.onStatus?.('Finding attractions and activities...');
       const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
       const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
       if (at.ok && (at.source === 'opentripmap' || at.source === 'brave-search')) {
@@ -746,6 +757,9 @@ export async function blendWithFacts(
     ctx.log.warn({ err: e }, 'facts retrieval failed');
     decisions.push('Facts retrieval encountered an error; kept response generic.');
   }
+  
+  ctx.onStatus?.('Preparing your response...');
+  
   const systemMd = await getPrompt('system');
   const blendMd = await getPrompt('blend');
   const cotMd = await getPrompt('cot');
