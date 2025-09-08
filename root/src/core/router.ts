@@ -934,7 +934,26 @@ function classifyIntentFromTransformers(
     }, '🔍 TRANSFORMERS: Detailed classification input');
   }
   
-  // Use transformers intent classification as primary signal
+  // Enhanced pattern matching with Russian support - check attractions FIRST
+  const m = message.toLowerCase();
+  
+  // Attractions with enhanced location detection (prioritize over destinations)
+  if (intentResult.intent === 'attractions' || 
+      /attraction|do in|what to do|what should.*do|museum|activities|things to do/.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.9 : 0.7;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'attractions', 
+        hasLocation, 
+        confidence 
+      }, '🎯 TRANSFORMERS: Attractions intent detected');
+    }
+    return { intent: 'attractions', needExternal: false, confidence };
+  }
+  
+  // Use transformers intent classification as primary signal (after attractions check)
   if (intentResult.confidence > 0.8) {
     const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
     
@@ -954,9 +973,6 @@ function classifyIntentFromTransformers(
     };
   }
   
-  // Enhanced pattern matching with Russian support
-  const m = message.toLowerCase();
-  
   // Weather patterns - enhanced with Russian
   if (intentResult.intent === 'weather' || 
       /\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
@@ -974,22 +990,6 @@ function classifyIntentFromTransformers(
       }, '🎯 TRANSFORMERS: Weather intent detected');
     }
     return { intent: 'weather', needExternal: true, confidence };
-  }
-  
-  // Attractions with enhanced location detection
-  if (intentResult.intent === 'attractions' || 
-      /attraction|do in|what to do|museum|activities/.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
-    const confidence = hasLocation ? 0.9 : 0.7;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'attractions', 
-        hasLocation, 
-        confidence 
-      }, '🎯 TRANSFORMERS: Attractions intent detected');
-    }
-    return { intent: 'attractions', needExternal: false, confidence };
   }
   
   // Packing advice with duration context

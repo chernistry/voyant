@@ -494,22 +494,34 @@ async function destinationsNode(
   // Use thread slots to ensure we have the latest context
   const threadSlots = getThreadSlots(ctx.threadId);
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
+
+  // Directly call AI-enhanced destinations tool instead of blendWithFacts
+  const { recommendDestinations } = await import('../tools/destinations.js');
   
-  const { reply, citations } = await blendWithFacts(
-    {
-      message: ctx.msg,
-      route: {
-        intent: 'destinations',
-        needExternal: true,
-        slots: mergedSlots,
-        confidence: 0.7,
-      },
-      threadId: ctx.threadId,
-    },
-    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
-  );
-  const finalReply = disclaimer ? disclaimer + reply : reply;
-  return { done: true, reply: finalReply, citations };
+  try {
+    const destinations = await recommendDestinations(mergedSlots, logger?.log);
+    
+    if (destinations.length > 0) {
+      const destinationList = destinations.map(d => 
+        `${d.value.city}, ${d.value.country} (${d.value.tags.climate} climate, ${d.value.tags.budget} budget${d.value.tags.family ? ', family-friendly' : ''})`
+      ).join('; ');
+      
+      const baseReply = `Based on your preferences, here are some recommended destinations:\n\n${destinationList}`;
+      const finalReply = disclaimer ? disclaimer + baseReply : baseReply;
+      const citations = ['AI-Enhanced Catalog', 'REST Countries API'];
+      
+      return { done: true, reply: finalReply, citations };
+    } else {
+      // Fallback to web search if no destinations found
+      return webSearchNode(ctx, { ...mergedSlots, search_query: `travel destinations ${mergedSlots.month || ''} ${mergedSlots.travelerProfile || ''}`.trim() }, logger);
+    }
+  } catch (error) {
+    if (logger?.log?.warn) {
+      logger.log.warn({ error: String(error) }, 'destinations_tool_failed');
+    }
+    // Fallback to web search on error
+    return webSearchNode(ctx, { ...mergedSlots, search_query: `travel destinations ${mergedSlots.month || ''} ${mergedSlots.travelerProfile || ''}`.trim() }, logger);
+  }
 }
 
 async function packingNode(

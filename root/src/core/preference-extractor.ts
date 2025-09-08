@@ -33,7 +33,7 @@ async function tryNLPExtraction(text: string, log?: pino.Logger): Promise<Travel
     // Step 3: Entity extraction
     const entities = await extractEntities(text, log);
     
-    // Step 4: NLP-based inference
+    // Step 4: NLP-based inference with pattern matching
     const preferences: Partial<TravelPreferencesT> = {
       entities: entities.map(e => ({
         text: e.text,
@@ -42,8 +42,30 @@ async function tryNLPExtraction(text: string, log?: pino.Logger): Promise<Travel
       }))
     };
 
-    // Map intent to travel style
-    if (intentClass.confidence > 0.6) {
+    const lowerText = text.toLowerCase();
+    
+    // Enhanced family detection (prioritize over other classifications)
+    if (lowerText.includes('family') || lowerText.includes('kids') || lowerText.includes('children') || 
+        lowerText.includes('toddler') || lowerText.includes('child')) {
+      preferences.travelStyle = 'family';
+      preferences.groupType = 'family';
+    }
+    // Romantic detection
+    else if (lowerText.includes('romantic') || lowerText.includes('honeymoon') || lowerText.includes('anniversary')) {
+      preferences.travelStyle = 'romantic';
+      preferences.groupType = 'couple';
+    }
+    // Adventure detection
+    else if (lowerText.includes('adventure') || lowerText.includes('hiking') || lowerText.includes('backpack')) {
+      preferences.travelStyle = 'adventure';
+    }
+    // Cultural detection (fallback)
+    else if (lowerText.includes('museum') || lowerText.includes('cultural') || lowerText.includes('heritage')) {
+      preferences.travelStyle = 'cultural';
+      preferences.activityType = 'museums';
+    }
+    // Map intent to travel style as fallback
+    else if (intentClass.confidence > 0.6) {
       const intentMap: Record<string, string> = {
         'destinations': 'cultural',
         'attractions': 'cultural'
@@ -51,12 +73,34 @@ async function tryNLPExtraction(text: string, log?: pino.Logger): Promise<Travel
       preferences.travelStyle = intentMap[intentClass.intent] as any;
     }
 
-    // Entity-based inference
-    const lowerText = text.toLowerCase();
+    // Budget detection
+    if (lowerText.includes('budget') || lowerText.includes('cheap') || lowerText.includes('backpack')) {
+      preferences.budgetLevel = 'low';
+      preferences.travelStyle = 'budget';
+    } else if (lowerText.includes('luxury') || lowerText.includes('expensive') || lowerText.includes('5-star')) {
+      preferences.budgetLevel = 'high';
+      preferences.travelStyle = 'luxury';
+    } else {
+      preferences.budgetLevel = 'mid';
+    }
+
+    // Activity type detection
+    if (lowerText.includes('museum') || lowerText.includes('art') || lowerText.includes('gallery')) {
+      preferences.activityType = 'museums';
+    } else if (lowerText.includes('nature') || lowerText.includes('outdoor') || lowerText.includes('hiking')) {
+      preferences.activityType = 'nature';
+    } else if (lowerText.includes('nightlife') || lowerText.includes('party') || lowerText.includes('club')) {
+      preferences.activityType = 'nightlife';
+    }
+
+    // Group type detection from entities
     for (const entity of entities) {
       if (entity.entity_group === 'PER' && entity.score > 0.8) {
-        if (lowerText.includes('family')) preferences.groupType = 'family';
-        else if (lowerText.includes('couple')) preferences.groupType = 'couple';
+        if (!preferences.groupType) {
+          if (lowerText.includes('couple')) preferences.groupType = 'couple';
+          else if (lowerText.includes('friends')) preferences.groupType = 'friends';
+          else if (lowerText.includes('solo')) preferences.groupType = 'solo';
+        }
       }
     }
 
@@ -81,53 +125,35 @@ async function tryNLPExtraction(text: string, log?: pino.Logger): Promise<Travel
 
 async function tryLLMExtraction(text: string, log?: pino.Logger): Promise<TravelPreferencesT | null> {
   try {
-    // Use zero-shot classification as LLM proxy
-    const { classifyContent } = await import('./transformers-classifier.js');
+    // Use actual LLM for preference extraction
+    const { callLLM } = await import('./llm.js');
     
-    // Simulate LLM-style reasoning with multiple classification passes
-    const styleLabels = ['family vacation', 'romantic getaway', 'adventure travel', 'cultural tourism', 'business trip', 'budget travel', 'luxury vacation'];
-    const groupLabels = ['solo travel', 'couple travel', 'family travel', 'friends travel', 'business travel'];
-    const activityLabels = ['museums and culture', 'nature and outdoors', 'nightlife and entertainment', 'shopping', 'food and dining', 'historical sites'];
-    
-    // This would be actual LLM calls in production
-    const classification = await classifyContent(text, log);
-    
-    if (classification.confidence > 0.5) {
-      // Simulate LLM understanding
-      const preferences: Partial<TravelPreferencesT> = {};
-      
-      // Simple LLM-style inference
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('family') || lowerText.includes('kids')) {
-        preferences.travelStyle = 'family';
-        preferences.groupType = 'family';
-      } else if (lowerText.includes('romantic') || lowerText.includes('honeymoon')) {
-        preferences.travelStyle = 'romantic';
-        preferences.groupType = 'couple';
-      } else if (lowerText.includes('adventure') || lowerText.includes('hiking')) {
-        preferences.travelStyle = 'adventure';
-      } else if (lowerText.includes('museum') || lowerText.includes('cultural')) {
-        preferences.travelStyle = 'cultural';
-        preferences.activityType = 'museums';
-      }
+    const prompt = `Analyze this travel request and extract preferences in JSON format:
+"${text}"
 
-      if (lowerText.includes('budget') || lowerText.includes('cheap')) {
-        preferences.budgetLevel = 'low';
-      } else if (lowerText.includes('luxury') || lowerText.includes('expensive')) {
-        preferences.budgetLevel = 'high';
-      } else {
-        preferences.budgetLevel = 'mid';
-      }
+Return JSON with these fields (use null if not clear):
+{
+  "travelStyle": "family|romantic|adventure|cultural|business|budget|luxury",
+  "budgetLevel": "low|mid|high", 
+  "activityType": "museums|nature|nightlife|shopping|food|history",
+  "groupType": "solo|couple|family|friends|business",
+  "confidence": 0.0-1.0
+}`;
 
-      if (preferences.travelStyle || preferences.groupType) {
-        return {
-          ...preferences,
-          confidence: classification.confidence,
-          aiMethod: 'llm'
-        } as TravelPreferencesT;
-      }
+    const response = await callLLM(prompt, { responseFormat: 'json', log });
+    const parsed = JSON.parse(response);
+    
+    if (parsed.confidence > 0.4) {
+      return {
+        travelStyle: parsed.travelStyle,
+        budgetLevel: parsed.budgetLevel || 'mid',
+        activityType: parsed.activityType,
+        groupType: parsed.groupType,
+        confidence: parsed.confidence,
+        aiMethod: 'llm'
+      };
     }
-
+    
     return null;
   } catch (e) {
     if (log?.debug) {

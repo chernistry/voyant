@@ -60,115 +60,68 @@ async function classifyAttraction(
   attraction: AttractionItem,
   log?: pino.Logger
 ): Promise<AttractionClassification> {
-  const text = `${attraction.name} ${attraction.description || ''}`.toLowerCase();
+  const text = `${attraction.name} ${attraction.description || ''}`;
   
   try {
-    // Use existing content classification to understand the attraction type
+    // Step 1: Try NLP classification first
     const contentClass = await classifyContent(text, log);
     
-    // Kid-friendly indicators (positive signals)
-    const kidFriendlyPatterns = [
-      /\b(children|child|kids?|toddler|family)\b/i,
-      /\b(playground|park|garden|zoo|aquarium)\b/i,
-      /\b(interactive|hands-on|science center|discovery)\b/i,
-      /\b(carousel|rides|amusement|fun|play)\b/i,
-      /\b(educational|learning|museum for children)\b/i
-    ];
-    
-    // Context-aware negative indicators
-    const contextualNegatives = [
-      // War/violence context
-      /\b(war|battle|military|weapon|soldier|combat)\s+(memorial|museum|site)\b/i,
-      // Adult-oriented venues
-      /\b(casino|nightclub|bar|pub|brewery|winery)\b/i,
-      // Somber/serious places
-      /\b(cemetery|grave|burial|funeral|mausoleum)\b/i,
-      // Adult cultural venues (context-dependent)
-      /\b(opera house|symphony|ballet)\b/i
-    ];
-    
-    // Smart historical site handling - not all historic sites are bad for kids
-    const kidFriendlyHistoric = [
-      /\b(castle|palace|fort)\b.*\b(tour|visit|explore)\b/i,
-      /\b(historic\s+)?(village|town|district)\b/i,
-      /\b(living history|interactive|reenactment)\b/i
-    ];
-    
-    let kidFriendlyScore = 0;
-    let reasoning = '';
-    const categories: string[] = [];
-    
-    // Positive scoring
-    for (const pattern of kidFriendlyPatterns) {
-      if (pattern.test(text)) {
-        kidFriendlyScore += 2;
-        categories.push('kid_positive');
-        break;
-      }
+    if (contentClass.confidence > 0.7 && contentClass.content_type === 'travel') {
+      // For travel content, assume generally family-friendly unless proven otherwise
+      const lowerText = text.toLowerCase();
+      const hasNegativeKeywords = /\b(casino|nightclub|bar|cemetery|war|battle)\b/i.test(lowerText);
+      
+      return {
+        isKidFriendly: !hasNegativeKeywords,
+        categories: ['nlp_travel'],
+        confidence: contentClass.confidence,
+        reasoning: `NLP: Travel content, ${hasNegativeKeywords ? 'has negative keywords' : 'no negative indicators'}`
+      };
     }
     
-    // Handle historic sites intelligently
-    if (/\b(historic|historical|heritage)\b/i.test(text)) {
-      const isFriendlyHistoric = kidFriendlyHistoric.some(pattern => pattern.test(text));
-      if (isFriendlyHistoric) {
-        kidFriendlyScore += 1;
-        categories.push('historic_friendly');
-        reasoning += 'Kid-friendly historic site. ';
-      } else {
-        kidFriendlyScore -= 1;
-        categories.push('historic_serious');
-        reasoning += 'Serious historic site. ';
-      }
+    // Step 2: Fallback to LLM if NLP confidence is low
+    const { callLLM } = await import('./llm.js');
+    
+    const prompt = `Is this attraction suitable for families with children? Respond with JSON:
+"${text}"
+
+{
+  "isKidFriendly": true/false,
+  "categories": ["family", "educational", "cultural", "nature", "entertainment"],
+  "confidence": 0.0-1.0,
+  "reasoning": "brief explanation"
+}`;
+
+    const response = await callLLM(prompt, { responseFormat: 'json', log });
+    const parsed = JSON.parse(response);
+    
+    if (parsed.confidence > 0.5) {
+      return {
+        isKidFriendly: parsed.isKidFriendly,
+        categories: parsed.categories || ['unknown'],
+        confidence: parsed.confidence,
+        reasoning: `LLM: ${parsed.reasoning}`
+      };
     }
     
-    // Negative scoring
-    for (const pattern of contextualNegatives) {
-      if (pattern.test(text)) {
-        kidFriendlyScore -= 3;
-        categories.push('kid_negative');
-        reasoning += 'Adult-oriented venue. ';
-        break;
-      }
-    }
-    
-    // Nature and outdoor activities are generally kid-friendly
-    if (/\b(park|garden|beach|lake|river|nature|outdoor|trail|hiking)\b/i.test(text)) {
-      kidFriendlyScore += 1;
-      categories.push('nature');
-    }
-    
-    // Museums need context
-    if (/\b(museum)\b/i.test(text)) {
-      if (/\b(science|natural history|children|discovery|interactive)\b/i.test(text)) {
-        kidFriendlyScore += 2;
-        categories.push('educational');
-        reasoning += 'Educational museum. ';
-      } else if (/\b(art|fine arts|contemporary)\b/i.test(text)) {
-        kidFriendlyScore += 0; // Neutral
-        categories.push('cultural');
-      }
-    }
-    
-    const isKidFriendly = kidFriendlyScore > 0;
-    const confidence = Math.min(Math.abs(kidFriendlyScore) / 3, 1);
+    // Step 3: Minimal fallback - assume family-friendly unless clearly not
+    const lowerText = text.toLowerCase();
+    const hasNegativeKeywords = /\b(casino|nightclub|bar|cemetery|war|battle)\b/i.test(lowerText);
     
     return {
-      isKidFriendly,
-      categories,
-      confidence,
-      reasoning: reasoning.trim() || 'Based on content analysis'
+      isKidFriendly: !hasNegativeKeywords,
+      categories: ['fallback'],
+      confidence: 0.3,
+      reasoning: 'AI failed - minimal fallback classification'
     };
     
   } catch (error) {
-    // Fallback to simple heuristics if NLP fails
-    const hasKidKeywords = /\b(children|child|kids?|family|playground|zoo|park)\b/i.test(text);
-    const hasNegativeKeywords = /\b(cemetery|war|battle|casino|bar|nightclub)\b/i.test(text);
-    
+    // Final fallback - assume family-friendly
     return {
-      isKidFriendly: hasKidKeywords && !hasNegativeKeywords,
-      categories: ['fallback'],
-      confidence: 0.5,
-      reasoning: 'Fallback classification due to NLP error'
+      isKidFriendly: true,
+      categories: ['error_fallback'],
+      confidence: 0.1,
+      reasoning: 'Classification error - assumed family-friendly'
     };
   }
 }
