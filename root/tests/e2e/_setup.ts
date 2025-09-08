@@ -1,21 +1,32 @@
+// ✅ Configure Transformers.js FIRST, before other imports
+import { env } from '@huggingface/transformers';
+import path from 'node:path';
+
+// Local-only models + WASM backend knobs
+env.allowRemoteModels = false;
+env.allowLocalModels = true;
+env.useFS = true;
+env.useFSCache = true;
+env.localModelPath = path.resolve(process.cwd(), 'models');
+
+// ARM64-specific WASM tuning
+if (env.backends?.onnx?.wasm) {
+  env.backends.onnx.wasm.numThreads = 1;     // Single thread for stability
+  env.backends.onnx.wasm.simd = false;       // Disable SIMD on ARM64
+  env.backends.onnx.wasm.proxy = false;      // Direct execution
+}
+
+// (now it's safe to import the rest of your test deps)
 import { describe, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
 import express from 'express';
 import pino from 'pino';
 import nock from 'nock';
-import path from 'node:path';
 import { router } from '../../src/api/routes.js';
 import { handleChat } from '../../src/core/blend.js';
 import { snapshot } from '../../src/util/metrics.js';
 import { TranscriptRecorder } from '../../src/test/transcript-recorder.js';
 import { recordedRequest } from '../../src/test/transcript-helper.js';
 import { createLogger } from '../../src/util/logging.js';
-
-// Configure Transformers.js for offline mode in tests - must be synchronous
-if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-  process.env.TRANSFORMERS_CACHE = path.resolve(process.cwd(), 'models');
-  process.env.HF_HUB_DISABLE_TELEMETRY = '1';
-  process.env.TRANSFORMERS_OFFLINE = '1';
-}
 
 export function configureNock() {
   // Configure nock to work with undici and allow only whitelisted hosts

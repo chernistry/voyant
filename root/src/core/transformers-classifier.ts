@@ -2,15 +2,22 @@ import type pino from 'pino';
 import { z } from 'zod';
 import path from 'node:path';
 
-// Configure Transformers.js environment for offline mode in tests
-if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
-  import('@huggingface/transformers').then(({ env }) => {
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
-    env.useFS = true;
-    env.useFSCache = true;
-    env.localModelPath = path.resolve(process.cwd(), 'models');
-  });
+// Configure Transformers.js for local models
+let envConfigured = false;
+async function configureEnv() {
+  if (envConfigured) return;
+  const { env } = await import('@huggingface/transformers');
+  env.allowRemoteModels = false;
+  env.allowLocalModels = true;
+  env.useFS = true;
+  env.useFSCache = true;
+  env.localModelPath = path.resolve(process.cwd(), 'models');
+  if (env.backends?.onnx?.wasm) {
+    env.backends.onnx.wasm.numThreads = 1;
+    env.backends.onnx.wasm.simd = false;       // ARM64 compatibility
+    env.backends.onnx.wasm.proxy = false;
+  }
+  envConfigured = true;
 }
 
 export const ContentClassification = z.object({
@@ -41,6 +48,7 @@ async function loadContentClassifier(log?: pino.Logger): Promise<any> {
   if (!contentClassifier) {
     contentClassifier = (async () => {
       try {
+        await configureEnv();
         const { pipeline } = await import('@huggingface/transformers');
         const modelName = getClassificationModel();
         
@@ -70,6 +78,7 @@ async function loadIntentClassifier(log?: pino.Logger): Promise<any> {
   if (!intentClassifier) {
     intentClassifier = (async () => {
       try {
+        await configureEnv();
         const { pipeline } = await import('@huggingface/transformers');
         const modelName = getClassificationModel();
         
