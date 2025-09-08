@@ -33,7 +33,9 @@ export function createTestApp(): express.Express {
 }
 
 export const shouldSaveTranscripts: boolean =
-  process.argv.includes('--save-transcripts') || process.argv.includes('--with-transcripts');
+  process.env.RECORD_TRANSCRIPTS === 'true' ||
+  process.argv.includes('--save-transcripts') ||
+  process.argv.includes('--with-transcripts');
 
 export function createRecorderIfEnabled(): TranscriptRecorder | undefined {
   if (shouldSaveTranscripts) {

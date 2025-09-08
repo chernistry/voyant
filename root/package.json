@@ -47,6 +47,8 @@
     "test:e2e:06": "jest --runInBand --testPathPattern=tests/e2e/06-citations_unrelated_empty_system.test.ts",
     "test:e2e:07": "jest --runInBand --testPathPattern=tests/e2e/07-conflicting_abrupt_sensitive_multilang_metrics.test.ts",
     "test:e2e:09": "jest --runInBand --testPathPattern=tests/e2e/09-demo_authentic_conversation.test.ts",
+    "test:e2e:10": "jest --runInBand --testPathPattern=tests/e2e/10-nlp-pipeline-verify.test.ts",
+    "test:e2e:10:transcripts": "RECORD_TRANSCRIPTS=true jest --runInBand --testPathPattern=tests/e2e/10-nlp-pipeline-verify.test.ts",
     "test:e2e:all": "jest --runInBand --testPathPattern=tests/e2e/",
     "test:edge": "jest --runInBand --testNamePattern=\"typos|emojis|thread|leakage|non-existent|long messages\"",
     "generate-deliverables": "npm run test:transcripts",

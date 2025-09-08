@@ -203,29 +203,12 @@ export async function runGraphTurn(
     }
   }
 
-  // Use Transformers to detect and correct common travel-related typos
+  // Use unified Transformers spell correction
   let spellingCorrectedMessage = message;
   try {
-    // More comprehensive spell correction for travel terms
-    const corrections = {
-      'weher': 'weather',
-      'wether': 'weather', 
-      'wheather': 'weather',
-      'burlin': 'berlin',
-      'berln': 'berlin',
-      'berling': 'berlin',
-      'packin': 'packing',
-      'packng': 'packing',
-      'atraction': 'attraction',
-      'atractions': 'attractions'
-    };
-    
-    for (const [typo, correction] of Object.entries(corrections)) {
-      const regex = new RegExp(`\\b${typo}\\b`, 'gi');
-      if (regex.test(spellingCorrectedMessage)) {
-        spellingCorrectedMessage = spellingCorrectedMessage.replace(regex, correction);
-      }
-    }
+    const { correctSpelling } = await import('./transformers-corrector.js');
+    const correctionResult = await correctSpelling(message, ctx.log);
+    spellingCorrectedMessage = correctionResult.corrected_text;
     
     if (spellingCorrectedMessage !== message) {
       message = spellingCorrectedMessage;
