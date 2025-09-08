@@ -159,7 +159,7 @@ flowchart TD
     Z3 --> Z6["Append one source mention if missing"]
     Z2 -->|No| Z6
     Z6 --> Z7{"Language warning set?"}
-    Z7 -->|Yes| Z8["Prefix: 'I work better with English, but I'll try to help.'"]
+    Z7 -->|Yes| Z8["Prefix: 'Note: I work best with English, but I'll try to help.'"]
     Z7 -->|No| Z9["No warning"]
     Z8 --> Z10["Return final reply (+ citations if any)"]
     Z9 --> Z10
@@ -198,3 +198,4 @@ flowchart TD
 %% - DEEP_RESEARCH_ENABLED: Enable complexity detection (true/false)
 %% - TRANSFORMERS_NER_MODEL: NER model override
 %% - NER_MODE: local|remote|auto (default: auto)
+%% - RESILIENCE: Circuit breakers and rate limiters are used for all external API calls.

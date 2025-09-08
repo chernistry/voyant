@@ -146,21 +146,7 @@ NODE_ENV=test|development|production # Environment
 
 ---
 
-## 🚨 CRITICAL FIXES NEEDED
 
-### **Files requiring immediate fixes:**
-
-1. **`src/core/transformers-classifier.ts`** - ❌ **BROKEN**
-   - **Problem**: Uses hardcoded regex patterns instead of Transformers
-   - **Fix**: Replace with `pipeline('zero-shot-classification', 'Xenova/nli-deberta-v3-base')`
-
-2. **`src/core/transformers-corrector.ts`** - ❌ **BROKEN**  
-   - **Problem**: Tries to load non-existent spell correction model
-   - **Fix**: Remove model loading, keep enhanced dictionary-based correction
-
-3. **`src/core/graph.ts`** - ⚠️ **REDUNDANT**
-   - **Problem**: Duplicate spell correction patterns
-   - **Fix**: Remove lines 210-235, use unified `correctSpelling()` function
 
 ### **Working files (no changes needed):**
 - ✅ `src/core/ner.ts` - Already uses correct NER model
