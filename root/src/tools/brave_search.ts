@@ -198,49 +198,6 @@ export async function extractCountryFromResults(results: BraveSearchResult[], co
 }
 
 /**
- * Extract attractions from search results
- */
-export function extractAttractionsFromResults(results: BraveSearchResult[], city: string): string | null {
-  const attractionKeywords = ['attractions', 'things to do', 'visit', 'museum', 'park', 'landmark', 'tourist', 'best', 'top'];
-  const attractions: string[] = [];
-  
-  for (const result of results) {
-    const text = `${result.title} ${result.description}`.toLowerCase();
-    if (attractionKeywords.some(keyword => text.includes(keyword)) && text.includes(city.toLowerCase())) {
-      
-      // Simple extraction: look for common attraction names in the description
-      const description = result.description;
-      const commonAttractions = [
-        'Eiffel Tower', 'Louvre Museum', 'Notre-Dame Cathedral', 'Arc de Triomphe',
-        'Statue of Liberty', 'Empire State Building', 'Central Park', 'Times Square',
-        'Tower Bridge', 'Big Ben', 'London Eye', 'British Museum',
-        'Colosseum', 'Vatican', 'Trevi Fountain', 'Spanish Steps',
-        'Tokyo Tower', 'Senso-ji Temple', 'Meiji Shrine', 'Tokyo Skytree'
-      ];
-      
-      for (const attraction of commonAttractions) {
-        if (description.includes(attraction) && !attractions.includes(attraction)) {
-          attractions.push(attraction);
-        }
-      }
-      
-      // If no common attractions found, extract from title
-      if (attractions.length === 0) {
-        const title = result.title.replace(/^\d+\.?\s*/, '').replace(/\s*-.*$/, '');
-        if (title.length > 5 && title.length < 50) {
-          attractions.push(title);
-        }
-      }
-    }
-  }
-  
-  if (attractions.length > 0) {
-    return `Popular attractions in ${city} include: ${attractions.slice(0, 3).join(', ')}`;
-  }
-  return null;
-}
-
-/**
  * LLM-first extraction: Weather summary from search results (fallback to heuristics elsewhere)
  */
 export async function llmExtractWeatherFromResults(

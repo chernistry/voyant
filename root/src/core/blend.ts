@@ -684,7 +684,7 @@ export async function blendWithFacts(
         if (destinationFacts.length > 0) {
           cits.push('Catalog+REST Countries');
           const destinations = destinationFacts.map(f => 
-            `${f.value.city}, ${f.value.country} (${f.value.tags.climate}, ${f.value.tags.budget} budget, family-friendly: ${f.value.tags.family ? 'yes' : 'no'})`
+            `${f.value.city}, ${f.value.country} (${f.value.tags.climate}, ${f.value.tags.budget} budget, family-friendly: ${f.value.tags.family_friendly ? 'yes' : 'no'})`
           ).join('; ');
           facts += `DESTINATION OPTIONS: ${destinations}\n`;
           factsArr.push(...destinationFacts);

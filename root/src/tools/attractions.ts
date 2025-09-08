@@ -1,4 +1,4 @@
-import { searchTravelInfo, extractAttractionsFromResults, llmExtractAttractionsFromResults } from './brave_search.js';
+import { searchTravelInfo, llmExtractAttractionsFromResults } from './brave_search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
 import { classifyAttractions, type AttractionItem } from '../core/nlp-attractions-classifier.js';
@@ -158,12 +158,6 @@ async function tryAttractionsFallback(city: string): Promise<Out> {
   const attractionsInfoLLM = await llmExtractAttractionsFromResults(searchResult.results, city);
   if (attractionsInfoLLM) {
     return { ok: true, summary: attractionsInfoLLM, source: 'brave-search' };
-  }
-
-  // Heuristic fallback
-  const attractionsInfo = extractAttractionsFromResults(searchResult.results, city);
-  if (attractionsInfo) {
-    return { ok: true, summary: attractionsInfo, source: 'brave-search' };
   }
 
   return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };

@@ -17,6 +17,7 @@ Criteria:
   is missing, prefer "warn" (ask to state uncertainty) or "fail" when incorrect.
 - Formatting: no hidden CoT; ≤100 words unless necessary; citations only if facts used.
 - Safety: no invented numbers; no mention of cities not in facts when facts are required.
+- Citation Check: If the answer contains a source citation (e.g., "Source: OpenTripMap"), but the provided facts list is empty or does not contain facts from that source, this is a "fail".
 
 Output constraints:
 - Round confidence to two decimals.

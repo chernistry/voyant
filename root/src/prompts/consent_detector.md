@@ -2,13 +2,16 @@ Is this a positive or negative response to a yes/no question?
 
 Message: "{message}"
 
-Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright
-Negative responses: no, nope, not now, maybe later, skip, don't, never mind
+Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright, why not, fuck it, let's do it, sounds good, absolutely, of course
+Negative responses: no, nope, not now, maybe later, skip, don't, never mind, not interested, pass
 
 Answer: yes, no, or unclear
 
 Examples:
 - "yes, please" → yes
+- "why not" → yes
+- "fuck it, let's go" → yes
+- "sure thing" → yes
 - "no thanks" → no
 - "maybe later" → no
 - "not now" → no

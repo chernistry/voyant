@@ -11,37 +11,6 @@ import type pino from 'pino';
 
 // No winkNLP; use regex + transformers signals
 
-/**
- * Safety check for policy questions to prevent misrouting to web search
- */
-function isPolicyQuestion(message: string): boolean {
-  const m = message.toLowerCase();
-  return /\b(baggage|carry.?on|checked.?bag|luggage|personal.?item|refund|cancellation|change.?fee|rebooking|no.?show|check.?in|boarding|seat.?selection|fare.?rules|basic.?economy|visa|passport|entry.?requirements|esta|schengen|policy|allowance|timeframe|conditions|risk.?free)\b/.test(m) &&
-         /\b(delta|united|american|southwest|jetblue|alaska|spirit|frontier|marriott|hilton|hyatt|ihg|airlines?|air.?lines?)\b/.test(m);
-}
-
-// Early simple intent detection to avoid complexity check for basic queries
-function detectSimpleIntent(message: string, log?: pino.Logger): { intent: string; needExternal: boolean; confidence: number } | null {
-  const m = message.toLowerCase();
-  
-  // Weather patterns (English + Russian)
-  if (/\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\b/i.test(m)) {
-    return { intent: 'weather', needExternal: true, confidence: 0.9 };
-  }
-  
-  // Packing patterns
-  if (/\b(pack|пак|bring|clothes|items|luggage|suitcase|wear)\b/i.test(m)) {
-    return { intent: 'packing', needExternal: false, confidence: 0.85 };
-  }
-  
-  // Attractions patterns  
-  if (/\b(attraction|достопримечательност|do in|what to do|museum|activities)\b/i.test(m)) {
-    return { intent: 'attractions', needExternal: false, confidence: 0.8 };
-  }
-  
-  return null;
-}
-
 export async function routeIntent(input: { message: string; threadId?: string; logger?: { log: pino.Logger } }): Promise<RouterResultT> {
   if (typeof input.logger?.log?.info === 'function') {
     input.logger.log.debug({ message: input.message }, 'router_start');
@@ -155,11 +124,10 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   }
   
   // Handle policy questions before explicit search (with safety check)
-  if (contentClassification?.content_type === 'policy' || isPolicyQuestion(input.message)) {
+  if (contentClassification?.content_type === 'policy') {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ 
         contentType: contentClassification?.content_type,
-        heuristicMatch: isPolicyQuestion(input.message),
         message: input.message.substring(0, 100)
       }, '🏛️ POLICY: Routing to RAG system');
     }
@@ -172,9 +140,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   }
   
   // Handle explicit search commands early (but not for policy questions)
-  if (contentClassification?.is_explicit_search && 
-      (contentClassification as any).content_type !== 'policy' && 
-      !isPolicyQuestion(input.message)) {
+  if (contentClassification?.is_explicit_search && (contentClassification as any).content_type !== 'policy') {
     // Extract and optimize search query
     let searchQuery = input.message
       .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
@@ -973,22 +939,6 @@ function classifyIntentFromTransformers(
   
   // Use transformers intent classification as primary signal (after attractions check)
   if (intentResult.confidence > 0.8) {
-    // Special case: check for policy questions even if classified as "unknown"
-    if (intentResult.intent === 'unknown' && isPolicyQuestion(message)) {
-      if (log?.debug) {
-        log.debug({ 
-          originalIntent: intentResult.intent,
-          confidence: intentResult.confidence,
-          policyOverride: true
-        }, '🏛️ TRANSFORMERS: Policy override for unknown intent');
-      }
-      
-      return { 
-        intent: 'policy', 
-        needExternal: true, 
-        confidence: 0.9 
-      };
-    }
     
     const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
     

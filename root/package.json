@@ -64,6 +64,7 @@
     "@types/langdetect": "^0.2.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.12.12",
+    "@xenova/transformers": "^2.17.2",
     "bottleneck": "^2.19.5",
     "brave-search": "^0.9.0",
     "chalk": "^5.6.0",

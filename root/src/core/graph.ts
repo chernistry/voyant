@@ -18,18 +18,44 @@ async function detectConsent(
   message: string,
   ctx: { log: pino.Logger },
 ): Promise<'yes' | 'no' | 'unclear'> {
+  ctx.log.info({ message }, '🔍 CONSENT: Starting AI-first detection');
+  
+  // Step 1: LLM-first approach (AI-first)
   const promptTemplate = await getPrompt('consent_detector');
   const prompt = promptTemplate.replace('{message}', message);
 
   try {
     const response = await callLLM(prompt, { log: ctx.log });
     const answer = response.toLowerCase().trim();
-    if (answer.includes('yes')) return 'yes';
-    if (answer.includes('no')) return 'no';
-    return 'unclear';
-  } catch {
-    return 'unclear';
+    
+    ctx.log.info({ response, answer, message }, '🔍 CONSENT: LLM response received');
+    
+    if (answer.startsWith('yes') || answer.includes('yes')) {
+      ctx.log.info({ answer }, '🔍 CONSENT: LLM detected YES');
+      return 'yes';
+    }
+    if (answer.startsWith('no') || answer.includes('no')) {
+      ctx.log.info({ answer }, '🔍 CONSENT: LLM detected NO');
+      return 'no';
+    }
+    
+    ctx.log.info({ answer }, '🔍 CONSENT: LLM detected UNCLEAR');
+  } catch (error) {
+    ctx.log.error({ error, message }, '🔍 CONSENT: LLM failed, using minimal hardcode');
   }
+  
+  // Step 2: Minimal hardcode ONLY for very plain responses
+  const msg = message.toLowerCase().trim();
+  if (msg === 'yes' || msg === 'y') {
+    ctx.log.info({ message }, '🔍 CONSENT: Hardcoded YES (plain)');
+    return 'yes';
+  }
+  if (msg === 'no' || msg === 'n') {
+    ctx.log.info({ message }, '🔍 CONSENT: Hardcoded NO (plain)');
+    return 'no';
+  }
+  
+  return 'unclear';
 }
 
 export type NodeCtx = { msg: string; threadId: string; onStatus?: (status: string) => void };
@@ -98,6 +124,15 @@ export async function runGraphTurn(
   const awaitingDeepResearch = threadSlots.awaiting_deep_research_consent === 'true';
   const pendingDeepResearchQuery = threadSlots.pending_deep_research_query;
   
+  ctx.log.info({ 
+    threadSlots,
+    awaitingDeepResearch,
+    pendingDeepResearchQuery,
+    awaitingSearchConsent,
+    pendingSearchQuery,
+    threadId
+  }, '🔍 THREAD: Slots state check');
+  
   if (awaitingSearchConsent && pendingSearchQuery) {
     const consent = await detectConsent(message, ctx);
     const isConsentResponse = consent !== 'unclear';
@@ -132,13 +167,27 @@ export async function runGraphTurn(
 
   // Handle consent responses for deep research
   if (awaitingDeepResearch && pendingDeepResearchQuery) {
+    ctx.log.info({ 
+      awaitingDeepResearch, 
+      pendingDeepResearchQuery, 
+      message,
+      threadId 
+    }, '🔍 CONSENT: Deep research consent check triggered');
+    
     const consent = await detectConsent(message, ctx);
     const isConsentResponse = consent !== 'unclear';
+    
+    ctx.log.info({ 
+      consent, 
+      isConsentResponse, 
+      message 
+    }, '🔍 CONSENT: Detection result');
     
     // Check if this is a context switch (new query vs consent response)
     const isContextSwitch = !isConsentResponse && message.toLowerCase().trim() !== pendingDeepResearchQuery.toLowerCase().trim();
     
     if (isContextSwitch) {
+      ctx.log.info({ isContextSwitch }, '🔍 CONSENT: Context switch detected, clearing state');
       // Clear old consent state and process new query
       updateThreadSlots(threadId, {
         awaiting_deep_research_consent: '',
@@ -148,13 +197,20 @@ export async function runGraphTurn(
       // Continue with normal routing for the new query
     } else if (isConsentResponse) {
       const isPositive = consent === 'yes';
+      ctx.log.info({ 
+        isPositive, 
+        pendingDeepResearchQuery 
+      }, '🔍 CONSENT: Processing consent response');
+      
       // Clear consent state
       updateThreadSlots(threadId, {
         awaiting_deep_research_consent: '',
         pending_deep_research_query: '',
         complexity_reasoning: ''
       }, []);
+      
       if (isPositive) {
+        ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
         return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
       } else {
         // Fall back to standard routing with the pending query
@@ -503,7 +559,7 @@ async function destinationsNode(
     
     if (destinations.length > 0) {
       const destinationList = destinations.map(d => 
-        `${d.value.city}, ${d.value.country} (${d.value.tags.climate} climate, ${d.value.tags.budget} budget${d.value.tags.family ? ', family-friendly' : ''})`
+        `${d.value.city}, ${d.value.country} (${d.value.tags.climate} climate, ${d.value.tags.budget} budget${d.value.tags.family_friendly ? ', family-friendly' : ''})`
       ).join('; ');
       
       const baseReply = `Based on your preferences, here are some recommended destinations:\n\n${destinationList}`;
@@ -778,8 +834,12 @@ async function performDeepResearchNode(
   threadId: string,
 ): Promise<NodeOut> {
   try {
+    // Optimize the query for better search results
+    const { optimizeSearchQuery } = await import('./llm.js');
+    const optimizedQuery = await optimizeSearchQuery(query, {}, 'destinations', ctx.log);
+    
     const { performDeepResearch } = await import('./deep_research.js');
-    const research = await performDeepResearch(query, { threadId }, ctx.log);
+    const research = await performDeepResearch(optimizedQuery, { threadId }, ctx.log);
     // Store receipts
     try {
       const { setLastReceipts } = await import('./slot_memory.js');

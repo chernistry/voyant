@@ -1,17 +1,7 @@
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 import { getCountryFacts } from './country.js';
-import { extractTravelPreferences, type TravelPreferencesT } from '../core/preference-extractor.js';
+import { extractTravelPreferences } from '../core/preference-extractor.js';
+import { callLLM } from '../core/llm.js';
 import type pino from 'pino';
-
-export interface CatalogItem {
-  city: string;
-  country: string;
-  months: string[];
-  climate: string;
-  budget: string;
-  family: boolean;
-}
 
 export interface DestinationFact {
   source: string;
@@ -20,10 +10,9 @@ export interface DestinationFact {
     city: string;
     country: string;
     tags: {
-      months: string[];
       climate: string;
       budget: string;
-      family?: boolean;
+      family_friendly: boolean;
     };
   };
   url?: string;
@@ -38,203 +27,51 @@ export interface Slots {
   climate?: string;
 }
 
-function monthFromDates(dates?: string): string | undefined {
-  if (!dates) return undefined;
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  for (const month of monthNames) {
-    if (dates.toLowerCase().includes(month.toLowerCase())) {
-      return month;
-    }
-  }
-  return undefined;
-}
-
-function normalizeMonth(month?: string): string | undefined {
-  if (!month) return undefined;
-  const monthMap: Record<string, string> = {
-    'january': 'Jan', 'february': 'Feb', 'march': 'Mar', 'april': 'Apr',
-    'may': 'May', 'june': 'Jun', 'july': 'Jul', 'august': 'Aug',
-    'september': 'Sep', 'october': 'Oct', 'november': 'Nov', 'december': 'Dec',
-    'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'apr': 'Apr',
-    'jun': 'Jun', 'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep',
-    'oct': 'Oct', 'nov': 'Nov', 'dec': 'Dec'
-  };
-  return monthMap[month.toLowerCase()] || month;
-}
-
-function calculateSemanticScore(
-  destination: CatalogItem, 
-  preferences: TravelPreferencesT,
-  slots: Slots
-): number {
-  let score = 0;
-  
-  // If AI failed, use basic scoring
-  if (preferences.aiMethod === 'failed') {
-    if (slots.budget && destination.budget === slots.budget) score += 1;
-    if (slots.climate && destination.climate === slots.climate) score += 1;
-    return score * 0.3; // Low confidence for non-AI scoring
-  }
-  
-  // AI-powered semantic scoring
-  if (preferences.budgetLevel && destination.budget === preferences.budgetLevel) {
-    score += 3;
-  } else if (slots.budget && destination.budget === slots.budget) {
-    score += 2;
-  }
-  
-  // Family-friendly matching
-  if (preferences.travelStyle === 'family' || preferences.groupType === 'family') {
-    score += destination.family ? 4 : -2;
-  }
-  
-  // Travel style semantic matching
-  if (preferences.travelStyle === 'luxury' && destination.budget === 'high') {
-    score += 2;
-  } else if (preferences.travelStyle === 'budget' && destination.budget === 'low') {
-    score += 2;
-  }
-  
-  // Semantic destination matching based on AI understanding
-  const cityName = destination.city.toLowerCase();
-  
-  if (preferences.travelStyle === 'romantic') {
-    if (['paris', 'venice', 'florence', 'vienna', 'prague', 'barcelona'].includes(cityName)) {
-      score += 3;
-    }
-  } else if (preferences.travelStyle === 'adventure') {
-    if (['reykjavik', 'marrakech', 'bangkok'].includes(cityName) || 
-        destination.climate === 'cold' || destination.climate === 'desert') {
-      score += 2;
-    }
-  } else if (preferences.travelStyle === 'cultural') {
-    if (['rome', 'paris', 'florence', 'vienna', 'berlin', 'amsterdam', 'prague'].includes(cityName)) {
-      score += 2;
-    }
-  }
-  
-  // Activity-based AI scoring
-  if (preferences.activityType === 'museums') {
-    if (['paris', 'rome', 'florence', 'vienna', 'berlin', 'amsterdam'].includes(cityName)) {
-      score += 2;
-    }
-  } else if (preferences.activityType === 'nature') {
-    if (['reykjavik', 'stockholm', 'copenhagen', 'edinburgh'].includes(cityName) ||
-        destination.climate === 'cold' || destination.climate === 'temperate') {
-      score += 2;
-    }
-  } else if (preferences.activityType === 'nightlife') {
-    if (['barcelona', 'berlin', 'amsterdam', 'prague', 'bangkok'].includes(cityName)) {
-      score += 2;
-    }
-  }
-  
-  // Climate matching
-  if (slots.climate && destination.climate === slots.climate) {
-    score += 2;
-  }
-  
-  // Apply AI confidence weighting
-  const aiBonus = preferences.aiMethod === 'nlp' ? 1.2 : preferences.aiMethod === 'llm' ? 1.0 : 0.5;
-  score *= Math.max(preferences.confidence, 0.3) * aiBonus;
-  
-  return score;
-}
-
 export async function recommendDestinations(
   slots: Slots, 
   log?: pino.Logger
 ): Promise<DestinationFact[]> {
   try {
-    const catalogPath = join(process.cwd(), 'data', 'destinations_catalog.json');
-    const catalogData = await readFile(catalogPath, 'utf-8');
-    const catalog = JSON.parse(catalogData) as CatalogItem[];
-    
-    const month = normalizeMonth(slots.month) ?? monthFromDates(slots.dates);
-    
-    // AI-powered preference extraction: NLP → LLM → fallback
-    const preferences = await extractTravelPreferences(
-      slots.travelerProfile || '', 
-      log
-    );
-    
-    if (log?.debug) {
-      log.debug({ 
-        preferences, 
-        aiMethod: preferences.aiMethod,
-        travelerProfile: slots.travelerProfile 
-      }, `🤖 AI EXTRACTION: Method=${preferences.aiMethod}, Confidence=${preferences.confidence}`);
-    }
-    
-    // Filter by month if specified
-    const filtered = catalog.filter(c => !month || c.months.includes(month));
-    
-    // AI-powered semantic scoring
-    const scored = filtered.map(c => {
-      const score = calculateSemanticScore(c, preferences, slots);
-      return { c, score };
-    }).sort((a, b) => b.score - a.score).slice(0, 4);
+    const preferences = await extractTravelPreferences(slots.travelerProfile || '', log);
 
-    // Attach factual anchors from REST Countries
-    const facts: DestinationFact[] = [];
-    for (const { c } of scored) {
-      try {
-        const countryInfo = await getCountryFacts({ city: c.city });
-        if (countryInfo.ok) {
-          facts.push({
-            source: 'Catalog+REST Countries',
-            key: 'destination',
-            value: {
-              city: c.city,
-              country: c.country,
-              tags: {
-                months: c.months,
-                climate: c.climate,
-                budget: c.budget,
-                family: c.family
-              }
-            },
-            url: countryInfo.summary // Use summary as URL fallback
-          });
-        } else {
-          // Include destination even if country lookup fails
-          facts.push({
-            source: 'Catalog',
-            key: 'destination',
-            value: {
-              city: c.city,
-              country: c.country,
-              tags: {
-                months: c.months,
-                climate: c.climate,
-                budget: c.budget,
-                family: c.family
-              }
-            }
-          });
-        }
-      } catch (e) {
-        // Include destination even if country lookup fails
-        facts.push({
-          source: 'Catalog',
-          key: 'destination',
-          value: {
-            city: c.city,
-            country: c.country,
-            tags: {
-              months: c.months,
-              climate: c.climate,
-              budget: c.budget,
-              family: c.family
-            }
+    const prompt = `
+      Based on the following travel preferences, recommend 3-4 destinations.
+      Preferences: ${JSON.stringify(preferences)}
+      User query context: ${JSON.stringify(slots)}
+
+      For each destination, provide a brief, compelling reason why it matches the preferences.
+      Return the recommendations in a JSON array with the following structure:
+      [
+        {
+          "city": "City Name",
+          "country": "Country Name",
+          "description": "Why this destination is a good fit.",
+          "tags": {
+            "climate": "e.g., warm, cold, temperate",
+            "budget": "e.g., low, mid, high",
+            "family_friendly": true/false
           }
-        });
-      }
-    }
-    
-    return facts;
+        }
+      ]
+    `;
+
+    const rawResponse = await callLLM(prompt, { responseFormat: 'json', log });
+    const recommendations = JSON.parse(rawResponse);
+
+    // Format the LLM response into the DestinationFact structure
+    return recommendations.map((rec: any) => ({
+      source: 'LLM Recommendation',
+      key: 'destination',
+      value: {
+        city: rec.city,
+        country: rec.country,
+        tags: rec.tags
+      },
+      url: `Generated recommendation for ${rec.city}`
+    }));
+
   } catch (e) {
-    throw new Error(`Failed to load destinations catalog: ${e}`);
+    if (log) log.error({ error: e }, 'Failed to get AI-driven destinations');
+    return [];
   }
 }
