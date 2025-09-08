@@ -26,4 +26,6 @@ Edge Cases:
 - Missing facts for a key claim → verdict="warn"; add note to state uncertainty.
 - Contradictory facts vs draft → verdict="fail"; produce revisedAnswer grounded only in facts.
 - Empty/irrelevant facts → verdict="warn" unless draft contains invented specifics → "fail".
+- OpenTripMap/API sources: If response cites "Source: OpenTripMap" or similar API sources and facts contain data from that source → verdict="pass" (API data is considered factual).
+- Travel API responses: When facts include POI/attraction data from OpenTripMap, Brave Search, or other travel APIs, and the response appropriately cites the source → verdict="pass".
 

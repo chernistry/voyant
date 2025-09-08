@@ -2,6 +2,7 @@ import { searchTravelInfo, extractAttractionsFromResults, llmExtractAttractionsF
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
 import { classifyAttractions, type AttractionItem } from '../core/nlp-attractions-classifier.js';
+import { callLLM } from '../core/llm.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };
 
@@ -26,7 +27,7 @@ export async function getAttractions(input: {
   }
 
   // For unknown cities, avoid web fallback to prevent fabrications
-  if (!primaryResult.ok && primaryResult.reason === 'unknown_city') {
+  if (!primaryResult.ok && 'reason' in primaryResult && primaryResult.reason === 'unknown_city') {
     return primaryResult;
   }
 
@@ -95,10 +96,7 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
         const finalAttractions = profile === 'default' ? attractions : classified;
         
         if (finalAttractions.length >= 1) {
-          const summary = finalAttractions
-            .slice(0, limit)
-            .map(a => a.description ? `${a.name}: ${a.description.substring(0, 150)}${a.description.length > 150 ? '...' : ''}` : a.name)
-            .join('; ');
+          const summary = await summarizeAttractions(finalAttractions.slice(0, limit), city, profile);
           return { ok: true, summary, source: 'opentripmap' };
         }
       }
@@ -129,7 +127,7 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
           const finalAttractions = profile === 'default' ? attractions : classified;
           
           if (finalAttractions.length > 0) {
-            const summary = finalAttractions.map(a => a.name).join('; ');
+            const summary = await summarizeAttractions(finalAttractions, city, profile);
             return { ok: true, summary, source: 'opentripmap' };
           }
         }
@@ -139,7 +137,7 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
     if (pois.ok) {
       return { ok: false, reason: 'no_pois', source: 'opentripmap' };
     }
-    return { ok: false, reason: pois.reason, source: pois.source || 'opentripmap' };
+    return { ok: false, reason: 'reason' in pois ? pois.reason : 'unknown_error', source: pois.source || 'opentripmap' };
   } catch (e) {
     if (e instanceof ExternalFetchError) {
       return { ok: false, reason: e.kind === 'timeout' ? 'timeout' : 'network', source: 'opentripmap' };
@@ -169,4 +167,49 @@ async function tryAttractionsFallback(city: string): Promise<Out> {
   }
 
   return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };
+}
+
+/**
+ * Summarize attractions using LLM for coherent output
+ */
+async function summarizeAttractions(
+  attractions: AttractionItem[], 
+  city: string, 
+  profile: 'default' | 'kid_friendly' = 'default'
+): Promise<string> {
+  try {
+    const attractionData = attractions.map(a => ({
+      name: a.name,
+      description: a.description || 'No description available'
+    }));
+
+    const profileContext = profile === 'kid_friendly' 
+      ? 'Focus on family-friendly and child-appropriate attractions.'
+      : 'Include all types of attractions for general travelers.';
+
+    const prompt = `Summarize these attractions in ${city} for travelers. ${profileContext}
+
+Attractions:
+${attractionData.map(a => `- ${a.name}: ${a.description.slice(0, 200)}`).join('\n')}
+
+Create a natural, engaging summary that highlights the key attractions. Be concise but informative. Return JSON:
+
+{
+  "summary": "Natural paragraph describing the attractions with their key features"
+}`;
+
+    const response = await callLLM(prompt, { responseFormat: 'json' });
+    const parsed = JSON.parse(response);
+    
+    if (parsed.summary && typeof parsed.summary === 'string') {
+      return parsed.summary;
+    }
+    
+    // Fallback to simple list if LLM fails
+    return `Popular attractions in ${city} include: ${attractions.map(a => a.name).join(', ')}`;
+    
+  } catch (error) {
+    // Fallback to simple list if LLM fails
+    return `Popular attractions in ${city} include: ${attractions.map(a => a.name).join(', ')}`;
+  }
 }
