@@ -291,7 +291,8 @@ export async function classifyIntent(text: string, log?: pino.Logger): Promise<I
       return { intent: 'packing', confidence: 0.9 };
     }
     
-    if (/attraction|do in|what to do|museum|activities/.test(m)) {
+    if (/\b(attraction|museum|activities|things to do|places to visit|sights|landmarks|tourist|visit|see in|do in)\b/i.test(m) ||
+        /what.*do.*in|what.*see.*in|kid.friendly.*in|family.friendly.*in/i.test(m)) {
       return { intent: 'attractions', confidence: 0.85 };
     }
     

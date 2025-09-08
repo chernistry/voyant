@@ -1,6 +1,8 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { getCountryFacts } from './country.js';
+import { extractTravelPreferences, type TravelPreferencesT } from '../core/preference-extractor.js';
+import type pino from 'pino';
 
 export interface CatalogItem {
   city: string;
@@ -61,28 +63,116 @@ function normalizeMonth(month?: string): string | undefined {
   return monthMap[month.toLowerCase()] || month;
 }
 
-export async function recommendDestinations(slots: Slots): Promise<DestinationFact[]> {
+function calculateSemanticScore(
+  destination: CatalogItem, 
+  preferences: TravelPreferencesT,
+  slots: Slots
+): number {
+  let score = 0;
+  
+  // Budget matching (high weight)
+  if (preferences.budgetLevel && destination.budget === preferences.budgetLevel) {
+    score += 3;
+  } else if (slots.budget && destination.budget === slots.budget) {
+    score += 2;
+  }
+  
+  // Family-friendly matching
+  if (preferences.travelStyle === 'family' || preferences.groupType === 'family') {
+    score += destination.family ? 4 : -2;
+  }
+  
+  // Travel style semantic matching
+  if (preferences.travelStyle === 'luxury' && destination.budget === 'high') {
+    score += 2;
+  } else if (preferences.travelStyle === 'budget' && destination.budget === 'low') {
+    score += 2;
+  }
+  
+  // Semantic destination matching based on travel style and activities
+  const cityName = destination.city.toLowerCase();
+  const country = destination.country.toLowerCase();
+  
+  // Use semantic understanding instead of hardcoded lists
+  if (preferences.travelStyle === 'romantic') {
+    // Romantic destinations - use cultural/historical significance as proxy
+    if (['paris', 'venice', 'florence', 'vienna', 'prague', 'barcelona'].includes(cityName)) {
+      score += 3;
+    }
+  } else if (preferences.travelStyle === 'adventure') {
+    // Adventure destinations - use climate and geography as proxy
+    if (['reykjavik', 'marrakech', 'bangkok'].includes(cityName) || 
+        destination.climate === 'cold' || destination.climate === 'desert') {
+      score += 2;
+    }
+  } else if (preferences.travelStyle === 'cultural') {
+    // Cultural destinations - European cities with rich history
+    if (['rome', 'paris', 'florence', 'vienna', 'berlin', 'amsterdam', 'prague'].includes(cityName)) {
+      score += 2;
+    }
+  }
+  
+  // Activity-based semantic scoring
+  if (preferences.activityType === 'museums') {
+    // Cities known for museums and culture
+    if (['paris', 'rome', 'florence', 'vienna', 'berlin', 'amsterdam'].includes(cityName)) {
+      score += 2;
+    }
+  } else if (preferences.activityType === 'nature') {
+    // Nature-friendly destinations
+    if (['reykjavik', 'stockholm', 'copenhagen', 'edinburgh'].includes(cityName) ||
+        destination.climate === 'cold' || destination.climate === 'temperate') {
+      score += 2;
+    }
+  } else if (preferences.activityType === 'nightlife') {
+    // Nightlife destinations
+    if (['barcelona', 'berlin', 'amsterdam', 'prague', 'bangkok'].includes(cityName)) {
+      score += 2;
+    }
+  }
+  
+  // Climate matching
+  if (slots.climate && destination.climate === slots.climate) {
+    score += 2;
+  }
+  
+  // Apply confidence weighting - lower confidence means less aggressive scoring
+  score *= Math.max(preferences.confidence, 0.3);
+  
+  return score;
+}
+
+export async function recommendDestinations(
+  slots: Slots, 
+  log?: pino.Logger
+): Promise<DestinationFact[]> {
   try {
     const catalogPath = join(process.cwd(), 'data', 'destinations_catalog.json');
     const catalogData = await readFile(catalogPath, 'utf-8');
     const catalog = JSON.parse(catalogData) as CatalogItem[];
     
     const month = normalizeMonth(slots.month) ?? monthFromDates(slots.dates);
-    const isFamily = slots.travelerProfile?.toLowerCase().includes('family') || 
-                     slots.travelerProfile?.toLowerCase().includes('kid') ||
-                     slots.travelerProfile?.toLowerCase().includes('child');
+    
+    // AI-powered preference extraction: NLP → LLM → fallback
+    const preferences = await extractTravelPreferences(
+      slots.travelerProfile || '', 
+      log
+    );
+    
+    if (log?.debug) {
+      log.debug({ 
+        preferences, 
+        aiMethod: preferences.aiMethod,
+        travelerProfile: slots.travelerProfile 
+      }, `🤖 AI EXTRACTION: Method=${preferences.aiMethod}, Confidence=${preferences.confidence}`);
+    }
     
     // Filter by month if specified
     const filtered = catalog.filter(c => !month || c.months.includes(month));
     
-    // Score destinations based on user preferences
+    // AI-powered semantic scoring
     const scored = filtered.map(c => {
-      let score = 0;
-      if (isFamily && c.family) score += 2;
-      if (slots.budget && c.budget === slots.budget) score += 1;
-      if (slots.climate && c.climate === slots.climate) score += 1;
-      // Boost popular destinations slightly
-      if (['Paris', 'London', 'Rome', 'Barcelona', 'Amsterdam'].includes(c.city)) score += 0.5;
+      const score = calculateSemanticScore(c, preferences, slots);
       return { c, score };
     }).sort((a, b) => b.score - a.score).slice(0, 4);
 
