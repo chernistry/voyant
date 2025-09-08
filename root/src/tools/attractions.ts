@@ -91,20 +91,14 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
         // Use NLP classification instead of hardcoded regex
         const classified = await classifyAttractions(attractions, profile);
         
-        if (classified.length >= 1) {
-          const summary = classified
+        // For default profile, return all attractions; for kid_friendly, return filtered
+        const finalAttractions = profile === 'default' ? attractions : classified;
+        
+        if (finalAttractions.length >= 1) {
+          const summary = finalAttractions
             .slice(0, limit)
             .map(a => a.description ? `${a.name}: ${a.description.substring(0, 150)}${a.description.length > 150 ? '...' : ''}` : a.name)
             .join('; ');
-          return { ok: true, summary, source: 'opentripmap' };
-        }
-      }
-      
-      // Fallback to names only if detailed descriptions don't work
-      if (attractions.length >= 2) {
-        const classified = await classifyAttractions(attractions, profile);
-        if (classified.length >= 2) {
-          const summary = classified.slice(0, limit).map(a => a.name).join('; ');
           return { ok: true, summary, source: 'opentripmap' };
         }
       }
@@ -132,8 +126,10 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
           
         if (attractions.length > 0) {
           const classified = await classifyAttractions(attractions, profile);
-          if (classified.length > 0) {
-            const summary = classified.map(a => a.name).join('; ');
+          const finalAttractions = profile === 'default' ? attractions : classified;
+          
+          if (finalAttractions.length > 0) {
+            const summary = finalAttractions.map(a => a.name).join('; ');
             return { ok: true, summary, source: 'opentripmap' };
           }
         }

@@ -549,21 +549,42 @@ async function attractionsNode(
   const threadSlots = getThreadSlots(ctx.threadId);
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
 
-  const { reply, citations } = await blendWithFacts(
-    {
-      message: ctx.msg,
-      route: {
-        intent: 'attractions',
-        needExternal: true,
-        slots: mergedSlots,
-        confidence: 0.7,
-      },
-      threadId: ctx.threadId,
-    },
-    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
-  );
-  const finalReply = disclaimer ? disclaimer + reply : reply;
-  return { done: true, reply: finalReply, citations };
+  // Directly call attractions tool instead of blendWithFacts
+  const { getAttractions } = await import('../tools/attractions.js');
+  
+  const city = mergedSlots.city;
+  if (!city) {
+    return { done: true, reply: 'I need to know which city you\'re asking about to find attractions.' };
+  }
+
+  // Detect kid-friendly profile from message context
+  const isKidFriendly = /\b(kids?|children|family|kid-friendly|kid friendly|toddler|stroller)\b/i.test(ctx.msg);
+  const profile = isKidFriendly ? 'kid_friendly' : 'default';
+
+  try {
+    const result = await getAttractions({ 
+      city, 
+      limit: 7, 
+      profile 
+    });
+
+    if (result.ok) {
+      const sourceName = result.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search';
+      const baseReply = `Here are some attractions in ${city}:\n\n${result.summary}\n\nSource: ${sourceName}`;
+      const finalReply = disclaimer ? disclaimer + baseReply : baseReply;
+      const citations = result.source ? [sourceName] : [];
+      return { done: true, reply: finalReply, citations };
+    } else {
+      // Fallback to web search if attractions tool fails
+      return webSearchNode(ctx, { ...mergedSlots, search_query: `${city} attractions things to do` }, logger);
+    }
+  } catch (error) {
+    if (logger?.log?.warn) {
+      logger.log.warn({ error: String(error), city }, 'attractions_tool_failed');
+    }
+    // Fallback to web search on error
+    return webSearchNode(ctx, { ...mergedSlots, search_query: `${city} attractions things to do` }, logger);
+  }
 }
 
 async function policyNode(
