@@ -25,7 +25,7 @@ export const NLPResult = z.object({
     language: z.string(),
     confidence: z.number(),
     has_mixed_languages: z.boolean(),
-    script_type: z.enum(['latin', 'cyrillic', 'japanese', 'mixed', 'unknown'])
+    script_type: z.enum(['latin', 'cyrillic', 'japanese', 'hebrew', 'mixed', 'unknown'])
   })
 });
 
