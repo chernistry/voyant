@@ -447,6 +447,9 @@ export async function runGraphTurn(
         .test(message.trim());
     
     if (!isObviousConsent) {
+      const consentPrompt =
+        "This looks complex. I can research live options and search the web to build a plan. " +
+        "Proceed with web/deep research? Reply 'yes' to continue or 'no' to skip.";
       // Use semantic similarity to detect if user switched topics
       const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx, turnCache);
       
@@ -493,10 +496,16 @@ export async function runGraphTurn(
             if ('done' in routeResult) return routeResult;
             return { next: routeResult.next, slots: routeResult.slots };
           }
+        } else {
+          // Not a yes/no – surface the consent prompt
+          return { done: true, reply: consentPrompt };
         }
       }
     } else {
       // For obvious consent responses, skip context switch detection and go straight to consent detection
+      const consentPrompt =
+        "This looks complex. I can research live options and search the web to build a plan. " +
+        "Proceed with web/deep research? Reply 'yes' to continue or 'no' to skip.";
       const consent = await detectConsent(message, ctx, turnCache);
       const isConsentResponse = consent !== 'unclear';
       
@@ -529,6 +538,10 @@ export async function runGraphTurn(
           if ('done' in routeResult) return routeResult;
           return { next: routeResult.next, slots: routeResult.slots };
         }
+      } else {
+        // Still unclear — ask clearly for consent
+        return { done: true, reply: consentPrompt };
+      }
       }
     }
   }
@@ -848,6 +861,26 @@ export async function runGraphTurn(
         `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. ` +
         `Which specific destination would you like information about?${regexNote}`,
     };
+  }
+
+  // If this is complex and we are NOT already waiting on consent, set flags and ASK for consent now
+  if (isComplexTravelQuery) {
+    const consentPrompt =
+      "This plan has a few moving parts (flights, hotels, activities and a budget). " +
+      "I can do deeper research and search the web for up-to-date options. Want me to proceed? " +
+      "Reply 'yes' to let me search, or 'no' to skip.";
+
+    const threadSlotsNow = getThreadSlots(threadId);
+    const alreadyAwaiting = threadSlotsNow.awaiting_deep_research_consent === 'true';
+    if (!alreadyAwaiting) {
+      updateThreadSlots(threadId, {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: message,
+        complexity_reasoning: `ai_confidence_low_or_many_constraints: confidence=${Math.round((complexityConfidence || 0) * 100) / 100}, constraints=${constraintCategories.length}`
+      }, []);
+      ctx.log.info({ reason: 'complex_query' }, '✅ COMPLEXITY: Triggering deep research consent');
+      return { done: true, reply: consentPrompt };
+    }
   }
 
   // Use AI-first cascade for season detection
