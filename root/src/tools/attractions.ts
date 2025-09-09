@@ -1,7 +1,7 @@
 import { searchTravelInfo, llmExtractAttractionsFromResults } from './brave_search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
-import { classifyAttractions, type AttractionItem } from '../core/nlp-attractions-classifier.js';
+import { classifyAttractions, type AttractionItem } from '../core/transformers-attractions-classifier.js';
 import { callLLM } from '../core/llm.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };

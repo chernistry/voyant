@@ -542,7 +542,6 @@ export async function runGraphTurn(
         // Still unclear — ask clearly for consent
         return { done: true, reply: consentPrompt };
       }
-      }
     }
   }
 
@@ -605,7 +604,7 @@ export async function runGraphTurn(
       }, '🔍 ENTITY: NER extraction succeeded');
     } else {
       // Stage 2: LLM fallback for low-confidence cases
-      const { extractEntities } = await import('./transformers-nlp.js');
+      const { extractEntities } = await import('./ner.js');
       interface NlpEntity { entity_group: string; score: number; text: string }
       const entities: NlpEntity[] = await extractEntities(message);
       const llmCities = entities
@@ -639,8 +638,11 @@ export async function runGraphTurn(
   // Stage 3: Regex fallback (only if AI methods failed) — guarded
   if (actualCities.length === 0) {
     const tokens = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3}\b/g) || [];
+    const questionWords = new Set(['what', 'where', 'when', 'how', 'which', 'who', 'why', 'can', 'should', 'do', 'is', 'are', 'will', 'would', 'could']);
     const candidates = Array.from(new Set(tokens))
-      .filter(tok => MULTIWORD_PROPER.test(tok) && !BRAND_DENY.has(tok.toLowerCase()));
+      .filter(tok => MULTIWORD_PROPER.test(tok) && 
+                     !BRAND_DENY.has(tok.toLowerCase()) && 
+                     !questionWords.has(tok.toLowerCase()));
 
     const validated: string[] = [];
     for (const c of candidates) {

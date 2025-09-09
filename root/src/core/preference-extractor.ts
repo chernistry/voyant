@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { classifyContent, classifyIntent } from './transformers-classifier.js';
-import { extractEntities } from './transformers-nlp.js';
+import { extractEntities } from './ner.js';
 import type pino from 'pino';
 
 export const TravelPreferences = z.object({
@@ -35,7 +35,7 @@ async function tryNLPExtraction(text: string, log?: pino.Logger): Promise<Travel
     
     // Step 4: NLP-based inference with pattern matching
     const preferences: Partial<TravelPreferencesT> = {
-      entities: entities.map(e => ({
+      entities: entities.map((e: any) => ({
         text: e.text,
         label: e.entity_group,
         confidence: e.score
