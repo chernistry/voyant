@@ -28,25 +28,34 @@ const MAX_TEXT_LENGTH = 512;
 
 let nerReady: Promise<((text: string) => Promise<NerSpan[]>)> | null = null;
 
-function getModelName(isLocal: boolean = false): string {
+function getModelName(isLocal: boolean = false, task: 'cities' | 'general' = 'cities'): string {
+  // Legacy support
   if (process.env.TRANSFORMERS_NER_MODEL) {
     return process.env.TRANSFORMERS_NER_MODEL;
   }
-  return isLocal ? LOCAL_MODEL : DEFAULT_MODEL;
-}
-
-function getNerMode(): 'local' | 'remote' | 'auto' {
-  const mode = process.env.NER_MODE?.toLowerCase();
-  if (mode === 'local' || mode === 'remote') return mode;
-  return 'auto';
+  
+  // Task-specific model selection
+  if (isLocal) {
+    if (task === 'cities') {
+      return process.env.NER_CITIES_MODEL_LOCAL || process.env.NER_GENERAL_MODEL_LOCAL || LOCAL_MODEL;
+    } else {
+      return process.env.NER_GENERAL_MODEL_LOCAL || LOCAL_MODEL;
+    }
+  } else {
+    if (task === 'cities') {
+      return process.env.NER_CITIES_MODEL_REMOTE_API || process.env.NER_GENERAL_MODEL_REMOTE_API || DEFAULT_MODEL;
+    } else {
+      return process.env.NER_GENERAL_MODEL_REMOTE_API || DEFAULT_MODEL;
+    }
+  }
 }
 
 function shouldUseLocal(): boolean {
-  const mode = getNerMode();
-  if (mode === 'local') return true;
-  if (mode === 'remote') return false;
+  // New global switch
+  if (process.env.NLP_USE_LOCAL === 'false') return false;
+  if (process.env.NLP_USE_LOCAL === 'true') return true;
   
-  // Backward compatibility: check legacy NER_USE_LOCAL flag
+  // Legacy support
   if (process.env.NER_USE_LOCAL === 'true') return true;
   
   // auto mode: use local in test environment
@@ -55,7 +64,7 @@ function shouldUseLocal(): boolean {
 
 async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => Promise<NerSpan[]>> {
   try {
-    const model = getModelName(true); // Use local model
+    const model = getModelName(true, 'cities'); // Use cities model for better location detection
     const isJest = !!process.env.JEST_WORKER_ID;
     
     if (log?.debug) {
@@ -119,7 +128,7 @@ async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => P
           const out = await ner(truncated, { aggregation_strategy: 'simple' });
           const arr: NerSpan[] = Array.isArray(out)
             ? out.map((o: any) => ({
-                entity_group: String(o.entity_group || o.entity || ''),
+                entity_group: String(o.entity_group || o.entity || '').replace(/^[BI]-/, ''), // Remove B-/I- prefixes
                 score: Number(o.score || 0),
                 text: String(o.word || o.text || ''),
               }))
@@ -135,7 +144,7 @@ async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => P
     if (log?.debug) {
       log.debug({ 
         error: String(e), 
-        model: getModelName(),
+        model: getModelName(true, 'cities'),
         hasToken: !!process.env.HF_TOKEN 
       }, '❌ NER: Local pipeline loading failed');
     }
@@ -144,7 +153,7 @@ async function loadLocalPipeline(log?: pino.Logger): Promise<(text: string) => P
 }
 
 async function callRemoteAPI(text: string, log?: pino.Logger): Promise<NerSpan[]> {
-  const model = getModelName(false); // Use remote model
+  const model = getModelName(false, 'cities'); // Use cities model for remote API
   const url = `${HF_INFERENCE_URL}/${model}`;
   
   if (log?.debug) {
@@ -245,9 +254,9 @@ export async function extractEntities(text: string, log?: pino.Logger, opts?: { 
   
   if (log?.debug) {
     log.debug({ 
-      mode: getNerMode(),
+      mode: shouldUseLocal() ? 'local' : 'remote',
       useLocal: shouldUseLocal(),
-      model: getModelName(shouldUseLocal()),
+      model: getModelName(shouldUseLocal(), 'cities'),
       hasToken: !!process.env.HF_TOKEN,
       entityCount: 'pending'
     }, '🔍 NER: Starting extraction');
@@ -305,8 +314,8 @@ export async function extractEntities(text: string, log?: pino.Logger, opts?: { 
       log.debug({ error: String(error) }, '❌ NER: Extraction failed');
     }
     
-    // Auto-fallback: if local fails in auto mode, try remote
-    if (getNerMode() === 'auto' && shouldUseLocal()) {
+    // Auto-fallback: if local fails and we're using local mode, try remote
+    if (shouldUseLocal() && process.env.NLP_USE_LOCAL !== 'true') {
       if (log?.debug) {
         log.debug('🔄 NER: Auto-fallback to remote');
       }

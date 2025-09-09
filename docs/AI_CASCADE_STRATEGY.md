@@ -8,16 +8,40 @@
 2. **LLM** - for complex cases and contextual processing
 3. **Fallback** - for cases when nothing worked
 
-## Adapting Cascade to Task
+## Model Selection Strategy
 
-### 🎯 Entity Extraction
+### 🔧 **Global Configuration**
+```bash
+# Single switch controls all NLP tasks
+NLP_USE_LOCAL=true   # Use local models for all tasks
+NLP_USE_LOCAL=false  # Use HF Inference API for all tasks
 ```
-NER/Transformers → Heuristics → LLM → Regex Fallback
+
+### 🎯 **Task-Specific Models**
+
+#### City/Location Recognition:
 ```
-- **NER**: Extracts basic entities (LOC, DATE, MONEY, PERSON, ORG)
-- **Heuristics**: Generates candidates from patterns (capitalization, sequences)
-- **LLM**: Resolves ambiguities and context
-- **Fallback**: Simple regex for known patterns
+Local:  onnx/ner-bert-large-uncased-geocite (ONNX, optimized for cities)
+Remote: Davlan/xlm-roberta-base-ner-hrl (HF Inference API)
+```
+
+#### General Entity Recognition:
+```
+Local:  Xenova/bert-base-multilingual-cased-ner-hrl
+Remote: Davlan/xlm-roberta-base-ner-hrl (HF Inference API)
+```
+
+#### Intent Classification:
+```
+Local:  Xenova/nli-deberta-v3-base
+Remote: facebook/bart-large-mnli (HF Inference API)
+```
+
+### 🚀 **Cascade Priority**
+```
+NLP_USE_LOCAL=true:  Local Models → LLM → Fallback
+NLP_USE_LOCAL=false: Remote API → LLM → Fallback
+```
 
 ### 📋 Content Classification
 ```

@@ -11,23 +11,28 @@
 
 ## 🎯 REQUIRED MODELS & ARCHITECTURE
 
-### **Model Requirements (3 models with local/remote variants):**
+### **Model Requirements (3 tasks with local/remote variants):**
 
 1. **Intent/Content Classification**
    - **Local Model**: `Xenova/nli-deberta-v3-base`
    - **Remote Model**: `facebook/bart-large-mnli`
    - **Task**: `zero-shot-classification`
-   - **Purpose**: Intent detection (weather/packing/attractions/destinations) + content classification (travel/system/unrelated/budget/restaurant/flight/gibberish/emoji_only)
-   - **Status**: ✅ **DOWNLOADED** (local), ✅ **AVAILABLE** (remote via HF API)
-   - **Environment**: `TRANSFORMERS_CLASSIFICATION_MODEL_LOCAL` / `TRANSFORMERS_CLASSIFICATION_MODEL_REMOTE`
+   - **Purpose**: Intent detection + content classification
+   - **Environment**: `CLASSIFICATION_INTENT_MODEL_LOCAL` / `CLASSIFICATION_INTENT_MODEL_REMOTE_API`
 
-2. **Entity Extraction (NER)**
+2. **City/Location Entity Recognition**
+   - **Local Model**: `onnx/ner-bert-large-uncased-geocite` (ONNX, optimized for cities)
+   - **Remote Model**: `Davlan/xlm-roberta-base-ner-hrl`
+   - **Task**: `token-classification`
+   - **Purpose**: Extract cities, countries, locations
+   - **Environment**: `NER_CITIES_MODEL_LOCAL` / `NER_CITIES_MODEL_REMOTE_API`
+
+3. **General Entity Recognition**
    - **Local Model**: `Xenova/bert-base-multilingual-cased-ner-hrl`
    - **Remote Model**: `Davlan/xlm-roberta-base-ner-hrl`
    - **Task**: `token-classification`
-   - **Purpose**: Extract entities (LOC/ORG/PER/MISC) for city, person, and organization recognition
-   - **Status**: ✅ **DOWNLOADED** (local), ✅ **AVAILABLE** (remote via HF API)
-   - **Environment**: `TRANSFORMERS_NER_MODEL` (defaults to local for test, remote otherwise)
+   - **Purpose**: Extract general entities (PER, ORG, MISC)
+   - **Environment**: `NER_GENERAL_MODEL_LOCAL` / `NER_GENERAL_MODEL_REMOTE_API`
 
 3. **Consent Classification**
    - **Model**: `Xenova/nli-deberta-v3-base` (same as content classification)
@@ -233,24 +238,37 @@ Float32Array → Process Isolation → WASM Worker → JSON Serialization → Sa
 
 ### **Model Selection & Environment Configuration:**
 
-#### NER Configuration:
+### **Model Selection & Environment Configuration:**
+
+#### Global NLP Configuration:
 ```bash
-NER_MODE=local|remote|auto                    # NER operation mode (default: auto)
-NER_USE_LOCAL=true                           # Legacy flag for local-only mode
-TRANSFORMERS_NER_MODEL=Xenova/bert-base-multilingual-cased-ner-hrl  # Local model
-HF_TOKEN=your_token_here                      # Required for remote API access
+# Master switch: true = all local models, false = all remote API
+NLP_USE_LOCAL=true
+
+# Legacy support
+NER_USE_LOCAL=true                           # Backward compatibility
+HF_TOKEN=your_token_here                     # Required for remote API access
 ```
 
-#### Classification Configuration:
+#### Task-Specific Models:
 ```bash
-# Local models (downloaded)
-TRANSFORMERS_CLASSIFICATION_MODEL_LOCAL=Xenova/nli-deberta-v3-base
-TRANSFORMERS_CLASSIFICATION_MODEL_REMOTE=facebook/bart-large-mnli
+# City/Location Recognition
+NER_CITIES_MODEL_LOCAL=onnx/ner-bert-large-uncased-geocite
+NER_CITIES_MODEL_REMOTE_API=Davlan/xlm-roberta-base-ner-hrl
 
-# Model selection logic (automatic based on environment)
-# - Test environment: Local models (via child process)
-# - Production: Remote models (via HF API)
-# - NER_USE_LOCAL=true: Force local models
+# General Entity Recognition  
+NER_GENERAL_MODEL_LOCAL=Xenova/bert-base-multilingual-cased-ner-hrl
+NER_GENERAL_MODEL_REMOTE_API=Davlan/xlm-roberta-base-ner-hrl
+
+# Intent Classification
+CLASSIFICATION_INTENT_MODEL_LOCAL=Xenova/nli-deberta-v3-base
+CLASSIFICATION_INTENT_MODEL_REMOTE_API=facebook/bart-large-mnli
+```
+
+#### Model Selection Logic:
+```
+NLP_USE_LOCAL=true  → Use all *_MODEL_LOCAL variants
+NLP_USE_LOCAL=false → Use all *_MODEL_REMOTE_API variants
 ```
 
 #### General NLP Configuration:

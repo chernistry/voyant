@@ -21,14 +21,20 @@ const ENTITY_TYPE_MAP: Record<string, 'LOCATION' | 'DATE' | 'TIME' | 'MONEY' | '
   'LOC': 'LOCATION',
   'GPE': 'LOCATION', 
   'LOCATION': 'LOCATION',
+  'B-LOC': 'LOCATION',
+  'I-LOC': 'LOCATION',
   'DATE': 'DATE',
   'TIME': 'TIME',
   'MONEY': 'MONEY',
   'DURATION': 'DURATION',
   'PER': 'PERSON',
   'PERSON': 'PERSON',
+  'B-PER': 'PERSON',
+  'I-PER': 'PERSON',
   'ORG': 'ORGANIZATION',
   'ORGANIZATION': 'ORGANIZATION',
+  'B-ORG': 'ORGANIZATION',
+  'I-ORG': 'ORGANIZATION',
   'MISC': 'MISC'
 };
 
@@ -41,6 +47,60 @@ const MONEY_PATTERNS = [
 ];
 
 // Duration patterns
+// Common country and city names that might be misclassified as ORG by ONNX model
+const KNOWN_LOCATIONS = new Set([
+  'canada', 'usa', 'america', 'britain', 'england', 'france', 'germany', 'italy', 'spain', 'japan', 'china', 'india', 'australia',
+  'london', 'paris', 'berlin', 'tokyo', 'beijing', 'sydney', 'toronto', 'vancouver', 'montreal', 'new york', 'los angeles',
+  'san francisco', 'chicago', 'boston', 'washington', 'miami', 'seattle', 'denver', 'las vegas', 'phoenix', 'atlanta'
+]);
+
+// Common English words that should NOT be locations
+const COMMON_WORDS = new Set([
+  'quick', 'one', 'do', 'us', 'need', 'for', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'from', 'with', 'by',
+  'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'up', 'down', 'out', 'off', 'over', 'under'
+]);
+
+// Check if an entity is likely a location based on confidence and patterns
+function isLikelyLocation(entity: { entity_group: string; text: string; score: number }): boolean {
+  const text = entity.text.toLowerCase().trim();
+  
+  // Exclude common English words (high confidence filter)
+  if (COMMON_WORDS.has(text)) {
+    return false;
+  }
+  
+  // Must be at least 2 characters and high confidence
+  if (text.length < 2 || entity.score < 0.8) {
+    return false;
+  }
+  
+  // Check against known locations
+  if (KNOWN_LOCATIONS.has(text)) {
+    return true;
+  }
+  
+  // For entities already classified as LOC/GPE, trust the model
+  if (/LOC|GPE/i.test(entity.entity_group)) {
+    return entity.score > 0.7;
+  }
+  
+  // For ORG entities, be more selective
+  if (/ORG/i.test(entity.entity_group)) {
+    // Check for multi-word locations like "New York"
+    const words = text.split(/\s+/);
+    if (words.length === 2 && words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+      return entity.score > 0.9; // Higher threshold for ORG->LOC conversion
+    }
+    
+    // Check for country-like patterns (capitalized single words)
+    if (/^[A-Z][a-z]{3,}$/.test(entity.text) && entity.score > 0.95) {
+      return KNOWN_LOCATIONS.has(text); // Only if in known locations
+    }
+  }
+  
+  return false;
+}
+
 const DURATION_PATTERNS = [
   /\d+\s*(?:hours?|hrs?|minutes?|mins?|days?|weeks?|months?|years?)/gi,
   /\d+\s*-\s*\d+\s*(?:hours?|days?|weeks?)/gi
@@ -55,7 +115,19 @@ export async function extractEntitiesEnhanced(text: string, log?: pino.Logger): 
   
   // Process base entities
   for (const entity of baseEntities) {
-    const entityType = ENTITY_TYPE_MAP[entity.entity_group.toUpperCase()] || 'MISC';
+    let entityType = ENTITY_TYPE_MAP[entity.entity_group.toUpperCase()] || 'MISC';
+    
+    // Special handling for ONNX model: check if ORG entities are actually locations
+    if (entityType === 'ORGANIZATION' && isLikelyLocation(entity)) {
+      entityType = 'LOCATION';
+      if (log?.debug) {
+        log.debug({ 
+          text: entity.text, 
+          originalType: entity.entity_group, 
+          reclassified: 'LOCATION' 
+        }, '🔄 NER: Reclassified ORG as LOCATION');
+      }
+    }
     
     enhancedEntities.push({
       ...entity,

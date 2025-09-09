@@ -89,10 +89,10 @@ let contentClassifier: Promise<any> | null = null;
 let intentClassifier: Promise<any> | null = null;
 
 function getClassificationModel(): string {
-  const useLocal = process.env.NER_USE_LOCAL === 'true';
+  const useLocal = process.env.NLP_USE_LOCAL !== 'false';
   return useLocal 
-    ? (process.env.TRANSFORMERS_CLASSIFICATION_MODEL_LOCAL || 'Xenova/nli-deberta-v3-base')
-    : (process.env.TRANSFORMERS_CLASSIFICATION_MODEL_REMOTE || 'facebook/bart-large-mnli');
+    ? (process.env.CLASSIFICATION_INTENT_MODEL_LOCAL || 'Xenova/nli-deberta-v3-base')
+    : (process.env.CLASSIFICATION_INTENT_MODEL_REMOTE_API || 'facebook/bart-large-mnli');
 }
 
 async function loadContentClassifier(log?: pino.Logger): Promise<any> {

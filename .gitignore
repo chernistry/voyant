@@ -8,3 +8,7 @@ root/.env
 root/storage/*
 docs/.dev/*
 /root/models/*
+node_modules/*
+package-lock.json
+*debug*
+root/dist/*

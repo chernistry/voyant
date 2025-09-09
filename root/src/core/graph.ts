@@ -307,7 +307,8 @@ export async function runGraphTurn(
       const nonCityWords = [
         'the', 'and', 'but', 'for', 'can', 'will', 'what', 'how', 'to', 'in', 'about',
         'weather', 'weaher', 'pack', 'packing', 'trip', 'travel', 'visit', 'go', 'going',
-        'attractions', 'things', 'places', 'where', 'when', 'which', 'should', 'would'
+        'attractions', 'things', 'places', 'where', 'when', 'which', 'should', 'would',
+        'quick', 'one'
       ];
       return d.length > 2 && !nonCityWords.includes(lower);
     });

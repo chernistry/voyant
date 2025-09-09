@@ -85,8 +85,8 @@ export async function parseCity(
   try {
     const { extractEntities } = await import('./ner.js');
     const spans = await extractEntities(text, logger as pino.Logger);
-    // Prefer LOC spans; simple filters to avoid months and placeholders
-    locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
+    // Prefer LOC spans and ORG spans that might be locations; simple filters to avoid months and placeholders
+    locs = (spans || []).filter(s => /LOC|MISC|ORG/i.test(s.entity_group || ''));
   } catch (error) {
     if (logger?.debug) logger.debug({ error: String(error) }, 'city_ner_failed');
   }
@@ -417,9 +417,9 @@ export async function parseOriginDestination(
     const { extractEntities } = await import('./ner.js');
     const spans = await extractEntities(text, logger as pino.Logger);
     
-    // Extract LOC/GPE entities in order of appearance
+    // Extract LOC/GPE/ORG entities in order of appearance (ORG might be locations in ONNX model)
     const locations = (spans || [])
-      .filter(s => /LOC|GPE|MISC/i.test(s.entity_group || ''))
+      .filter(s => /LOC|GPE|MISC|ORG/i.test(s.entity_group || ''))
       .filter(s => {
         const t = (s.text || '').trim();
         const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
@@ -655,7 +655,7 @@ export async function extractSlots(text: string, context?: Record<string, any>, 
   try {
     const entities = await extractEntities(text, logger);
     const locationEntities = entities.filter(e => 
-      ['LOC', 'LOCATION', 'GPE'].includes(e.entity_group.toUpperCase()) && e.score > 0.5
+      ['LOC', 'LOCATION', 'GPE', 'ORG', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG'].includes(e.entity_group.toUpperCase()) && e.score > 0.5
     );
     
     if (locationEntities.length > 0) {
