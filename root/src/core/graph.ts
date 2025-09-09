@@ -478,20 +478,30 @@ export async function runGraphTurn(
     } else {
       // Stage 2: LLM fallback for low-confidence cases
       const { extractEntities } = await import('./transformers-nlp.js');
-      const entities = await extractEntities(message);
+      interface NlpEntity { entity_group: string; score: number; text: string }
+      const entities: NlpEntity[] = await extractEntities(message);
       const llmCities = entities
-        .filter((entity: any) => entity.entity_group === 'B-LOC' && entity.score > 0.75)
-        .map((entity: any) => entity.text);
-      
+        .filter(
+          (entity) => entity.entity_group === 'B-LOC' && entity.score > 0.75,
+        )
+        .map((entity) => entity.text);
+
       if (llmCities.length > 0) {
         actualCities = llmCities;
         extractionMethod = 'llm';
-        extractionConfidence = Math.max(...entities.filter((e: any) => e.entity_group === 'B-LOC').map((e: any) => e.score));
-        ctx.log.info({ 
-          cities: actualCities, 
-          method: extractionMethod, 
-          confidence: Math.round(extractionConfidence * 100) / 100 
-        }, '🔍 ENTITY: LLM extraction succeeded');
+        extractionConfidence = Math.max(
+          ...entities
+            .filter((e) => e.entity_group === 'B-LOC')
+            .map((e) => e.score),
+        );
+        ctx.log.info(
+          {
+            cities: actualCities,
+            method: extractionMethod,
+            confidence: Math.round(extractionConfidence * 100) / 100,
+          },
+          '🔍 ENTITY: LLM extraction succeeded',
+        );
       }
     }
   } catch (error) {
@@ -657,52 +667,80 @@ export async function runGraphTurn(
   }
   
   // Only trigger conflict detection if we have multiple actual cities AND it's not a complex travel query
-  if (!isComplexTravelQuery && allCities.length > 1 && uniqueDestinations.length > 0 && previousCities.length > 0) {
+  const regexNote = extractionMethod === 'regex_fallback' ? ' (regex fallback)' : '';
+  if (
+    !isComplexTravelQuery &&
+    allCities.length > 1 &&
+    uniqueDestinations.length > 0 &&
+    previousCities.length > 0
+  ) {
     return {
       done: true,
-      reply: `I see you've mentioned multiple cities: ${allCities.join(', ')}. Which specific destination would you like information about?`,
+      reply:
+        `I see you've mentioned multiple cities: ${allCities.join(', ')}. ` +
+        `Which specific destination would you like information about?${regexNote}`,
     };
   }
-  
+
   if (!isComplexTravelQuery && uniqueDestinations.length > 1) {
     return {
       done: true,
-      reply: `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. Which specific destination would you like information about?`,
+      reply:
+        `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. ` +
+        `Which specific destination would you like information about?${regexNote}`,
     };
   }
 
   // Use AI-first cascade for season detection
   let uniqueSeasons: string[] = [];
+  let seasonMethod = 'unknown';
   try {
-    // Stage 1: NER for temporal entities (reuse entityResult from above)
+    // Stage 1: NER for temporal entities
     const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
     const seasonEntityResult = await extractEntitiesEnhanced(message, ctx.log);
-    const temporalEntities = seasonEntityResult.dates.filter((d: any) => 
-      /\b(winter|summer|spring|fall|autumn)\b/i.test(d.text)
+    const temporalEntities = seasonEntityResult.dates.filter((d) =>
+      /\b(winter|summer|spring|fall|autumn)\b/i.test(d.text),
     );
-    
+
     if (temporalEntities.length > 0) {
-      const seasons = temporalEntities.map((t: any) => t.text.toLowerCase());
-      uniqueSeasons = [...new Set(seasons)] as string[];
-      ctx.log.debug({ seasons: uniqueSeasons, method: 'ner' }, '🔍 TEMPORAL: NER season detection');
+      const seasons = temporalEntities.map((t) => t.text.toLowerCase());
+      uniqueSeasons = [...new Set(seasons)];
+      seasonMethod = 'ner';
+      ctx.log.debug(
+        { seasons: uniqueSeasons, method: seasonMethod },
+        '🔍 TEMPORAL: NER season detection',
+      );
     } else {
       // Stage 2: Regex fallback for seasons (regex fallback)
-      const seasons = message.match(/\b(winter|summer|spring|fall|autumn)\b/gi) || [];
-      uniqueSeasons = [...new Set(seasons.map(s => s.toLowerCase()))];
+      const seasons =
+        message.match(/\b(winter|summer|spring|fall|autumn)\b/gi) || [];
+      uniqueSeasons = [...new Set(seasons.map((s) => s.toLowerCase()))];
       if (uniqueSeasons.length > 0) {
-        ctx.log.debug({ seasons: uniqueSeasons }, '🔍 TEMPORAL: Using regex fallback (regex fallback)');
+        seasonMethod = 'regex_fallback';
+        ctx.log.debug(
+          { seasons: uniqueSeasons },
+          '🔍 TEMPORAL: Using regex fallback (regex fallback)',
+        );
       }
     }
   } catch (error) {
     // Final regex fallback (regex fallback)
-    const seasons = message.match(/\b(winter|summer|spring|fall|autumn)\b/gi) || [];
-    uniqueSeasons = [...new Set(seasons.map(s => s.toLowerCase()))];
-    ctx.log.debug({ error: String(error) }, '🔍 TEMPORAL: AI failed, using regex fallback (regex fallback)');
+    const seasons =
+      message.match(/\b(winter|summer|spring|fall|autumn)\b/gi) || [];
+    uniqueSeasons = [...new Set(seasons.map((s) => s.toLowerCase()))];
+    seasonMethod = 'regex_fallback';
+    ctx.log.debug(
+      { error: String(error) },
+      '🔍 TEMPORAL: AI failed, using regex fallback (regex fallback)',
+    );
   }
   if (uniqueSeasons.length > 1) {
+    const seasonNote = seasonMethod === 'regex_fallback' ? ' (regex fallback)' : '';
     return {
       done: true,
-      reply: `I notice you mentioned multiple seasons (${uniqueSeasons.join(', ')}). Which season are you planning to travel in?`,
+      reply:
+        `I notice you mentioned multiple seasons (${uniqueSeasons.join(', ')}). ` +
+        `Which season are you planning to travel in?${seasonNote}`,
     };
   }
 
