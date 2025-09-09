@@ -28,6 +28,14 @@ const MAX_TEXT_LENGTH = 512;
 
 let nerReady: Promise<((text: string) => Promise<NerSpan[]>)> | null = null;
 
+function getNerMode(): 'local' | 'remote' | 'auto' {
+  const mode = process.env.NER_MODE || 'auto';
+  if (mode === 'local' || mode === 'remote') {
+    return mode;
+  }
+  return 'auto';
+}
+
 function getModelName(isLocal: boolean = false, task: 'cities' | 'general' = 'cities'): string {
   // Legacy support
   if (process.env.TRANSFORMERS_NER_MODEL) {
@@ -57,6 +65,11 @@ function shouldUseLocal(): boolean {
   
   // Legacy support
   if (process.env.NER_USE_LOCAL === 'true') return true;
+  
+  // Check NER_MODE environment variable
+  const mode = getNerMode();
+  if (mode === 'local') return true;
+  if (mode === 'remote') return false;
   
   // auto mode: use local in test environment
   return process.env.NODE_ENV === 'test' || !!process.env.JEST_WORKER_ID;
