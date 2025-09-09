@@ -58,6 +58,47 @@ async function detectConsent(
   return 'unclear';
 }
 
+async function isContextSwitchQuery(
+  currentMessage: string,
+  pendingQuery: string,
+  ctx: { log: pino.Logger }
+): Promise<boolean> {
+  // Quick heuristic checks first
+  const current = currentMessage.toLowerCase().trim();
+  const pending = pendingQuery.toLowerCase().trim();
+  
+  // If messages are very similar, not a context switch
+  if (current === pending) return false;
+  
+  // If current message is a simple consent response, not a context switch
+  if (/^(yes|no|y|n|sure|ok|okay|nope)$/i.test(current)) return false;
+  
+  // If current message contains question words and is different topic, likely context switch
+  if (/^(what|where|how|when|which|who|why|can|should|do|is|are)/.test(current)) {
+    // Use simple keyword overlap to detect topic similarity
+    const currentWords = new Set(current.split(/\s+/).filter(w => w.length > 2));
+    const pendingWords = new Set(pending.split(/\s+/).filter(w => w.length > 2));
+    
+    // Calculate overlap ratio
+    const intersection = new Set([...currentWords].filter(w => pendingWords.has(w)));
+    const overlapRatio = intersection.size / Math.max(currentWords.size, pendingWords.size);
+    
+    // If less than 20% overlap, likely different topic
+    const isContextSwitch = overlapRatio < 0.2;
+    
+    ctx.log.info({ 
+      currentMessage, 
+      pendingQuery, 
+      overlapRatio, 
+      isContextSwitch 
+    }, '🔍 CONTEXT: Semantic similarity check');
+    
+    return isContextSwitch;
+  }
+  
+  return false;
+}
+
 export type NodeCtx = { msg: string; threadId: string; onStatus?: (status: string) => void };
 export type NodeOut =
   | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
@@ -174,20 +215,12 @@ export async function runGraphTurn(
       threadId 
     }, '🔍 CONSENT: Deep research consent check triggered');
     
-    const consent = await detectConsent(message, ctx);
-    const isConsentResponse = consent !== 'unclear';
+    // FIRST: Check if this is a context switch (new query vs consent response)
+    // Use semantic similarity to detect if user switched topics
+    const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx);
     
-    ctx.log.info({ 
-      consent, 
-      isConsentResponse, 
-      message 
-    }, '🔍 CONSENT: Detection result');
-    
-    // Check if this is a context switch (new query vs consent response)
-    const isContextSwitch = !isConsentResponse && message.toLowerCase().trim() !== pendingDeepResearchQuery.toLowerCase().trim();
-    
-    if (isContextSwitch) {
-      ctx.log.info({ isContextSwitch }, '🔍 CONSENT: Context switch detected, clearing state');
+    if (isSemanticContextSwitch) {
+      ctx.log.info({ isContextSwitch: true }, '🔍 CONSENT: Context switch detected, clearing state');
       // Clear old consent state and process new query
       updateThreadSlots(threadId, {
         awaiting_deep_research_consent: '',
@@ -195,28 +228,40 @@ export async function runGraphTurn(
         complexity_reasoning: ''
       }, []);
       // Continue with normal routing for the new query
-    } else if (isConsentResponse) {
-      const isPositive = consent === 'yes';
+    } else {
+      // Only check consent if it's NOT a context switch
+      const consent = await detectConsent(message, ctx);
+      const isConsentResponse = consent !== 'unclear';
+      
       ctx.log.info({ 
-        isPositive, 
-        pendingDeepResearchQuery 
-      }, '🔍 CONSENT: Processing consent response');
+        consent, 
+        isConsentResponse, 
+        message 
+      }, '🔍 CONSENT: Detection result');
       
-      // Clear consent state
-      updateThreadSlots(threadId, {
-        awaiting_deep_research_consent: '',
-        pending_deep_research_query: '',
-        complexity_reasoning: ''
-      }, []);
-      
-      if (isPositive) {
-        ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
-        return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
-      } else {
-        // Fall back to standard routing with the pending query
-        const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
-        if ('done' in routeResult) return routeResult;
-        return { next: routeResult.next, slots: routeResult.slots };
+      if (isConsentResponse) {
+        const isPositive = consent === 'yes';
+        ctx.log.info({ 
+          isPositive, 
+          pendingDeepResearchQuery 
+        }, '🔍 CONSENT: Processing consent response');
+        
+        // Clear consent state
+        updateThreadSlots(threadId, {
+          awaiting_deep_research_consent: '',
+          pending_deep_research_query: '',
+          complexity_reasoning: ''
+        }, []);
+        
+        if (isPositive) {
+          ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
+          return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
+        } else {
+          // Fall back to standard routing with the pending query
+          const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
+          if ('done' in routeResult) return routeResult;
+          return { next: routeResult.next, slots: routeResult.slots };
+        }
       }
     }
   }

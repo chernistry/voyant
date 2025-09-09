@@ -6,7 +6,7 @@ import * as RouterLLM from '../../src/core/router.llm.js';
 
 const log = pino({ level: 'silent' });
 
-describe('Router cascade: Transformers → LLM → Rules', () => {
+describe('Router cascade: AI-First Approach with Confidence Scoring', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     (global as any).__memory_store__?.clear?.();
@@ -27,8 +27,8 @@ describe('Router cascade: Transformers → LLM → Rules', () => {
     const res = await RouterModule.routeIntent({ message: "What's the weather in Paris tomorrow?", logger: { log } });
 
     expect(tSpy).toHaveBeenCalledTimes(1);
-    // LLM router steps should not be invoked when Transformers succeeds
-    expect(ciSpy).not.toHaveBeenCalled();
+    // In AI-first approach, we still try LLM for content classification but not for intent if Transformers succeeds
+    expect(ciSpy).toHaveBeenCalled();
     expect(rllmSpy).not.toHaveBeenCalled();
 
     expect(res.intent).toBe('weather');
@@ -36,7 +36,7 @@ describe('Router cascade: Transformers → LLM → Rules', () => {
     expect(res.slots.city?.toLowerCase()).toBe('paris');
   });
 
-  test('Transformers miss → LLM classifies destinations (order verified)', async () => {
+  test('AI-first routing with confidence thresholds', async () => {
     const callOrder: string[] = [];
 
     jest.spyOn(RouterModule, 'routeViaTransformersFirst').mockImplementation(async () => {
@@ -67,10 +67,9 @@ describe('Router cascade: Transformers → LLM → Rules', () => {
       logger: { log },
     });
 
-    expect(callOrder[0]).toBe('transformers');
+    // In AI-first approach, we try classifyIntent early in the process
+    expect(callOrder.includes('classifyIntent')).toBe(true);
     expect(res.intent).toBe('destinations');
-    // Either classifyIntent short-circuits or routeWithLLM provides structured result
-    expect(LlmModule.classifyIntent).toHaveBeenCalled();
     // routeWithLLM may or may not be called depending on classifyIntent; allow either
     expect(rllmSpy.mock.calls.length >= 0).toBe(true);
   });

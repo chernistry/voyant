@@ -80,36 +80,179 @@ export async function parseCity(
     return { success: false, data: null, confidence: 0 };
   }
 
-  // Transformers.js NER
+  // Transformers.js NER - get candidate entities
+  let locs = [];
   try {
     const { extractEntities } = await import('./ner.js');
     const spans = await extractEntities(text, logger as pino.Logger);
     // Prefer LOC spans; simple filters to avoid months and placeholders
-    const locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
+    locs = (spans || []).filter(s => /LOC|MISC/i.test(s.entity_group || ''));
+  } catch (error) {
+    if (logger?.debug) logger.debug({ error: String(error) }, 'city_ner_failed');
+  }
+  
+  // AI-first approach: Use LLM to determine the best city name from candidates
+  try {
+    // Extract potential city name candidates from text
+    const words = text.split(/\s+/);
+    const potentialCities = [];
+    
+    // Generate multi-word candidates
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      if (!/^[A-Z]/.test(word) || /^(from|in|on|at|to|for|with|by|of|the|a|an)$/i.test(word)) {
+        continue;
+      }
+      
+      // Try 1-3 word combinations
+      for (let j = 0; j < 3 && i + j < words.length; j++) {
+        const candidate = words.slice(i, i + j + 1).join(' ').replace(/[.,!?]+$/, '');
+        if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/.test(candidate) && candidate.length > 1) {
+          potentialCities.push(candidate);
+        }
+      }
+    }
+    
+    // Deduplicate and filter candidates
+    const uniqueCities = [...new Set(potentialCities)];
+    
+    if (uniqueCities.length > 0) {
+      const prompt = `Extract the most likely city name from this text. Return JSON with city and confidence (0-1).
+
+Text: "${text}"
+Context: ${context ? JSON.stringify(context) : '{}'}
+
+Potential city candidates: ${JSON.stringify(uniqueCities)}
+
+Return only valid JSON with "city" and "confidence" fields.`;
+
+      const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
+      const json = JSON.parse(raw);
+      const result = CityParseResult.parse(json);
+      
+      // Validate that the LLM result is reasonable
+      const normalizedLower = (result.normalized || '').trim().toLowerCase();
+      const isPlaceholder = !result.normalized ||
+        result.confidence < 0.5 ||
+        ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(normalizedLower) ||
+        MONTH_WORDS.includes(normalizedLower);
+        
+      if (!isPlaceholder) {
+        if (logger?.debug) logger.debug({ 
+          llmResult: result,
+          potentialCities: uniqueCities
+        }, 'city_llm_success');
+        return {
+          success: true,
+          data: result,
+          confidence: result.confidence,
+          normalized: result.normalized,
+        };
+      }
+    }
+  } catch (error) {
+    if (logger?.debug) logger.debug({ error: String(error) }, 'city_llm_failed');
+  }
+
+  // Fallback to NER-based approach if LLM fails
+  try {
     const stop = new Set(['today','tomorrow','now','month','week']);
-    const cand = locs.find(s => {
-      const t = (s.text || '').trim();
-      if (!t) return false;
-      const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
-      const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
-      return looksProper && !isTemporal && !stop.has(t.toLowerCase());
-    });
-    if (cand && typeof cand.text === 'string' && cand.text.length > 0) {
-      const tval = String(cand.text || '');
-      const parts = String(tval || '').split(/[.,!?]/);
+    
+    // AI-first approach: Look for consecutive location entities that form a complete city name
+    // This handles cases like "Tel Aviv" being split into "Tel" and "Aviv"
+    let bestCandidate = null;
+    let bestConfidence = 0;
+    
+    // First, try to find multi-word entities by looking at consecutive locations
+    for (let i = 0; i < locs.length; i++) {
+      const current = locs[i];
+      if (!current) continue;
+      
+      const currentText = (current.text || '').trim();
+      
+      if (!currentText) continue;
+      
+      const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(currentText);
+      const isTemporal = MONTH_WORDS.includes(currentText.toLowerCase());
+      
+      if (!looksProper || isTemporal || stop.has(currentText.toLowerCase())) continue;
+      
+      // Check if this is part of a larger entity by looking at text positions
+      let combinedText = currentText;
+      let combinedScore = current.score || 0;
+      let j = i + 1;
+      
+      // Look for consecutive location entities that might form a single city name
+      while (j < locs.length) {
+        const next = locs[j];
+        if (!next) {
+          j++;
+          continue;
+        }
+        
+        const nextText = (next.text || '').trim();
+        
+        // Check if the next entity is close to the current one in the text
+        const currentIndex = text.indexOf(currentText);
+        const nextIndex = text.indexOf(nextText);
+        
+        if (currentIndex !== -1 && nextIndex !== -1 && 
+            nextIndex > currentIndex && 
+            nextIndex - currentIndex <= currentText.length + 3) { // Allow for space and maybe a word
+          combinedText += ' ' + nextText;
+          combinedScore = Math.min(combinedScore, next.score || 0);
+          j++;
+        } else {
+          break;
+        }
+      }
+      
+      // Use the combined entity if it's better than what we have
+      if (combinedScore > bestConfidence) {
+        bestCandidate = combinedText;
+        bestConfidence = combinedScore;
+      }
+    }
+    
+    // If we didn't find a good multi-word entity, fall back to single entities
+    if (!bestCandidate && locs.length > 0) {
+      const cand = locs.find(s => {
+        if (!s) return false;
+        const t = (s.text || '').trim();
+        if (!t) return false;
+        const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
+        const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
+        return looksProper && !isTemporal && !stop.has(t.toLowerCase());
+      });
+      
+      if (cand && typeof cand.text === 'string' && cand.text.length > 0) {
+        bestCandidate = cand.text.trim();
+        bestConfidence = cand.score || 0;
+      }
+    }
+    
+    if (bestCandidate) {
+      const parts = String(bestCandidate || '').split(/[.,!?]/);
       const firstPart = (parts.shift() ?? '');
       const normalized = firstPart.trim();
       if (normalized) {
-        if (logger?.debug) logger.debug({ ner: cand }, 'city_transformers_accepted');
+        const confidence = Math.min(0.72, Math.max(0.5, bestConfidence));
+        if (logger?.debug) logger.debug({ 
+          ner: locs, 
+          bestCandidate, 
+          confidence 
+        }, 'city_transformers_accepted');
         return {
           success: true,
-          data: { city: normalized, normalized, confidence: 0.72 },
-          confidence: 0.72,
+          data: { city: normalized, normalized, confidence },
+          confidence,
           normalized,
         };
       }
     }
-  } catch {}
+  } catch (error) {
+    if (logger?.debug) logger.debug({ error: String(error) }, 'city_transformers_failed');
+  }
 
   // LLM fallback
   try {
@@ -289,34 +432,62 @@ export async function parseOriginDestination(
       let originCity: string | undefined;
       let destinationCity: string | undefined;
       
-      // Scan for preposition patterns to bind entities
-      const fromMatch = text.match(/\bfrom\s+([A-Za-z\- ]+)/i);
-      const toMatch = text.match(/\bto\s+([A-Za-z\- ]+)/i);
-      const inMatch = text.match(/\bin\s+([A-Za-z\- ]+)/i);
+      // AI-first approach: Use contextual analysis to determine origin/destination
+      // Look for prepositions and match with nearby entities
+      const words = text.split(/\s+/);
+      const fromIndex = words.findIndex(word => word.toLowerCase() === 'from');
+      const toIndex = words.findIndex(word => word.toLowerCase() === 'to');
+      const inIndex = words.findIndex(word => word.toLowerCase() === 'in');
       
-      // Bind entities to patterns based on proximity
-      if (fromMatch) {
-        const fromText = fromMatch[1]?.trim();
-        const matchingLoc = locations.find(loc => 
-          loc.text && fromText && fromText.toLowerCase().includes(loc.text.toLowerCase())
-        );
-        if (matchingLoc?.text) originCity = matchingLoc.text;
+      // Find the entity that comes after "from"
+      if (fromIndex !== -1 && fromIndex < words.length - 1) {
+        // Look for the next 1-3 words to form a potential city name
+        for (let i = 1; i <= 3; i++) {
+          if (fromIndex + i < words.length) {
+            const candidate = words.slice(fromIndex + 1, fromIndex + 1 + i).join(' ');
+            const matchingLoc = locations.find(loc => 
+              loc.text && candidate.toLowerCase() === loc.text.toLowerCase()
+            );
+            if (matchingLoc?.text) {
+              originCity = matchingLoc.text;
+              break;
+            }
+          }
+        }
       }
       
-      if (toMatch) {
-        const toText = toMatch[1]?.trim();
-        const matchingLoc = locations.find(loc => 
-          loc.text && toText && toText.toLowerCase().includes(loc.text.toLowerCase())
-        );
-        if (matchingLoc?.text) destinationCity = matchingLoc.text;
+      // Find the entity that comes after "to"
+      if (toIndex !== -1 && toIndex < words.length - 1) {
+        // Look for the next 1-3 words to form a potential city name
+        for (let i = 1; i <= 3; i++) {
+          if (toIndex + i < words.length) {
+            const candidate = words.slice(toIndex + 1, toIndex + 1 + i).join(' ');
+            const matchingLoc = locations.find(loc => 
+              loc.text && candidate.toLowerCase() === loc.text.toLowerCase()
+            );
+            if (matchingLoc?.text) {
+              destinationCity = matchingLoc.text;
+              break;
+            }
+          }
+        }
       }
       
-      if (inMatch && !destinationCity) {
-        const inText = inMatch[1]?.trim();
-        const matchingLoc = locations.find(loc => 
-          loc.text && inText && inText.toLowerCase().includes(loc.text.toLowerCase())
-        );
-        if (matchingLoc?.text) destinationCity = matchingLoc.text;
+      // Find the entity that comes after "in" (only if no destination found yet)
+      if (!destinationCity && inIndex !== -1 && inIndex < words.length - 1) {
+        // Look for the next 1-3 words to form a potential city name
+        for (let i = 1; i <= 3; i++) {
+          if (inIndex + i < words.length) {
+            const candidate = words.slice(inIndex + 1, inIndex + 1 + i).join(' ');
+            const matchingLoc = locations.find(loc => 
+              loc.text && candidate.toLowerCase() === loc.text.toLowerCase()
+            );
+            if (matchingLoc?.text) {
+              destinationCity = matchingLoc.text;
+              break;
+            }
+          }
+        }
       }
       
       // If we found both or one with good confidence, return
@@ -369,10 +540,10 @@ Return only valid JSON.`;
   } catch (error) {
     if (logger?.debug) logger.debug({ error: String(error) }, 'od_llm_failed');
     
-    // Regex as last resort
-    const mFrom = text.match(/\bfrom\s+([A-Z][A-Za-z\- ]+)/i);
-    const mTo = text.match(/\bto\s+([A-Z][A-Za-z\- ]+)/i);
-    const mIn = text.match(/\bin\s+([A-Z][A-Za-z\- ]+)/i);
+    // Regex as last resort - improved pattern to capture only the city name
+    const mFrom = text.match(/\bfrom\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+    const mTo = text.match(/\bto\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
+    const mIn = text.match(/\bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i);
     const originCity = mFrom?.[1]?.trim();
     const destinationCity = (mTo?.[1] || mIn?.[1])?.trim();
     

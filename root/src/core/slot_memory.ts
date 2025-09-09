@@ -40,6 +40,19 @@ function saveCliSlots(store: Map<string, SlotState>): void {
   }
 }
 
+export function clearCliSlots(): void {
+  if (isCliMode) {
+    try {
+      if (fs.existsSync(CLI_SLOTS_FILE)) {
+        fs.unlinkSync(CLI_SLOTS_FILE);
+        console.log('🔧 SLOTS: Cleared CLI slots for fresh start');
+      }
+    } catch (error) {
+      console.log('🔧 SLOTS: Failed to clear CLI slots');
+    }
+  }
+}
+
 export function getThreadSlots(threadId: string): Record<string, string> {
   let store = slotStore;
   

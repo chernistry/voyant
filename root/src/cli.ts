@@ -8,6 +8,7 @@ import { createLogger } from './util/logging.js';
 import { silenceNoisyLibLogs } from './util/noise_filter.js';
 import { RateLimiter } from './core/rate-limiter.js';
 import { RATE_LIMITER_CONFIG } from './config/resilience.js';
+import { clearCliSlots } from './core/slot_memory.js';
 
 const rl = readline.createInterface({ input, output });
 const log = createLogger();
@@ -139,6 +140,9 @@ class Spinner {
 }
 
 async function main() {
+  // Clear any persisted CLI slots for fresh start
+  clearCliSlots();
+  
   // Log startup information for debugging
   log.debug({ logLevel: process.env.LOG_LEVEL || 'error' }, 'CLI starting with log level');
   // Suppress noisy third‑party logs (e.g., Transformers dtype warnings) for non‑debug levels
