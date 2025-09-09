@@ -14,51 +14,100 @@ import { extractEntitiesEnhanced } from './ner-enhanced.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
 
+// --- City guards: brand denylist + multiword proper name + geocode validation
+const BRAND_DENY = new Set([
+  'united airlines', 'delta', 'american airlines', 'lufthansa', 'emirates', 'british airways',
+  'marriott', 'hilton', 'hyatt', 'sheraton', 'westin',
+  'booking', 'expedia', 'airbnb', 'google', 'microsoft', 'who'
+]);
+const MULTIWORD_PROPER = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3}$/;
+const geocodeMemo = new Map<string, boolean>();
+
+async function isRealCity(name: string, log: pino.Logger): Promise<boolean> {
+  const key = name.toLowerCase().trim();
+  if (geocodeMemo.has(key)) return geocodeMemo.get(key)!;
+  if (BRAND_DENY.has(key)) { geocodeMemo.set(key, false); return false; }
+  if (!MULTIWORD_PROPER.test(name)) { geocodeMemo.set(key, false); return false; }
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) { geocodeMemo.set(key, false); return false; }
+    const j = await res.json();
+    const ok = !!(j?.results?.[0]?.name);
+    geocodeMemo.set(key, ok);
+    return ok;
+  } catch {
+    geocodeMemo.set(key, false);
+    return false; // fail-closed
+  }
+}
+
+type ScoredSpan = { text: string; score: number };
+type Entities = {
+  locations: ScoredSpan[];
+  dates: ScoredSpan[];
+  durations: ScoredSpan[];
+  money: ScoredSpan[];
+};
+
+/** Strip control blocks and markup from untrusted search text; clamp length. */
+function sanitizeSearchQuery(input: string): string {
+  const stripped = input
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/(?:system:|assistant:|user:)\s*/gi, '')
+    .replace(/[<>]/g, '')
+    .trim();
+  return stripped.slice(0, 512);
+}
+
+function sanitizeSlotsView(all: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(all).filter(([k]) =>
+      !k.startsWith('awaiting_') &&
+      !k.startsWith('pending_') &&
+      k !== 'complexity_reasoning'
+    )
+  );
+}
+
 async function detectConsent(
   message: string,
   ctx: { log: pino.Logger },
+  cache?: Map<string, unknown>,
 ): Promise<'yes' | 'no' | 'unclear'> {
   ctx.log.info({ message }, '🔍 CONSENT: Starting AI-first cascade');
   
-  // Stage 1: Transformers classification (AI-first)
-  try {
-    const contentClassification = await classifyContentTransformers(message, ctx.log);
-    if (contentClassification.confidence >= 0.85) {
-      // Check for positive consent patterns in travel content
-      const isPositive = /\b(yes|sure|okay|proceed|go ahead)\b/i.test(message);
-      const isNegative = /\b(no|nope|skip|pass|cancel)\b/i.test(message);
-      
-      if (isPositive || isNegative) {
-        const result = isPositive ? 'yes' : 'no';
-        ctx.log.info({ 
-          result, 
-          confidence: Math.round(contentClassification.confidence * 100) / 100,
-          method: 'transformers'
-        }, '🔍 CONSENT: Transformers classification succeeded');
-        return result;
-      }
-    }
-  } catch (error) {
-    ctx.log.debug({ error: String(error) }, '🔍 CONSENT: Transformers failed');
-  }
-  
-  // Stage 2: Micro rules for OBVIOUS responses (max 5 each)
+  // Stage 1: Micro rules for OBVIOUS responses (tiny, explicit)
   const msg = message.toLowerCase().trim();
-  if (msg === 'yes' || msg === 'y' || msg === 'sure' || msg === 'ok' || msg === 'okay') {
+  if (
+    msg === 'yes' || msg === 'y' || msg === 'sure' || msg === 'ok' ||
+    msg === 'okay' || msg === 'go ahead' || msg === 'proceed' ||
+    msg === 'please go ahead'
+  ) {
     ctx.log.info({ message, method: 'micro_rules' }, '🔍 CONSENT: Micro rule YES');
     return 'yes';
   }
-  if (msg === 'no' || msg === 'n' || msg === 'nope' || msg === 'skip' || msg === 'pass') {
+  if (
+    msg === 'no' || msg === 'n' || msg === 'nope' || msg === 'skip' ||
+    msg === 'pass' || msg === 'cancel'
+  ) {
     ctx.log.info({ message, method: 'micro_rules' }, '🔍 CONSENT: Micro rule NO');
     return 'no';
   }
-  
-  // Stage 3: LLM fallback
+
+  // Stage 2: LLM fallback (dedup prompt per turn)
   const promptTemplate = await getPrompt('consent_detector');
   const prompt = promptTemplate.replace('{message}', message);
 
   try {
-    const response = await callLLM(prompt, { log: ctx.log });
+    const k = `llm:consent:${prompt}`;
+    const memo = cache?.get(k) as string | undefined;
+    const response = memo ?? (await callLLM(prompt, { log: ctx.log }));
+    if (!memo) cache?.set(k, response);
     const answer = response.toLowerCase().trim();
     
     ctx.log.info({ 
@@ -88,7 +137,8 @@ async function detectConsent(
 async function isContextSwitchQuery(
   currentMessage: string,
   pendingQuery: string,
-  ctx: { log: pino.Logger }
+  ctx: { log: pino.Logger },
+  cache?: Map<string, unknown>,
 ): Promise<boolean> {
   // Stage 1: Quick heuristic checks (AI-first)
   const current = currentMessage.toLowerCase().trim();
@@ -104,8 +154,16 @@ async function isContextSwitchQuery(
   try {
     // Use NER to detect if current message has different entity types
     const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
-    const currentEntities = await extractEntitiesEnhanced(currentMessage, ctx.log);
-    const pendingEntities = await extractEntitiesEnhanced(pendingQuery, ctx.log);
+    const k1 = `ner:${currentMessage}`;
+    const k2 = `ner:${pendingQuery}`;
+    const currentEntities =
+      (cache?.get(k1) as Entities) ??
+      (await extractEntitiesEnhanced(currentMessage, ctx.log));
+    if (!cache?.has(k1)) cache?.set(k1, currentEntities);
+    const pendingEntities =
+      (cache?.get(k2) as Entities) ??
+      (await extractEntitiesEnhanced(pendingQuery, ctx.log));
+    if (!cache?.has(k2)) cache?.set(k2, pendingEntities);
     
     // If entity types are completely different, likely context switch
     const currentTypes = new Set([
@@ -172,8 +230,52 @@ export async function runGraphTurn(
   threadId: string,
   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ): Promise<NodeOut> {
-  // Use transformers-based content classification directly
-  const contentClassification = await classifyContentTransformers(message, ctx.log);
+  // Per-turn memo to dedup NER/CLS/LLM
+  const turnCache = new Map<string, unknown>();
+
+  // Cached helpers (per turn)
+  const getContentCls = async () => {
+    const k = `cls:content:${message}`;
+    const v = turnCache.get(k);
+    if (v) return v as Awaited<ReturnType<typeof classifyContentTransformers>>;
+    const r = await classifyContentTransformers(message, ctx.log);
+    turnCache.set(k, r);
+    return r;
+  };
+  const getIntentCls = async () => {
+    const k = `cls:intent:${message}`;
+    const v = turnCache.get(k);
+    if (v) return v as Awaited<ReturnType<typeof classifyIntent>>;
+    const r = await classifyIntent(message, ctx.log);
+    turnCache.set(k, r);
+    return r;
+  };
+  const getEntities = async () => {
+    const k = `ner:${message}`;
+    const v = turnCache.get(k);
+    if (v) return v as Entities;
+    const r = (await extractEntitiesEnhanced(message, ctx.log)) as Entities;
+    turnCache.set(k, r);
+    return r;
+  };
+
+  // Use transformers-based content classification (cached)
+  const contentClassification = await getContentCls();
+  
+  // --- Priority gates: policy & explicit web-search use-cases
+  const policyRe = /\b(visa|passport|entry|baggage|allowance|cancellation|refund|policy|fare\s*rules?)\b/i;
+  const webSearchRe = /\b(prices?|fare|deals?|events?|this\s+week(end)?|hotels?\s+under\s+\$?\d+)\b/i;
+
+  if (policyRe.test(message)) {
+    // short-circuit into policy node later
+    turnCache.set('force_intent', 'policy');
+  } else if (webSearchRe.test(message)) {
+    updateThreadSlots(threadId, {
+      awaiting_search_consent: 'true',
+      pending_search_query: message
+    }, []);
+    return { done: true, reply: 'I can look this up on the web. Want me to search now?' };
+  }
   
   // Check for unrelated topics using transformers classification
   if (contentClassification.content_type === 'unrelated') {
@@ -190,9 +292,8 @@ export async function runGraphTurn(
   
   // If awaiting any consent, skip early system routing to allow consent detection
   if (!earlyAwaitingDeepResearch && !earlyAwaitingWebSearchConsent) {
-    // Check for system identity questions using transformers intent classification
-    // Skip system check for refinement messages
-    const intentClassification = await classifyIntent(message, ctx.log);
+    // Check for system identity questions (cached)
+    const intentClassification = await getIntentCls();
     if (intentClassification.intent === 'system' && contentClassification.content_type !== 'refinement') {
       return {
         done: true,
@@ -211,9 +312,10 @@ export async function runGraphTurn(
 
   // AI-first cascade for timeframe detection
   let shortTimeframe = false;
+  let entityResult: Entities | null = null;
   try {
-    // Stage 1: NER for duration entities (AI-first)
-    const entityResult = await extractEntitiesEnhanced(message, ctx.log);
+    // Stage 1: NER for duration entities (cached)
+    entityResult = await getEntities();
     const nerDurations = entityResult.durations.filter(d => d.score >= 0.75);
     
     if (nerDurations.length > 0) {
@@ -245,13 +347,12 @@ export async function runGraphTurn(
     dayTripNote = 'For such a short trip, you\'ll likely need minimal packing. ';
   }
 
-  // AI-first cascade for budget detection
+  // AI-first cascade for budget detection (reuse cached contentClassification)
   let isBudgetQuery = false;
   let budgetConfidence = 0.0;
   
   try {
-    // Stage 1: Transformers content classification (AI-first)
-    const contentClassification = await classifyContentTransformers(message, ctx.log);
+    // Stage 1: Use existing content classification
     if (contentClassification.confidence >= 0.75) {
       isBudgetQuery = contentClassification.content_type === 'budget';
       budgetConfidence = contentClassification.confidence;
@@ -297,7 +398,7 @@ export async function runGraphTurn(
   }, '🔍 THREAD: Slots state check');
   
   if (awaitingSearchConsent && pendingSearchQuery) {
-    const consent = await detectConsent(message, ctx);
+    const consent = await detectConsent(message, ctx, turnCache);
     const isConsentResponse = consent !== 'unclear';
     
     if (isConsentResponse) {
@@ -339,12 +440,15 @@ export async function runGraphTurn(
     
     // FIRST: Check if this is a context switch (new query vs consent response)
     // Skip context switch detection for obvious consent responses
-    const isObviousConsent = /^(yes|no|y|n|sure|ok|okay|nope|yeah|yep|nah|pls|please|go|proceed|do\s*it|doit|absolutely|definitely|fine|alright|sounds?\s+good)(\s+(pls|please|ahead|for|it|motherfucker|man|dude))*$/i.test(message.trim()) ||
-                            /^(go\s+(for\s+it|ahead|motherfucker)|do\s+it|let'?s\s+go|sounds?\s+good)$/i.test(message.trim());
+    const isObviousConsent =
+      /^(yes|no|y|n|sure|ok|okay|nope|yeah|yep|nah|pls|please|go|proceed|do\s*it|doit|absolutely|definitely|fine|alright|sounds?\s+good)(\s+(pls|please|ahead|for|it))*$/i
+        .test(message.trim()) ||
+      /^(go\s+(for\s+it|ahead)|do\s+it|let'?s\s+go|sounds?\s+good)$/i
+        .test(message.trim());
     
     if (!isObviousConsent) {
       // Use semantic similarity to detect if user switched topics
-      const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx);
+      const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx, turnCache);
       
       if (isSemanticContextSwitch) {
         ctx.log.info({ isContextSwitch: true }, '🔍 CONSENT: Context switch detected, clearing state');
@@ -357,7 +461,7 @@ export async function runGraphTurn(
         // Continue with normal routing for the new query
       } else {
         // Only check consent if it's NOT a context switch
-        const consent = await detectConsent(message, ctx);
+        const consent = await detectConsent(message, ctx, turnCache);
         const isConsentResponse = consent !== 'unclear';
         
         ctx.log.info({ 
@@ -393,7 +497,7 @@ export async function runGraphTurn(
       }
     } else {
       // For obvious consent responses, skip context switch detection and go straight to consent detection
-      const consent = await detectConsent(message, ctx);
+      const consent = await detectConsent(message, ctx, turnCache);
       const isConsentResponse = consent !== 'unclear';
       
       ctx.log.info({ 
@@ -434,7 +538,18 @@ export async function runGraphTurn(
   const pendingWebSearchQuery = threadSlots.pending_web_search_query;
   
   if (awaitingWebSearchConsent && pendingWebSearchQuery) {
-    const consent = await detectConsent(message, ctx);
+    const isObviousConsent = /^(yes|no|y|n|sure|ok|okay|nope|yeah|yep|nah|go|proceed|do\s*it)$/i.test(message.trim());
+    if (!isObviousConsent) {
+      const switched = await isContextSwitchQuery(message, pendingWebSearchQuery, ctx, turnCache).catch(() => false);
+      if (switched) {
+        updateThreadSlots(threadId, {
+          awaiting_web_search_consent: '',
+          pending_web_search_query: ''
+        }, []);
+        // continue with normal routing for new topic
+      }
+    }
+    const consent = await detectConsent(message, ctx, turnCache);
     const isConsentResponse = consent !== 'unclear';
     if (isConsentResponse) {
       const isPositive = consent === 'yes';
@@ -460,8 +575,8 @@ export async function runGraphTurn(
   let extractionConfidence = 0.0;
   
   try {
-    // Stage 1: NER/Transformers (AI-first)
-    const entityResult = await extractEntitiesEnhanced(message, ctx.log);
+    // Stage 1: NER/Transformers (cached)
+    entityResult = entityResult ?? (await getEntities());
     const nerCities = entityResult.locations
       .filter(loc => loc.score >= 0.80)
       .map(loc => loc.text);
@@ -508,28 +623,32 @@ export async function runGraphTurn(
     ctx.log.error({ error: String(error) }, '🔍 ENTITY: AI extraction failed, using regex fallback');
   }
   
-  // Stage 3: Regex fallback (only if AI methods failed)
+  // Stage 3: Regex fallback (only if AI methods failed) — guarded
   if (actualCities.length === 0) {
-    const destinations = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
-    actualCities = destinations.filter(d => {
-      const lower = d.toLowerCase();
-      const nonCityWords = [
-        'the', 'and', 'but', 'for', 'can', 'will', 'what', 'how', 'to', 'in', 'about',
-        'weather', 'weaher', 'pack', 'packing', 'trip', 'travel', 'visit', 'go', 'going',
-        'attractions', 'things', 'places', 'where', 'when', 'which', 'should', 'would',
-        'quick', 'one'
-      ];
-      return d.length > 2 && !nonCityWords.includes(lower);
-    });
-    
-    if (actualCities.length > 0) {
-      extractionMethod = 'regex_fallback';
-      extractionConfidence = 0.50; // Low confidence for regex
-      ctx.log.info({ 
-        cities: actualCities, 
-        method: extractionMethod, 
-        confidence: extractionConfidence 
-      }, '🔍 ENTITY: Regex fallback used (regex fallback)');
+    const tokens = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3}\b/g) || [];
+    const candidates = Array.from(new Set(tokens))
+      .filter(tok => MULTIWORD_PROPER.test(tok) && !BRAND_DENY.has(tok.toLowerCase()));
+
+    const validated: string[] = [];
+    for (const c of candidates) {
+      // Validate via geocoder to avoid brands/noise
+      // eslint-disable-next-line no-await-in-loop
+      if (await isRealCity(c, ctx.log)) validated.push(c);
+    }
+
+    if (validated.length === 0 && candidates.length > 0) {
+      return {
+        done: true,
+        reply: `I spotted ${candidates.slice(0, 3).join(', ')} in your message. Which city did you mean?`
+      };
+    }
+
+    if (validated.length > 0) {
+      actualCities = validated;
+      extractionMethod = 'regex_geocode';
+      extractionConfidence = 0.75;
+      ctx.log.info({ cities: actualCities, method: extractionMethod, confidence: extractionConfidence },
+        '🔍 ENTITY: Regex fallback validated via geocode');
     }
   }
   
@@ -541,8 +660,7 @@ export async function runGraphTurn(
   // Constraint categories detection with AI-first cascade
   const constraintCategories = [];
   try {
-    // Stage 1: Use content classification for constraint detection (AI-first)
-    const contentClassification = await classifyContentTransformers(message, ctx.log);
+    // Stage 1: Use cached content classification (AI-first)
     if (contentClassification.confidence >= 0.75) {
       // Map content types to constraint categories
       const typeToConstraint: Record<string, string> = {
@@ -618,14 +736,54 @@ export async function runGraphTurn(
   
   const uniqueDestinations = [...new Set(actualCities)];
   
+  // If cities came only from regex validation and confidence is not high, ask to clarify
+  if (extractionMethod.startsWith('regex') && extractionConfidence < 0.8 && uniqueDestinations.length >= 1) {
+    return {
+      done: true,
+      reply: `Just to confirm — did you mean ${uniqueDestinations.slice(0, 3).join(', ')}?`
+    };
+  }
+  
+  // ⚡ Fast path: obvious weather → skip complexity/extra passes
+  try {
+    const intentFast = await getIntentCls();
+    const highLocs =
+      (entityResult ?? (await getEntities())).locations.filter(l => l.score >= 0.90);
+    if (
+      intentFast.intent === 'weather' &&
+      intentFast.confidence >= 0.80 &&
+      highLocs.length === 1 &&
+      highLocs[0]
+    ) {
+      const city0 = highLocs[0].text;
+      updateThreadSlots(threadId, { city: city0 }, []);
+      const disclaimers = languageWarning + dayTripNote + (isBudgetQuery ? 
+        'I can\'t help with budget planning or costs, but I can provide travel destination information. '
+        : '');
+      return await weatherNode(
+        { msg: message, threadId, onStatus: ctx.onStatus },
+        { city: city0 },
+        ctx,
+        disclaimers,
+      );
+    }
+  } catch {
+    // fast path best-effort only
+  }
+  
   // Also check thread context for previous cities
   const currentThreadSlots = getThreadSlots(threadId);
   const previousCities = [];
   if (currentThreadSlots.city) previousCities.push(currentThreadSlots.city);
   if (currentThreadSlots.originCity) previousCities.push(currentThreadSlots.originCity);
   
-  // Combine current and previous cities, but only if we have real cities
-  const allCities = [...new Set([...uniqueDestinations, ...previousCities])];
+  // If user explicitly mentions a new city with high confidence, prioritize it over previous context
+  const hasHighConfidenceNewCity = uniqueDestinations.length === 1 && extractionConfidence >= 0.90;
+  
+  // Combine current and previous cities only if no high-confidence new city
+  const allCities = hasHighConfidenceNewCity 
+    ? uniqueDestinations 
+    : [...new Set([...uniqueDestinations, ...previousCities])];
   
   // AI-first cascade for complexity detection
   let isComplexTravelQuery = false;
@@ -666,10 +824,11 @@ export async function runGraphTurn(
     ctx.log.debug({ error: String(error) }, '🔍 COMPLEXITY: AI failed, using regex fallback (regex fallback)');
   }
   
-  // Only trigger conflict detection if we have multiple actual cities AND it's not a complex travel query
+  // Only trigger conflict detection if we have multiple actual cities AND it's not a complex travel query AND not a high-confidence city switch
   const regexNote = extractionMethod === 'regex_fallback' ? ' (regex fallback)' : '';
   if (
     !isComplexTravelQuery &&
+    !hasHighConfidenceNewCity &&
     allCities.length > 1 &&
     uniqueDestinations.length > 0 &&
     previousCities.length > 0
@@ -695,9 +854,8 @@ export async function runGraphTurn(
   let uniqueSeasons: string[] = [];
   let seasonMethod = 'unknown';
   try {
-    // Stage 1: NER for temporal entities
-    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
-    const seasonEntityResult = await extractEntitiesEnhanced(message, ctx.log);
+    // Stage 1: reuse NER for temporal entities
+    const seasonEntityResult = entityResult ?? (await getEntities());
     const temporalEntities = seasonEntityResult.dates.filter((d) =>
       /\b(winter|summer|spring|fall|autumn)\b/i.test(d.text),
     );
@@ -749,17 +907,9 @@ export async function runGraphTurn(
   if ('done' in routeResult) {
     return routeResult;
   }
-  // If router requests deep research consent, ask the user
-  if (routeResult.slots?.deep_research_consent_needed === 'true') {
-    const slots = getThreadSlots(threadId);
-    const reasoning = slots.complexity_reasoning || 'Multiple constraints detected.';
-    return {
-      done: true,
-      reply: `This looks like a complex travel planning query that could benefit from deep research across multiple sources. This may take a bit longer. Proceed with deep research?\n\nReason: ${reasoning}`,
-    };
-  }
-  // Handle follow-up responses: if intent is unknown but we have prior context, try to infer intent
   let intent = routeResult.next;
+  const forced = turnCache.get('force_intent') as string | undefined;
+  if (forced) intent = forced as typeof intent;
   const prior = getThreadSlots(threadId);
   
   // Filter out placeholder values from extracted slots, but only for city switching
@@ -792,22 +942,39 @@ export async function runGraphTurn(
   }
   
   // Merge slots with priority: prior context + new filtered slots
-  const slots = { ...prior, ...filteredSlots };
+  const priorSlots = getThreadSlots(threadId);
+  const {
+    awaiting_search_consent, pending_search_query,
+    awaiting_deep_research_consent, pending_deep_research_query,
+    complexity_reasoning,
+    ...priorSafe
+  } = priorSlots;
+  const slots = { ...priorSafe, ...filteredSlots };
   
   // Preserve originCity context if available
-  if (prior.originCity && !filteredSlots.originCity) {
-    slots.originCity = prior.originCity;
+  if (priorSlots.originCity && !filteredSlots.originCity) {
+    slots.originCity = priorSlots.originCity;
   }
   
   // If intent is unknown but we have prior context, infer intent from last interaction
   const lastIntent = getLastIntent(threadId);
   if (intent === 'unknown') {
-    if (lastIntent && lastIntent !== 'unknown' && Object.keys(prior).length > 0) {
+    if (lastIntent && lastIntent !== 'unknown' && Object.keys(priorSlots).length > 0) {
       intent = lastIntent;
       if (ctx.log && typeof ctx.log.debug === 'function') {
-        ctx.log.debug({ originalIntent: 'unknown', inferredIntent: intent, prior, newSlots: routeResult.slots }, 'intent_inference');
+        ctx.log.debug({ originalIntent: 'unknown', inferredIntent: intent, prior: priorSlots, newSlots: routeResult.slots }, 'intent_inference');
       }
     }
+  }
+  
+  // Treat contextual follow-ups as continuations of the previous intent
+  // "What about Barcelona?" after weather query should continue as weather
+  const isContextualFollowUp = /^(what about|how about|and)\s+[A-Z][A-Za-z\- ]+\??$/i.test(message.trim());
+  if (isContextualFollowUp && lastIntent && lastIntent !== 'unknown' && uniqueDestinations.length === 1) {
+    if (ctx.log && typeof ctx.log.debug === 'function') {
+      ctx.log.debug({ originalIntent: intent, continuingIntent: lastIntent, isContextual: true }, 'contextual_followup_override');
+    }
+    intent = lastIntent;
   }
   // Treat short refinement messages as continuations of the previous intent
   // But DO NOT override if the user explicitly asks about attractions/what to do
@@ -832,7 +999,7 @@ export async function runGraphTurn(
   
   setLastIntent(threadId, intent);
   if (ctx.log && typeof ctx.log.debug === 'function') {
-    ctx.log.debug({ prior, extracted: routeResult.slots, merged: slots, intent }, 'slot_merge');
+    ctx.log.debug({ prior: priorSlots, extracted: routeResult.slots, merged: slots, intent }, 'slot_merge');
   }
   
   const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather';
@@ -844,7 +1011,7 @@ export async function runGraphTurn(
     || (typeof slots.month === 'string' && slots.month.trim().length > 0);
   
   // Check if message has immediate time context that doesn't require date clarification
-  const hasImmediateContext = /\b(today|now|currently|right now|what to wear)\b/i.test(message);
+  const hasImmediateContext = /\b(today|now|currently|right now|this (morning|afternoon|evening))\b/i.test(message);
   const hasSpecialContext = /\b(kids?|children|family|business|work|summer|winter|spring|fall)\b/i.test(message);
   
   const missing: string[] = [];
@@ -977,7 +1144,7 @@ async function weatherNode(
   disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
-  const threadSlots = getThreadSlots(ctx.threadId);
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
   
   const { reply, citations } = await blendWithFacts(
@@ -1004,7 +1171,7 @@ async function destinationsNode(
   disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
-  const threadSlots = getThreadSlots(ctx.threadId);
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
 
   // Directly call AI-enhanced destinations tool instead of blendWithFacts
@@ -1043,7 +1210,7 @@ async function packingNode(
   disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
-  const threadSlots = getThreadSlots(ctx.threadId);
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
   
   const { reply, citations } = await blendWithFacts(
@@ -1070,7 +1237,7 @@ async function attractionsNode(
   disclaimer?: string,
 ): Promise<NodeOut> {
   // Use thread slots to ensure we have the latest context
-  const threadSlots = getThreadSlots(ctx.threadId);
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...(slots || {}) };
 
   // Directly call attractions tool instead of blendWithFacts
@@ -1224,7 +1391,7 @@ async function webSearchNode(
   slots?: Record<string, string>,
   logger?: { log: pino.Logger },
 ): Promise<NodeOut> {
-  const searchQuery = slots?.search_query || ctx.msg;
+  const searchQuery = sanitizeSearchQuery(slots?.search_query || ctx.msg);
   
   // Optimize the search query if not already optimized
   const optimizedQuery = slots?.search_query 

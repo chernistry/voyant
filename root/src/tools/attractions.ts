@@ -61,12 +61,22 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
     }
     
     // Use broader kinds for better NLP classification
-    const baseKinds = 'museums,monuments,historic,cultural,interesting_places,tourist_facilities,urban_environment,natural,amusements';
+    const baseKinds = [
+      'museums','cultural','historic','architecture','monuments','castles','palaces',
+      'parks','gardens','amusements','viewpoints','bridges','towers','lighthouses',
+      'fortifications','archaeological_sites','natural','other','interesting_places'
+    ];
+    const kidKinds = baseKinds.concat(['zoos', 'aquariums', 'theme_parks', 'playgrounds']);
+
+    const kinds = (profile === 'kid_friendly' ? kidKinds : baseKinds)
+      .filter(k => !['restaurants','eateries','bars','cafes'].includes(k))
+      .join(',');
+
     let pois = await searchPOIs({ 
       lat: first.latitude, 
       lon: first.longitude, 
       limit: limit + 3, // Get more for better filtering
-      kinds: baseKinds
+      kinds
     });
     
     if (pois.ok && pois.pois.length >= 2) {
@@ -108,7 +118,9 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
         lat: first.latitude, 
         lon: first.longitude, 
         limit: limit + 2,
-        kinds: 'interesting_places,tourist_facilities,architecture,urban_environment,natural,museums,monuments,historic,cultural,amusements',
+        kinds: (profile === 'kid_friendly' ? kidKinds : baseKinds)
+          .filter(k => !['restaurants','eateries','bars','cafes'].includes(k))
+          .join(','),
         radiusMeters: 5000 // 5km radius
       });
       

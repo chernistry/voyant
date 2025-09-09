@@ -2,6 +2,13 @@ import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchTravelInfo, extractWeatherFromResults, llmExtractWeatherFromResults } from './brave_search.js';
 
 
+function withTimeout(ms: number, signal?: AbortSignal) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(new Error('timeout')), ms);
+  const linked = signal ? AbortSignal.any([ctrl.signal, signal]) : ctrl.signal;
+  return { signal: linked, cancel: () => clearTimeout(t) };
+}
+
 type OpenMeteoDaily = {
   temperature_2m_max?: number[];
   temperature_2m_min?: number[];

@@ -16,6 +16,13 @@ type Out = { ok: true; results: BraveSearchResult[]; deepSummary?: string } | { 
 // Circuit breaker for Brave Search API
 const braveSearchCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'brave-search');
 
+function withTimeout(ms: number, signal?: AbortSignal) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(new Error('timeout')), ms);
+  const linked = signal ? AbortSignal.any([ctrl.signal, signal]) : ctrl.signal;
+  return { signal: linked, cancel: () => clearTimeout(t) };
+}
+
 /**
  * Search for travel information using Brave Search API
  */
