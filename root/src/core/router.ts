@@ -699,47 +699,44 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
       log.debug({ error: String(error) }, '❌ COMPLEXITY: Fast detection failed');
     }
     
-    // Initialize constraints set for fallback
+    // Initialize constraints set
     const constraints = new Set<string>();
     
-    // Populate constraints with regex patterns as fallback
-    const lower = m.toLowerCase();
-    if (/[£$€]|\b(budget|cost|price|afford|expensive|cheap|spend|\$\d+)\b/.test(m)) constraints.add('budget');
-    if (/\b(kids?|children|family|adults|people|toddler|parents|\d+\s*(year|month)s?\s*old)\b/.test(lower)) constraints.add('group');
-    if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?|direct|connecting)\b/.test(lower)) constraints.add('special');
-    if (/\b(hotel|accommodation|stay|night|room|airbnb)\b/.test(lower)) constraints.add('accommodation');
-    if (/\b(flight|airline|airport|departure|arrival|from|to)\b/.test(lower)) constraints.add('transport');
-    if (/\b(January|February|March|April|May|June|July|August|September|October|November|December|summer|winter|spring|fall|autumn|week|month|day)\b/i.test(m)) constraints.add('time');
+    // AI-first constraint detection
+    const constraintClassification = await classifyContent(m, log);
+    if (constraintClassification?.categories) {
+      constraintClassification.categories.forEach(cat => constraints.add(cat));
+    }
+
+    // Minimal fallback for critical patterns only
+    if (constraints.size === 0) {
+      const lower = m.toLowerCase();
+      if (/[£$€]|\$\d+/.test(m)) constraints.add('budget');
+      if (/\b(from|to)\b.*\b(from|to)\b/i.test(m)) constraints.add('transport');
+    }
     
     const constraintCount = constraints.size;
     
     // AI-first fallback using classifyIntent for complexity detection
     const intentClassification = await classifyIntent(message, {}, log);
     
-    // Use AI confidence and constraint count for complexity detection
-    const isComplex = (intentClassification?.confidence || 0) < 0.6 || constraintCount > 2;
-    const confidence = Math.min(0.7 + (constraintCount > 2 ? (constraintCount - 2) * 0.1 : 0), 0.95);
+    // Use AI confidence scoring instead of regex counting
+    const complexityScore = await classifyIntent(message, {}, log);
+    const isComplex = (complexityScore?.confidence || 0) < 0.6 || constraints.size > 2;
+    const confidence = Math.min(0.7 + (constraints.size > 2 ? (constraints.size - 2) * 0.1 : 0), 0.95);
     
     if (isComplex) {
       return { 
         isComplex: true, 
         confidence, 
-        reasoning: `ai_fallback: confidence=${intentClassification?.confidence || 0}, constraints=${constraintCount}` 
+        reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}` 
       };
     }
     
-    // Fallback to simple heuristics
-    const hasMultipleIndicators = [
-      /[£$€]|\$\d+/.test(m),
-      /\b(kids?|children|family|\d+\s*year)/i.test(m),
-      /\b(from|to)\b.*\b(from|to)\b/i.test(m),
-      /\b(budget|cost|price)/i.test(m)
-    ].filter(Boolean).length;
-    
     return { 
-      isComplex: hasMultipleIndicators >= 2, 
+      isComplex: false, 
       confidence: 0.7, 
-      reasoning: `fallback_heuristic: ${hasMultipleIndicators} indicators` 
+      reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}` 
     };
   }
 }

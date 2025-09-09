@@ -81,7 +81,7 @@ export async function parseCity(
   }
 
   // Transformers.js NER - get candidate entities
-  let locs = [];
+  let locs: any[] = [];
   try {
     const { extractEntities } = await import('./ner.js');
     const spans = await extractEntities(text, logger as pino.Logger);
@@ -100,7 +100,7 @@ export async function parseCity(
     // Generate multi-word candidates
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
-      if (!/^[A-Z]/.test(word) || /^(from|in|on|at|to|for|with|by|of|the|a|an)$/i.test(word)) {
+      if (!word || !/^[A-Z]/.test(word) || /^(from|in|on|at|to|for|with|by|of|the|a|an)$/i.test(word)) {
         continue;
       }
       
