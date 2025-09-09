@@ -183,14 +183,22 @@ export async function runGraphTurn(
     };
   }
 
-  // Check for system identity questions using transformers intent classification
-  // Skip system check for refinement messages
-  const intentClassification = await classifyIntent(message, ctx.log);
-  if (intentClassification.intent === 'system' && contentClassification.content_type !== 'refinement') {
-    return {
-      done: true,
-      reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
-    };
+  // CRITICAL: Check for pending consent BEFORE early system routing
+  const earlyThreadSlots = getThreadSlots(threadId);
+  const earlyAwaitingDeepResearch = earlyThreadSlots.awaiting_deep_research_consent === 'true';
+  const earlyAwaitingWebSearchConsent = earlyThreadSlots.awaiting_web_search_consent === 'true';
+  
+  // If awaiting any consent, skip early system routing to allow consent detection
+  if (!earlyAwaitingDeepResearch && !earlyAwaitingWebSearchConsent) {
+    // Check for system identity questions using transformers intent classification
+    // Skip system check for refinement messages
+    const intentClassification = await classifyIntent(message, ctx.log);
+    if (intentClassification.intent === 'system' && contentClassification.content_type !== 'refinement') {
+      return {
+        done: true,
+        reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
+      };
+    }
   }
 
   // Use transformers-based language detection instead of regex
@@ -330,20 +338,61 @@ export async function runGraphTurn(
     }, '🔍 CONSENT: Deep research consent check triggered');
     
     // FIRST: Check if this is a context switch (new query vs consent response)
-    // Use semantic similarity to detect if user switched topics
-    const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx);
+    // Skip context switch detection for obvious consent responses
+    const isObviousConsent = /^(yes|no|y|n|sure|ok|okay|nope|yeah|yep|nah|pls|please|go|proceed|do\s*it|doit|absolutely|definitely|fine|alright|sounds?\s+good)(\s+(pls|please|ahead|for|it|motherfucker|man|dude))*$/i.test(message.trim()) ||
+                            /^(go\s+(for\s+it|ahead|motherfucker)|do\s+it|let'?s\s+go|sounds?\s+good)$/i.test(message.trim());
     
-    if (isSemanticContextSwitch) {
-      ctx.log.info({ isContextSwitch: true }, '🔍 CONSENT: Context switch detected, clearing state');
-      // Clear old consent state and process new query
-      updateThreadSlots(threadId, {
-        awaiting_deep_research_consent: '',
-        pending_deep_research_query: '',
-        complexity_reasoning: ''
-      }, []);
-      // Continue with normal routing for the new query
+    if (!isObviousConsent) {
+      // Use semantic similarity to detect if user switched topics
+      const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx);
+      
+      if (isSemanticContextSwitch) {
+        ctx.log.info({ isContextSwitch: true }, '🔍 CONSENT: Context switch detected, clearing state');
+        // Clear old consent state and process new query
+        updateThreadSlots(threadId, {
+          awaiting_deep_research_consent: '',
+          pending_deep_research_query: '',
+          complexity_reasoning: ''
+        }, []);
+        // Continue with normal routing for the new query
+      } else {
+        // Only check consent if it's NOT a context switch
+        const consent = await detectConsent(message, ctx);
+        const isConsentResponse = consent !== 'unclear';
+        
+        ctx.log.info({ 
+          consent, 
+          isConsentResponse, 
+          message 
+        }, '🔍 CONSENT: Detection result');
+        
+        if (isConsentResponse) {
+          const isPositive = consent === 'yes';
+          ctx.log.info({ 
+            isPositive, 
+            pendingDeepResearchQuery 
+          }, '🔍 CONSENT: Processing consent response');
+          
+          // Clear consent state
+          updateThreadSlots(threadId, {
+            awaiting_deep_research_consent: '',
+            pending_deep_research_query: '',
+            complexity_reasoning: ''
+          }, []);
+          
+          if (isPositive) {
+            ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
+            return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
+          } else {
+            // Fall back to standard routing with the pending query
+            const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
+            if ('done' in routeResult) return routeResult;
+            return { next: routeResult.next, slots: routeResult.slots };
+          }
+        }
+      }
     } else {
-      // Only check consent if it's NOT a context switch
+      // For obvious consent responses, skip context switch detection and go straight to consent detection
       const consent = await detectConsent(message, ctx);
       const isConsentResponse = consent !== 'unclear';
       
@@ -625,14 +674,16 @@ export async function runGraphTurn(
   // Use AI-first cascade for season detection
   let uniqueSeasons: string[] = [];
   try {
-    // Stage 1: NER for temporal entities
-    const temporalEntities = entityResult.dates.filter(d => 
+    // Stage 1: NER for temporal entities (reuse entityResult from above)
+    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
+    const seasonEntityResult = await extractEntitiesEnhanced(message, ctx.log);
+    const temporalEntities = seasonEntityResult.dates.filter((d: any) => 
       /\b(winter|summer|spring|fall|autumn)\b/i.test(d.text)
     );
     
     if (temporalEntities.length > 0) {
-      const seasons = temporalEntities.map(t => t.text.toLowerCase());
-      uniqueSeasons = [...new Set(seasons)];
+      const seasons = temporalEntities.map((t: any) => t.text.toLowerCase());
+      uniqueSeasons = [...new Set(seasons)] as string[];
       ctx.log.debug({ seasons: uniqueSeasons, method: 'ner' }, '🔍 TEMPORAL: NER season detection');
     } else {
       // Stage 2: Regex fallback for seasons (regex fallback)
@@ -771,7 +822,7 @@ export async function runGraphTurn(
     try {
       const contentClassification = await classifyContentTransformers(message, ctx.log);
       if (contentClassification.confidence >= 0.75) {
-        isFlightQuery = contentClassification?.content_type === 'flight';
+        isFlightQuery = contentClassification?.content_type === 'travel' && /\b(flight|airline|plane|fly)\b/i.test(message);
         ctx.log.debug({ 
           isFlightQuery, 
           confidence: Math.round(contentClassification.confidence * 100) / 100,
