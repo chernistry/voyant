@@ -20,7 +20,7 @@ npm run dev
 ## Minimal Config
 - LLM: set one of `OPENROUTER_API_KEY` or `LLM_PROVIDER_BASEURL` + `LLM_API_KEY` (+ optional `LLM_MODEL`).
 - Optional external: `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `OPENTRIPMAP_API_KEY`, `VECTARA_API_KEY`.
-- Search provider: set `SEARCH_PROVIDER=brave|tavily` (default `brave`).
+- Search provider: set `SEARCH_PROVIDER=brave|tavily` (default `brave`). Both providers support web search with automatic fallback for visa/policy questions.
 - Flags: `METRICS=json|prom`, `DEEP_RESEARCH_ENABLED=true`, `POLICY_RAG=on`.
 
 ## Highlights
