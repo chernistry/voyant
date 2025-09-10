@@ -1,5 +1,10 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchTravelInfo, extractCountryFromResults, llmExtractCountryFromResults } from './brave_search.js';
+import {
+  searchTravelInfo,
+  extractCountryFromResults,
+  llmExtractCountryFromResults,
+  getSearchSource,
+} from './search.js';
 import { extractEntities } from '../core/ner.js';
 import { callLLM } from '../core/llm.js';
 
@@ -26,13 +31,13 @@ export async function getCountryFacts(input: { city?: string; country?: string }
     return primaryResult;
   }
 
-  // Fallback to Brave Search
+  // Fallback to web search
   const fallbackResult = await tryCountryFallback(target);
   if (fallbackResult.ok) {
-    return { 
-      ...fallbackResult, 
+    return {
+      ...fallbackResult,
       summary: `${fallbackResult.summary}`,
-      source: 'brave-search' 
+      source: getSearchSource(),
     };
   }
 

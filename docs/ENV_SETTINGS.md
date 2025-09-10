@@ -207,6 +207,26 @@ const apiKey = process.env.BRAVE_SEARCH_API_KEY;
 ```
 **Usage:** Required for web search functionality and deep research features.
 
+### `TAVILY_API_KEY`
+**Purpose:** API key for Tavily Search service
+**Implementation:**
+```typescript
+// src/tools/tavily_search.ts:21
+const apiKey = process.env.TAVILY_API_KEY;
+```
+**Usage:** Required when `SEARCH_PROVIDER=tavily`.
+
+### `SEARCH_PROVIDER`
+**Default:** `brave`
+**Options:** `brave | tavily`
+**Purpose:** Selects the web search provider
+**Implementation:**
+```typescript
+// src/tools/search.ts:13
+return (process.env.SEARCH_PROVIDER || 'brave').toLowerCase();
+```
+**Usage:** Set to `tavily` to use Tavily; defaults to Brave.
+
 ### `OPENTRIPMAP_API_KEY`
 **Purpose:** API key for OpenTripMap service
 **Implementation:**

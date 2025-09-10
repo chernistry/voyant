@@ -3,7 +3,11 @@ import { MONTH_WORDS as __MONTHS_GUARD__ } from './parsers.js';
 import { blendWithFacts } from './blend.js';
 import { buildClarifyingQuestion } from './clarifier.js';
 import { getThreadSlots, updateThreadSlots, setLastIntent, getLastIntent } from './slot_memory.js';
-import { searchTravelInfo } from '../tools/brave_search.js';
+import {
+  searchTravelInfo,
+  getSearchCitation,
+} from '../tools/search.js';
+import type { SearchResult } from '../tools/search.js';
 import { callLLM, classifyContent, optimizeSearchQuery } from './llm.js';
 import { getPrompt } from './prompts.js';
 import { TransformersNLP } from './transformers-nlp-facade.js';
@@ -1295,7 +1299,8 @@ async function attractionsNode(
     });
 
     if (result.ok) {
-      const sourceName = result.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search';
+      const sourceName =
+        result.source === 'opentripmap' ? 'OpenTripMap' : getSearchCitation();
       const baseReply = `Here are some attractions in ${city}:\n\n${result.summary}\n\nSource: ${sourceName}`;
       const finalReply = disclaimer ? disclaimer + baseReply : baseReply;
       const citations = result.source ? [sourceName] : [];
@@ -1467,11 +1472,13 @@ async function performWebSearchNode(
   if (threadId) {
     try {
       const { setLastReceipts } = await import('./slot_memory.js');
-      const facts = searchResult.results.slice(0, 3).map((result, index) => ({
-        source: 'Brave Search',
-        key: `search_result_${index}`,
-        value: `${result.title}: ${result.description.slice(0, 100)}...`
-      }));
+      const facts = searchResult.results.slice(0, 3).map(
+        (result: SearchResult, index: number) => ({
+          source: getSearchCitation(),
+          key: `search_result_${index}`,
+          value: `${result.title}: ${result.description.slice(0, 100)}...`,
+        }),
+      );
       const decisions = [`Performed web search for: "${query}"`];
       setLastReceipts(threadId, facts, decisions, reply);
     } catch {
@@ -1578,7 +1585,7 @@ async function summarizeSearchResults(
     }
     return {
       reply: finalText,
-      citations: ['Brave Search']
+      citations: [getSearchCitation()]
     };
   } catch (error) {
     ctx.log.debug('Search summarization failed, using fallback');
@@ -1598,8 +1605,8 @@ function formatSearchResultsFallback(
   }).join('\n');
   
   return {
-    reply: `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`,
-    citations: ['Brave Search']
+    reply: `Based on web search results:\n\n${formattedResults}\n\nSources: ${getSearchCitation()}`,
+    citations: [getSearchCitation()]
   };
 }
 

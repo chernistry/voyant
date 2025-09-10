@@ -1,4 +1,8 @@
-import { searchTravelInfo, llmExtractAttractionsFromResults } from './brave_search.js';
+import {
+  searchTravelInfo,
+  llmExtractAttractionsFromResults,
+  getSearchSource,
+} from './search.js';
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
 import { classifyAttractions, type AttractionItem } from '../core/transformers-attractions-classifier.js';
@@ -31,10 +35,10 @@ export async function getAttractions(input: {
     return primaryResult;
   }
 
-  // Fallback to Brave Search
+  // Fallback to web search
   const fallbackResult = await tryAttractionsFallback(input.city);
   if (fallbackResult.ok) {
-    return { ...fallbackResult, source: 'brave-search' };
+    return { ...fallbackResult, source: getSearchSource() };
   }
 
   return primaryResult; // Return original error
@@ -163,16 +167,16 @@ async function tryAttractionsFallback(city: string): Promise<Out> {
 
   const searchResult = await searchTravelInfo(query);
   if (!searchResult.ok) {
-    return { ok: false, reason: 'fallback_failed', source: 'brave-search' };
+    return { ok: false, reason: 'fallback_failed', source: getSearchSource() };
   }
 
   // LLM-first extraction
   const attractionsInfoLLM = await llmExtractAttractionsFromResults(searchResult.results, city);
   if (attractionsInfoLLM) {
-    return { ok: true, summary: attractionsInfoLLM, source: 'brave-search' };
+    return { ok: true, summary: attractionsInfoLLM, source: getSearchSource() };
   }
 
-  return { ok: false, reason: 'no_attractions_data', source: 'brave-search' };
+  return { ok: false, reason: 'no_attractions_data', source: getSearchSource() };
 }
 
 /**
