@@ -1,0 +1,1022 @@
+# Mastra
+
+> Mastra is an open-source TypeScript agent framework designed to provide the essential primitives for building AI applications. It enables developers to create AI agents with memory and tool-calling capabilities, implement deterministic LLM workflows, and leverage RAG for knowledge integration. With features like model routing, workflow graphs, and automated evals, Mastra provides a complete toolkit for developing, testing, and deploying AI applications.
+
+This documentation covers everything from getting started to advanced features, APIs, and best practices for working with Mastra's agent-based architecture.
+
+The documentation is organized into key sections:
+- **docs**: Core documentation covering concepts, features, and implementation details
+- **examples**: Practical examples and use cases demonstrating Mastra's capabilities
+- **showcase**: A showcase of applications built using Mastra
+
+Each section contains detailed markdown files that provide comprehensive information about Mastra's features and how to use them effectively.
+
+
+## EN - docs
+- [adding-voice](https://mastra.ai/en/docs/agents/adding-voice)
+- [Using Agent Memory | Agents | Mastra Docs](https://mastra.ai/en/docs/agents/agent-memory): Documentation on how agents in Mastra use memory to store conversation history and contextual information.
+- [Dynamic Agents](https://mastra.ai/en/docs/agents/dynamic-agents): Dynamically configure your agents instruction, model, tools, and memory using runtime context.
+- [Input Processors](https://mastra.ai/en/docs/agents/input-processors): Learn how to use input processors to intercept and modify agent messages before they reach the language model.
+- [Output Processors](https://mastra.ai/en/docs/agents/output-processors): Learn how to use output processors to intercept and modify AI responses before they are returned to users.
+- [Agent Overview | Agent Documentation | Mastra](https://mastra.ai/en/docs/agents/overview): Overview of agents in Mastra, detailing their capabilities and how they interact with tools, workflows, and external systems.
+- [Runtime context | Agents | Mastra Docs](https://mastra.ai/en/docs/agents/runtime-context): Learn how to use Mastras RuntimeContext to provide dynamic, request-specific configuration to agents.
+- [Using Tools with Agents | Agents | Mastra Docs](https://mastra.ai/en/docs/agents/using-tools-and-mcp): Learn how to create tools, add them to Mastra agents, and integrate tools from MCP servers.
+- [Auth Overview](https://mastra.ai/en/docs/auth): Learn about different Auth options for your Mastra applications
+- [MastraJwtAuth Class](https://mastra.ai/en/docs/auth/jwt): Documentation for the MastraJwtAuth class, which authenticates Mastra applications using JSON Web Tokens.
+- [MastraAuthSupabase Class](https://mastra.ai/en/docs/auth/supabase): Documentation for the MastraAuthSupabase class, which authenticates Mastra applications using Supabase Auth.
+- [Contributing Templates](https://mastra.ai/en/docs/community/contributing-templates): How to contribute your own templates to the Mastra ecosystem
+- [Discord Community and Bot | Documentation | Mastra](https://mastra.ai/en/docs/community/discord): Information about the Mastra Discord community and MCP bot.
+- [Licensing](https://mastra.ai/en/docs/community/licensing): Mastra License
+- [Amazon EC2](https://mastra.ai/en/docs/deployment/cloud-providers/amazon-ec2): Deploy your Mastra applications to Amazon EC2.
+- [AWS Lambda](https://mastra.ai/en/docs/deployment/cloud-providers/aws-lambda): Deploy your Mastra applications to AWS Lambda using Docker containers and the AWS Lambda Web Adapter.
+- [Azure App Services](https://mastra.ai/en/docs/deployment/cloud-providers/azure-app-services): Deploy your Mastra applications to Azure App Services.
+- [Digital Ocean](https://mastra.ai/en/docs/deployment/cloud-providers/digital-ocean): Deploy your Mastra applications to Digital Ocean.
+- [Cloud Providers](https://mastra.ai/en/docs/deployment/cloud-providers): Deploy your Mastra applications to popular cloud providers.
+- [Monorepo Deployment](https://mastra.ai/en/docs/deployment/monorepo): Learn how to deploy Mastra applications that are part of a monorepo setup
+- [Deployment Overview](https://mastra.ai/en/docs/deployment/overview): Learn about different deployment options for your Mastra applications
+- [Deploy a Mastra Server](https://mastra.ai/en/docs/deployment/server-deployment): Learn how to deploy a Mastra server with build settings and deployment options.
+- [Cloudflare Deployer](https://mastra.ai/en/docs/deployment/serverless-platforms/cloudflare-deployer): Learn how to deploy a Mastra application to Cloudflare using the Mastra CloudflareDeployer
+- [Serverless Deployment](https://mastra.ai/en/docs/deployment/serverless-platforms): Build and deploy Mastra applications using platform-specific deployers or standard HTTP servers
+- [Netlify Deployer](https://mastra.ai/en/docs/deployment/serverless-platforms/netlify-deployer): Learn how to deploy a Mastra application to Netlify using the Mastra NetlifyDeployer
+- [Vercel Deployer](https://mastra.ai/en/docs/deployment/serverless-platforms/vercel-deployer): Learn how to deploy a Mastra application to Vercel using the Mastra VercelDeployer
+- [Deploying Mastra with a Web Framework](https://mastra.ai/en/docs/deployment/web-framework): Learn how Mastra can be deployed when integrated with a Web Framework
+- [Create a custom eval](https://mastra.ai/en/docs/evals/custom-eval): Mastra allows you to create your own evals, here is how.
+- [Overview](https://mastra.ai/en/docs/evals/overview): Understanding how to evaluate and measure AI agent quality using Mastra evals.
+- [Running in CI](https://mastra.ai/en/docs/evals/running-in-ci): Learn how to run Mastra evals in your CI/CD pipeline to monitor agent quality over time.
+- [Textual Evals](https://mastra.ai/en/docs/evals/textual-evals): Understand how Mastra uses LLM-as-judge methodology to evaluate text quality.
+- [Using with Vercel AI SDK](https://mastra.ai/en/docs/frameworks/agentic-uis/ai-sdk): Learn how Mastra leverages the Vercel AI SDK library and how you can leverage it further with Mastra
+- [Using with Assistant UI](https://mastra.ai/en/docs/frameworks/agentic-uis/assistant-ui): Learn how to integrate Assistant UI with Mastra
+- [Using with CopilotKit](https://mastra.ai/en/docs/frameworks/agentic-uis/copilotkit): Learn how Mastra leverages the CopilotKits AGUI library and how you can leverage it to build user experiences
+- [Using with OpenRouter](https://mastra.ai/en/docs/frameworks/agentic-uis/openrouter): Learn how to integrate OpenRouter with Mastra
+- [Getting started with Mastra and Express | Mastra Guides](https://mastra.ai/en/docs/frameworks/servers/express): A step-by-step guide to integrating Mastra with an Express backend.
+- [Getting Started with Mastra and Astro | Mastra Guides](https://mastra.ai/en/docs/frameworks/web-frameworks/astro): A step-by-step guide to integrating Mastra with Astro.
+- [Getting Started with Mastra and Next.js | Mastra Guides](https://mastra.ai/en/docs/frameworks/web-frameworks/next-js): A step-by-step guide to integrating Mastra with Next.js.
+- [Getting Started with Mastra and SvelteKit | Mastra Guides](https://mastra.ai/en/docs/frameworks/web-frameworks/sveltekit): A step-by-step guide to integrating Mastra with SvelteKit.
+- [Getting Started with Mastra and Vite/React | Mastra Guides](https://mastra.ai/en/docs/frameworks/web-frameworks/vite-react): A step-by-step guide to integrating Mastra with Vite and React.
+- [Installing Mastra | Getting Started | Mastra Docs](https://mastra.ai/en/docs/getting-started/installation): Guide on installing Mastra and setting up the necessary prerequisites for running it with various LLM providers.
+- [MCP Docs Server | Getting Started | Mastra Docs](https://mastra.ai/en/docs/getting-started/mcp-docs-server): Learn how to use the Mastra MCP documentation server in your IDE to turn it into an agentic Mastra expert.
+- [model-capability](https://mastra.ai/en/docs/getting-started/model-capability)
+- [Model Providers | Getting Started | Mastra Docs](https://mastra.ai/en/docs/getting-started/model-providers): Learn how to configure and use different model providers with Mastra.
+- [Local Project Structure | Getting Started | Mastra Docs](https://mastra.ai/en/docs/getting-started/project-structure): Guide on organizing folders and files in Mastra, including best practices and recommended structures.
+- [Templates | Getting Started | Mastra Docs](https://mastra.ai/en/docs/getting-started/templates): Pre-built project structures that demonstrate common Mastra use cases and patterns
+- [Introduction | Mastra Docs](https://mastra.ai/en/docs): Mastra is a TypeScript agent framework. It helps you build AI applications and features quickly. It gives you the set of primitives you need: workflows, agents, RAG, integrations, syncs and evals.
+- [Understanding the Mastra Cloud Dashboard](https://mastra.ai/en/docs/mastra-cloud/dashboard): Details of each feature available in Mastra Cloud
+- [Observability in Mastra Cloud](https://mastra.ai/en/docs/mastra-cloud/observability): Monitoring and debugging tools for Mastra Cloud deployments
+- [Mastra Cloud](https://mastra.ai/en/docs/mastra-cloud/overview): Deployment and monitoring service for Mastra applications
+- [Setting Up a Project](https://mastra.ai/en/docs/mastra-cloud/setting-up): Configuration steps for Mastra Cloud projects
+- [memory-processors](https://mastra.ai/en/docs/memory/memory-processors)
+- [overview](https://mastra.ai/en/docs/memory/overview)
+- [semantic-recall](https://mastra.ai/en/docs/memory/semantic-recall)
+- [working-memory](https://mastra.ai/en/docs/memory/working-memory)
+- [Complex Task Execution with AgentNetwork Loop Method](https://mastra.ai/en/docs/networks-vnext/complex-task-execution): This page demonstrates how to use the AgentNetworks loop method in Mastra vNext to handle complex tasks that require multiple agents and workflows, including memory-based orchestration and multi-step execution.
+- [Handling Complex LLM Operations | Networks | Mastra](https://mastra.ai/en/docs/networks-vnext/overview): Networks in Mastra help you execute individual or multiple Mastra primitives in a non-deterministic way using a single API.
+- [Single Task Execution with AgentNetwork Generate Method](https://mastra.ai/en/docs/networks-vnext/single-task-execution): Learn how to use the AgentNetworks generate method in Mastra vNext to convert unstructured input into structured tasks and route them to the most appropriate agent or workflow.
+- [AI Tracing | Mastra Observability Documentation](https://mastra.ai/en/docs/observability/ai-tracing): Set up AI tracing for Mastra applications
+- [Logging | Mastra Observability Documentation](https://mastra.ai/en/docs/observability/logging): Learn how to use logging in Mastra to monitor execution, capture application behavior, and improve the accuracy of AI applications.
+- [Next.js Tracing | Mastra Observability Documentation](https://mastra.ai/en/docs/observability/nextjs-tracing): Set up OpenTelemetry tracing for Next.js applications
+- [Tracing | Mastra Observability Documentation](https://mastra.ai/en/docs/observability/tracing): Set up OpenTelemetry tracing for Mastra applications
+- [Chunking and Embedding Documents | RAG | Mastra Docs](https://mastra.ai/en/docs/rag/chunking-and-embedding): Guide on chunking and embedding documents in Mastra for efficient processing and retrieval.
+- [RAG (Retrieval-Augmented Generation) in Mastra | Mastra Docs](https://mastra.ai/en/docs/rag/overview): Overview of Retrieval-Augmented Generation (RAG) in Mastra, detailing its capabilities for enhancing LLM outputs with relevant context.
+- [Retrieval, Semantic Search, Reranking | RAG | Mastra Docs](https://mastra.ai/en/docs/rag/retrieval): Guide on retrieval processes in Mastras RAG systems, including semantic search, filtering, and re-ranking.
+- [Storing Embeddings in A Vector Database | Mastra Docs](https://mastra.ai/en/docs/rag/vector-databases): Guide on vector storage options in Mastra, including embedded and dedicated vector databases for similarity search.
+- [custom-scorers](https://mastra.ai/en/docs/scorers/custom-scorers)
+- [Built-in Scorers](https://mastra.ai/en/docs/scorers/off-the-shelf-scorers): Overview of Mastras ready-to-use scorers for evaluating AI outputs across quality, safety, and performance dimensions.
+- [Overview](https://mastra.ai/en/docs/scorers/overview): Overview of scorers in Mastra, detailing their capabilities for evaluating AI outputs and measuring performance.
+- [Custom API Routes](https://mastra.ai/en/docs/server-db/custom-api-routes): Expose additional HTTP endpoints from your Mastra server.
+- [Inspecting agents and workflows with mastra dev | Mastra Local Dev Docs](https://mastra.ai/en/docs/server-db/local-dev-playground): Documentation for the Mastra local development environment for Mastra applications.
+- [MastraClient](https://mastra.ai/en/docs/server-db/mastra-client): Learn how to set up and use the Mastra Client SDK
+- [Middleware](https://mastra.ai/en/docs/server-db/middleware): Apply custom middleware functions to intercept requests.
+- [Create A Mastra Production Server](https://mastra.ai/en/docs/server-db/production-server): Learn how to configure and deploy a production-ready Mastra server with custom settings for APIs, CORS, and more
+- [Reference: Snapshots | Workflow State Persistence | Mastra Docs](https://mastra.ai/en/docs/server-db/snapshots): Technical reference on snapshots in Mastra - the serialized workflow state that enables suspend and resume functionality
+- [Storage in Mastra | Mastra Docs](https://mastra.ai/en/docs/server-db/storage): Overview of Mastras storage system and data persistence capabilities.
+- [Streaming Events | Streaming | Mastra](https://mastra.ai/en/docs/streaming/events): Learn about the different types of streaming events in Mastra, including text deltas, tool calls, step events, and how to handle them in your applications.
+- [Streaming Overview | Streaming | Mastra](https://mastra.ai/en/docs/streaming/overview): Streaming in Mastra enables real-time, incremental responses from both agents and workflows, providing immediate feedback as AI-generated content is produced.
+- [Tool Streaming | Streaming | Mastra](https://mastra.ai/en/docs/streaming/tool-streaming): Learn how to use tool streaming in Mastra, including handling tool calls, tool results, and tool execution events during streaming.
+- [Workflow Streaming | Streaming | Mastra](https://mastra.ai/en/docs/streaming/workflow-streaming): Learn how to use workflow streaming in Mastra, including handling workflow execution events, step streaming, and workflow integration with agents and tools.
+- [Advanced Tool Usage | Tools & MCP | Mastra Docs](https://mastra.ai/en/docs/tools-mcp/advanced-usage): This page covers advanced features for Mastra tools, including abort signals and compatibility with the Vercel AI SDK tool format.
+- [MCP Overview | Tools & MCP | Mastra Docs](https://mastra.ai/en/docs/tools-mcp/mcp-overview): Learn about the Model Context Protocol (MCP), how to use third-party tools via MCPClient, connect to registries, and share your own tools using MCPServer.
+- [Tools Overview | Tools & MCP | Mastra Docs](https://mastra.ai/en/docs/tools-mcp/overview): Understand what tools are in Mastra, how to add them to agents, and best practices for designing effective tools.
+- [Runtime context | Tools & MCP | Mastra Docs](https://mastra.ai/en/docs/tools-mcp/runtime-context): Learn how to use Mastras RuntimeContext to provide dynamic, request-specific configuration to tools.
+- [Voice in Mastra | Mastra Docs](https://mastra.ai/en/docs/voice/overview): Overview of voice capabilities in Mastra, including text-to-speech, speech-to-text, and real-time speech-to-speech interactions.
+- [Speech-to-Speech Capabilities in Mastra | Mastra Docs](https://mastra.ai/en/docs/voice/speech-to-speech): Overview of speech-to-speech capabilities in Mastra, including real-time interactions and event-driven architecture.
+- [Speech-to-Text (STT) in Mastra | Mastra Docs](https://mastra.ai/en/docs/voice/speech-to-text): Overview of Speech-to-Text capabilities in Mastra, including configuration, usage, and integration with voice providers.
+- [Text-to-Speech (TTS) in Mastra | Mastra Docs](https://mastra.ai/en/docs/voice/text-to-speech): Overview of Text-to-Speech capabilities in Mastra, including configuration, usage, and integration with voice providers.
+- [Branching, Merging, Conditions | Workflows | Mastra Docs](https://mastra.ai/en/docs/workflows/control-flow): Control flow in Mastra workflows allows you to manage branching, merging, and conditions to construct workflows that meet your logic requirements.
+- [Error Handling in Workflows | Workflows | Mastra Docs](https://mastra.ai/en/docs/workflows/error-handling): Learn how to handle errors in Mastra workflows using step retries, conditional branching, and monitoring.
+- [Inngest Workflows | Workflows | Mastra Docs](https://mastra.ai/en/docs/workflows/inngest-workflow): Inngest workflow allows you to run Mastra workflows with Inngest
+- [Input Data Mapping with Workflow | Mastra Docs](https://mastra.ai/en/docs/workflows/input-data-mapping): Learn how to use workflow input mapping to create more dynamic data flows in your Mastra workflows.
+- [Handling Complex LLM Operations | Workflows | Mastra](https://mastra.ai/en/docs/workflows/overview): Workflows in Mastra help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more.
+- [Pausing Execution | Mastra Docs](https://mastra.ai/en/docs/workflows/pausing-execution): Pausing execution in Mastra workflows allows you to pause execution while waiting for external input or resources via .sleep(), .sleepUntil() and .waitForEvent().
+- [Suspend & Resume Workflows | Human-in-the-Loop | Mastra Docs](https://mastra.ai/en/docs/workflows/suspend-and-resume): Suspend and resume in Mastra workflows allows you to pause execution while waiting for external input or resources.
+- [Using Workflows with Agents and Tools | Workflows | Mastra Docs](https://mastra.ai/en/docs/workflows/using-with-agents-and-tools): Steps in Mastra workflows provide a structured way to manage operations by defining inputs, outputs, and execution logic.
+- [Branching, Merging, Conditions | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/control-flow): Control flow in Mastra legacy workflows allows you to manage branching, merging, and conditions to construct legacy workflows that meet your logic requirements.
+- [Dynamic Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/dynamic-workflows): Learn how to create dynamic workflows within legacy workflow steps, allowing for flexible workflow creation based on runtime conditions.
+- [Error Handling in Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/error-handling): Learn how to handle errors in Mastra legacy workflows using step retries, conditional branching, and monitoring.
+- [nested-workflows](https://mastra.ai/en/docs/workflows-legacy/nested-workflows)
+- [Handling Complex LLM Operations | Workflows (Legacy) | Mastra](https://mastra.ai/en/docs/workflows-legacy/overview): Workflows in Mastra help you orchestrate complex sequences of operations with features like branching, parallel execution, resource suspension, and more.
+- [Runtime variables - dependency injection | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/runtime-variables): Learn how to use Mastras dependency injection system to provide runtime configuration to workflows and steps.
+- [Creating Steps and Adding to Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/steps): Steps in Mastra workflows provide a structured way to manage operations by defining inputs, outputs, and execution logic.
+- [Suspend & Resume Workflows (Legacy) | Human-in-the-Loop | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/suspend-and-resume): Suspend and resume in Mastra workflows allows you to pause execution while waiting for external input or resources.
+- [Data Mapping with Workflow (Legacy) Variables | Mastra Docs](https://mastra.ai/en/docs/workflows-legacy/variables): Learn how to use workflow variables to map data between steps and create dynamic data flows in your Mastra workflows.
+
+## EN - examples
+- [Example: Adding Voice Capabilities | Agents | Mastra](https://mastra.ai/en/examples/agents/adding-voice-capabilities): Example of adding voice capabilities to Mastra agents, enabling them to speak and listen using different voice providers.
+- [Example: AI SDK v5 Integration | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/ai-sdk-v5-integration): Example of integrating Mastra agents with AI SDK v5 for streaming chat interfaces with memory and tool integration.
+- [Calling Agents | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/calling-agents): Example for how to call agents.
+- [Example: Deploying an MCPServer | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/deploying-mcp-server): Example of setting up, building, and deploying a Mastra MCPServer using the stdio transport and publishing it to NPM.
+- [Dynamic Context Example | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/dynamic-agents): Learn how to create and configure dynamic agents using runtime context in Mastra.
+- [Example: Image Analysis Agent | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/image-analysis): Example of using a Mastra AI Agent to analyze images from Unsplash to identify objects, determine species, and describe locations.
+- [Example: Supervisor agent | Agents | Mastra](https://mastra.ai/en/examples/agents/supervisor-agent): Example of creating a supervisor agent using Mastra, where agents interact through tool functions.
+- [Example: Agents with a System Prompt | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/system-prompt): Example of creating an AI agent in Mastra with a system prompt to define its personality and capabilities.
+- [Example: Adding Tools to Agents | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/using-a-tool): Example of creating an AI agent in Mastra that uses a dedicated tool to provide weather information.
+- [Example: Adding Workflows to Agents | Agents | Mastra Docs](https://mastra.ai/en/examples/agents/using-a-workflow): Example of creating an AI agent in Mastra that uses a dedicated workflow to provide soccer fixture information.
+- [Auth Middleware](https://mastra.ai/en/examples/deployment/auth-middleware)
+- [CORS Middleware](https://mastra.ai/en/examples/deployment/cors-middleware)
+- [Custom API Route](https://mastra.ai/en/examples/deployment/custom-api-route)
+- [Deploying a Mastra Server](https://mastra.ai/en/examples/deployment/deploying-mastra-server)
+- [Deployment examples](https://mastra.ai/en/examples/deployment)
+- [Logging Middleware](https://mastra.ai/en/examples/deployment/logging-middleware)
+- [Example: Answer Relevancy | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/answer-relevancy): Example of using the Answer Relevancy metric to evaluate response relevancy to queries.
+- [Example: Bias | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/bias): Example of using the Bias metric to evaluate responses for various forms of bias.
+- [Example: Completeness | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/completeness): Example of using the Completeness metric to evaluate how thoroughly responses cover input elements.
+- [Example: Content Similarity | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/content-similarity): Example of using the Content Similarity metric to evaluate text similarity between content.
+- [Example: Context Position | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/context-position): Example of using the Context Position metric to evaluate sequential ordering in responses.
+- [Example: Context Precision | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/context-precision): Example of using the Context Precision metric to evaluate how precisely context information is used.
+- [Example: Context Relevancy | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/context-relevancy): Example of using the Context Relevancy metric to evaluate how relevant context information is to a query.
+- [Example: Contextual Recall | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/contextual-recall): Example of using the Contextual Recall metric to evaluate how well responses incorporate context information.
+- [Example: Real World Countries | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/custom-llm-judge-eval): Example of creating a custom LLM-based evaluation metric.
+- [Example: Word Inclusion | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/custom-native-javascript-eval): Example of creating a custom native JavaScript evaluation metric.
+- [Example: Faithfulness | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/faithfulness): Example of using the Faithfulness metric to evaluate how factually accurate responses are compared to context.
+- [Example: Hallucination | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/hallucination): Example of using the Hallucination metric to evaluate factual contradictions in responses.
+- [Example: Keyword Coverage | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/keyword-coverage): Example of using the Keyword Coverage metric to evaluate how well responses cover important keywords from input text.
+- [Example: Prompt Alignment | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/prompt-alignment): Example of using the Prompt Alignment metric to evaluate instruction adherence in responses.
+- [Example: Summarization | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/summarization): Example of using the Summarization metric to evaluate how well LLM-generated summaries capture content while maintaining factual accuracy.
+- [Example: Textual Difference | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/textual-difference): Example of using the Textual Difference metric to evaluate similarity between text strings by analyzing sequence differences and changes.
+- [Example: Tone Consistency | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/tone-consistency): Example of using the Tone Consistency metric to evaluate emotional tone patterns and sentiment consistency in text.
+- [Example: Toxicity | Evals | Mastra Docs](https://mastra.ai/en/examples/evals/toxicity): Example of using the Toxicity metric to evaluate responses for harmful content and toxic language.
+- [Examples List: Workflows, Agents, RAG | Mastra Docs](https://mastra.ai/en/examples): Explore practical examples of AI development with Mastra, including text generation, RAG implementations, structured outputs, and multi-modal interactions. Learn how to build AI applications using OpenAI, Anthropic, and Google Gemini.
+- [Example: Memory Processors | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/memory-processors): Example showing how to use memory processors to limit tokens, filter tool calls, and create custom filters.
+- [Example: Memory with LibSQL | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/memory-with-libsql): Example for how to use Mastras memory system with LibSQL storage and vector database backend.
+- [Example: Memory with Mem0 | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/memory-with-mem0): Example for how to use Mastras agent system with Mem0 as the memory backend through custom tools.
+- [Example: Memory with PostgreSQL | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/memory-with-pg): Example for how to use Mastras memory system with PostgreSQL storage and vector capabilities.
+- [Example: Memory with Upstash | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/memory-with-upstash): Example for how to use Mastras memory system with Upstash Redis storage and vector capabilities.
+- [Example: Basic Working Memory | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/working-memory-basic): Example showing how to enable basic working memory for agents to maintain conversational context.
+- [Example: Working Memory with Schema | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/working-memory-schema): Example showing how to use Zod schema to structure and validate working memory data.
+- [Example: Working Memory with Template | Memory | Mastra Docs](https://mastra.ai/en/examples/memory/working-memory-template): Example showing how to use Markdown template to structure working memory data.
+- [Example: Adjusting Chunk Delimiters | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/adjust-chunk-delimiters): Adjust chunk delimiters in Mastra to better match your content structure.
+- [Example: Adjusting The Chunk Size | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/adjust-chunk-size): Adjust chunk size in Mastra to better match your content and memory requirements.
+- [Example: Semantically Chunking HTML | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/chunk-html): Chunk HTML content in Mastra to semantically chunk the document.
+- [Example: Semantically Chunking JSON | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/chunk-json): Chunk JSON data in Mastra to semantically chunk the document.
+- [Example: Semantically Chunking Markdown | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/chunk-markdown): Example of using Mastra to chunk markdown documents for search or retrieval purposes.
+- [Example: Semantically Chunking Text | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/chunking/chunk-text): Example of using Mastra to split large text documents into smaller chunks for processing.
+- [Example: Embedding Chunk Arrays | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/embedding/embed-chunk-array): Example of using Mastra to generate embeddings for an array of text chunks for similarity search.
+- [Example: Embedding Text Chunks | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/embedding/embed-text-chunk): Example of using Mastra to generate an embedding for a single text chunk for similarity search.
+- [Example: Embedding Text with Cohere | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/embedding/embed-text-with-cohere): Example of using Mastra to generate embeddings using Coheres embedding model.
+- [Example: Metadata Extraction | Retrieval | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/embedding/metadata-extraction): Example of extracting and utilizing metadata from documents in Mastra for enhanced document processing and retrieval.
+- [Example: Hybrid Vector Search | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/query/hybrid-vector-search): Example of using metadata filters with PGVector to enhance vector search results in Mastra.
+- [Example: Retrieving Top-K Results | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/query/retrieve-results): Example of using Mastra to query a vector database and retrieve semantically similar chunks.
+- [Example: Re-ranking Results with Tools | Retrieval | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/rerank/rerank-rag): Example of implementing a RAG system with re-ranking in Mastra using OpenAI embeddings and PGVector for vector storage.
+- [Example: Re-ranking Results | Retrieval | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/rerank/rerank): Example of implementing semantic re-ranking in Mastra using OpenAI embeddings and PGVector for vector storage.
+- [Example: Reranking with Cohere | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/rerank/reranking-with-cohere): Example of using Mastra to improve document retrieval relevance with Coheres reranking service.
+- [Example: Reranking with ZeroEntropy | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/rerank/reranking-with-zeroentropy): Example of using Mastra to improve document retrieval relevance with ZeroEntropys reranking service.
+- [Example: Upsert Embeddings | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/upsert/upsert-embeddings): Examples of using Mastra to store embeddings in various vector databases for similarity search.
+- [Example: Using the Vector Query Tool | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/basic-rag): Example of implementing a basic RAG system in Mastra using OpenAI embeddings and PGVector for vector storage.
+- [Example: Optimizing Information Density | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/cleanup-rag): Example of implementing a RAG system in Mastra to optimize information density and deduplicate data using LLM-based processing.
+- [Example: Chain of Thought Prompting | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/cot-rag): Example of implementing a RAG system in Mastra with chain-of-thought reasoning using OpenAI and PGVector.
+- [Example: Structured Reasoning with Workflows | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/cot-workflow-rag): Example of implementing structured reasoning in a RAG system using Mastras workflow capabilities.
+- [Database-Specific Configurations | RAG | Mastra Examples](https://mastra.ai/en/examples/rag/usage/database-specific-config): Learn how to use database-specific configurations to optimize vector search performance and leverage unique features of different vector stores.
+- [Example: Agent-Driven Metadata Filtering | Retrieval | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/filter-rag): Example of using a Mastra agent in a RAG system to construct and apply metadata filters for document retrieval.
+- [Example: A Complete Graph RAG System | RAG | Mastra Docs](https://mastra.ai/en/examples/rag/usage/graph-rag): Example of implementing a Graph RAG system in Mastra using OpenAI embeddings and PGVector for vector storage.
+- [Example: Answer Relevancy | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/answer-relevancy): Example of using the Answer Relevancy scorer to evaluate response relevancy to queries.
+- [Example: Bias | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/bias): Example of using the Bias scorer to evaluate responses for various forms of bias.
+- [Example: Completeness | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/completeness): Example of using the Completeness scorer to evaluate how thoroughly responses address all aspects of a query.
+- [Example: Content Similarity | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/content-similarity): Example of using the Content Similarity scorer to evaluate text similarity between content.
+- [Example: Context Precision Scorer | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/context-precision): Example of using the Context Precision scorer to evaluate the relevance and positioning of retrieved context for RAG systems using Mean Average Precision.
+- [Example: Context Relevance Scorer | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/context-relevance): Example of using the Context Relevance scorer to evaluate how relevant and useful provided context is for generating agent responses.
+- [Example: Custom Judge | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/custom-scorer): Example of creating a custom based scorer using createScorer with prompt objects.
+- [Example: Faithfulness | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/faithfulness): Example of using the Faithfulness scorer to evaluate how factually accurate responses are compared to context.
+- [Example: Hallucination | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/hallucination): Example of using the Hallucination scorer to evaluate factual contradictions in responses.
+- [Example: Keyword Coverage | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/keyword-coverage): Example of using the Keyword Coverage scorer to evaluate how well responses cover important keywords from input text.
+- [Example: Noise Sensitivity Scorer (CI/Testing) | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/noise-sensitivity): CI/testing examples for evaluating agent robustness against noise, distractions, and misinformation in controlled test environments.
+- [Example: Prompt Alignment | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/prompt-alignment): Example of using the Prompt Alignment scorer to evaluate how well responses align with user prompt intent and requirements.
+- [Example: Textual Difference | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/textual-difference): Example of using the Textual Difference scorer to evaluate similarity between text strings by analyzing sequence differences and changes.
+- [Example: Tone Consistency | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/tone-consistency): Example of using the Tone Consistency scorer to evaluate emotional tone patterns and sentiment consistency in text.
+- [Example: Tool Call Accuracy | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/tool-call-accuracy): Examples of using the Tool Call Accuracy scorers to evaluate whether LLMs select the correct tools for specific tasks.
+- [Example: Toxicity | Scorers | Mastra Docs](https://mastra.ai/en/examples/scorers/toxicity): Example of using the Toxicity scorer to evaluate responses for harmful content and toxic language.
+- [Calling Tools | Tools | Mastra Docs](https://mastra.ai/en/examples/tools/calling-tools): Example for how to tools agents.
+- [Dynamic Tools Example | Tools | Mastra Docs](https://mastra.ai/en/examples/tools/dynamic-tools): Learn how to create and configure dynamic tools using runtime context in Mastra.
+- [Example: Workflows as Tools | Agents | Mastra Docs](https://mastra.ai/en/examples/tools/workflow-as-tools): Example of using workflows as tools, demonstrating how to create reusable workflow components that can be called like tools.
+- [Speech to Speech](https://mastra.ai/en/examples/voice/speech-to-speech): Example of using Mastra to create a speech to speech application.
+- [Example: Speech to Text | Voice | Mastra Docs](https://mastra.ai/en/examples/voice/speech-to-text): Example of using Mastra to create a speech to text application.
+- [Example: Text to Speech | Voice | Mastra Docs](https://mastra.ai/en/examples/voice/text-to-speech): Example of using Mastra to create a text to speech application.
+- [Turn Taking](https://mastra.ai/en/examples/voice/turn-taking): Example of using Mastra to create a multi-agent debate with turn-taking conversation flow.
+- [Example: Using an Agent as a Step | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/agent-as-step): Example of using Mastra to integrate an agent as a step in a workflow.
+- [Example: Array as Input (.foreach()) | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/array-as-input): Example of using Mastra to process an array using .foreach() in a workflow.
+- [Example: Calling an Agent from a Workflow | Mastra Docs](https://mastra.ai/en/examples/workflows/calling-agent): Example of using Mastra to call an AI agent from within a workflow step.
+- [Example: Conditional Branching | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/conditional-branching): Example of using Mastra to create conditional branches in workflows using the `branch` statement .
+- [Example: Multi-Turn Human in the Loop | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/human-in-the-loop-multi-turn): Example of using Mastra to create workflows with multi-turn human/agent interaction points using suspend/resume and dountil methods.
+- [Example: Human in the Loop | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/human-in-the-loop): Example of using Mastra to create workflows with human intervention points.
+- [Inngest Workflow | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/inngest-workflow): Example of building an inngest workflow with Mastra
+- [Example: Parallel Execution | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/parallel-steps): Example of using Mastra to execute multiple independent tasks in parallel within a workflow.
+- [Running Workflows | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/running-workflows): Example for how to run workflows.
+- [Example: Sequential Execution | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/sequential-steps): Example of using Mastra to execute multiple independent tasks in sequence within a workflow.
+- [Example: Using a Tool as a Step | Workflows | Mastra Docs](https://mastra.ai/en/examples/workflows/tool-as-step): Example of using Mastra to integrate a tool as a step in a workflow.
+- [Example: Branching Paths | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/branching-paths): Example of using Mastra to create legacy workflows with branching paths based on intermediate results.
+- [Example: Calling an Agent from a Workflow (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/calling-agent): Example of using Mastra to call an AI agent from within a legacy workflow step.
+- [Example: Conditional Branching (experimental) | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/conditional-branching): Example of using Mastra to create conditional branches in legacy workflows using if/else statements.
+- [Example: Creating a Workflow | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/creating-a-workflow): Example of using Mastra to define and execute a simple workflow with a single step.
+- [Example: Cyclical Dependencies | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/cyclical-dependencies): Example of using Mastra to create legacy workflows with cyclical dependencies and conditional loops.
+- [Example: Human in the Loop | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/human-in-the-loop): Example of using Mastra to create legacy workflows with human intervention points.
+- [Example: Parallel Execution | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/parallel-steps): Example of using Mastra to execute multiple independent tasks in parallel within a workflow.
+- [Example: Sequential Steps | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/sequential-steps): Example of using Mastra to chain legacy workflow steps in a specific sequence, passing data between them.
+- [Example: Suspend and Resume | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/suspend-and-resume): Example of using Mastra to suspend and resume legacy workflow steps during execution.
+- [Example: Using a Tool as a Step | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/examples/workflows_legacy/using-a-tool-as-a-step): Example of using Mastra to integrate a custom tool as a step in a legacy workflow.
+- [Data Mapping with Workflow Variables (Legacy) | Mastra Examples](https://mastra.ai/en/examples/workflows_legacy/workflow-variables): Learn how to use workflow variables to map data between steps in Mastra workflows.
+
+## EN - guides
+- [Building an AI Recruiter | Mastra Workflows | Guides](https://mastra.ai/en/guides/guide/ai-recruiter): Guide on building a recruiter workflow in Mastra to gather and process candidate information using LLMs.
+- [Building an AI Chef Assistant | Mastra Agent Guides](https://mastra.ai/en/guides/guide/chef-michel): Guide on creating a Chef Assistant agent in Mastra to help users cook meals with available ingredients.
+- [MCP Server: Building a Notes MCP Server | Mastra Guide](https://mastra.ai/en/guides/guide/notes-mcp-server): A step-by-step guide to creating a fully-featured MCP (Model Context Protocol) server for managing notes using the Mastra framework.
+- [Building a Research Paper Assistant | Mastra RAG Guides](https://mastra.ai/en/guides/guide/research-assistant): Guide on creating an AI research assistant that can analyze and answer questions about academic papers using RAG.
+- [Building an AI Stock Agent | Mastra Agents | Guides](https://mastra.ai/en/guides/guide/stock-agent): Guide on creating a simple stock agent in Mastra to fetch the last days closing stock price for a given symbol.
+- [Overview](https://mastra.ai/en/guides): Guides on building with Mastra
+
+## EN - reference
+- [Reference: ChunkType | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/ChunkType): Documentation for the ChunkType type used in Mastra streaming responses, defining all possible chunk types and their payloads.
+- [Reference: MastraModelOutput | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/MastraModelOutput): Complete reference for MastraModelOutput - the stream object returned by agent.streamVNext() with streaming and promise-based access to model outputs.
+- [Reference: Agent Class | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/agent): Documentation for the `Agent` class in Mastra, which provides the foundation for creating AI agents with various capabilities.
+- [Reference: Agent.generate() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/generate): Documentation for the `Agent.generate()` method in Mastra agents, which produces text or structured responses.
+- [Reference: Agent.getDefaultGenerateOptions() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getDefaultGenerateOptions): Documentation for the `Agent.getDefaultGenerateOptions()` method in Mastra agents, which retrieves the default options used for generate calls.
+- [Reference: Agent.getDefaultStreamOptions() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getDefaultStreamOptions): Documentation for the `Agent.getDefaultStreamOptions()` method in Mastra agents, which retrieves the default options used for stream calls.
+- [Reference: Agent.getDefaultVNextStreamOptions() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getDefaultVNextStreamOptions): Documentation for the `Agent.getDefaultVNextStreamOptions()` method in Mastra agents, which retrieves the default options used for streamVNext calls.
+- [Reference: Agent.getDescription() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getDescription): Documentation for the `Agent.getDescription()` method in Mastra agents, which retrieves the agents description.
+- [Reference: Agent.getInstructions() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getInstructions): Documentation for the `Agent.getInstructions()` method in Mastra agents, which retrieves the instructions that guide the agents behavior.
+- [Reference: Agent.getLLM() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getLLM): Documentation for the `Agent.getLLM()` method in Mastra agents, which retrieves the language model instance.
+- [Reference: Agent.getMemory() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getMemory): Documentation for the `Agent.getMemory()` method in Mastra agents, which retrieves the memory system associated with the agent.
+- [Reference: Agent.getModel() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getModel): Documentation for the `Agent.getModel()` method in Mastra agents, which retrieves the language model that powers the agent.
+- [Reference: Agent.getScorers() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getScorers): Documentation for the `Agent.getScorers()` method in Mastra agents, which retrieves the scoring configuration.
+- [Reference: Agent.getTools() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getTools): Documentation for the `Agent.getTools()` method in Mastra agents, which retrieves the tools that the agent can use.
+- [Reference: Agent.getVoice() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getVoice): Documentation for the `Agent.getVoice()` method in Mastra agents, which retrieves the voice provider for speech capabilities.
+- [Reference: Agent.getWorkflows() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/getWorkflows): Documentation for the `Agent.getWorkflows()` method in Mastra agents, which retrieves the workflows that the agent can execute.
+- [Reference: Agent.stream() | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/stream): Documentation for the `Agent.stream()` method in Mastra agents, which enables real-time streaming of responses.
+- [Reference: Agent.streamVNext() (Experimental) | Agents | Mastra Docs](https://mastra.ai/en/reference/agents/streamVNext): Documentation for the `Agent.streamVNext()` method in Mastra agents, which enables real-time streaming of responses with enhanced capabilities.
+- [MastraJwtAuth Class](https://mastra.ai/en/reference/auth/jwt): API reference for the MastraJwtAuth class, which authenticates Mastra applications using JSON Web Tokens.
+- [MastraAuthSupabase Class](https://mastra.ai/en/reference/auth/supabase): API reference for the MastraAuthSupabase class, which authenticates Mastra applications using Supabase Auth.
+- [mastra build | Production Bundle | Mastra CLI](https://mastra.ai/en/reference/cli/build): Build your Mastra project for production deployment
+- [create-mastra | Create Project | Mastra CLI](https://mastra.ai/en/reference/cli/create-mastra): Documentation for the create-mastra command, which creates a new Mastra project with interactive setup options.
+- [mastra dev | Development Server | Mastra CLI](https://mastra.ai/en/reference/cli/dev): Documentation for the mastra dev command, which starts a development server for agents, tools, and workflows.
+- [mastra init | Initialize Project | Mastra CLI](https://mastra.ai/en/reference/cli/init): Documentation for the mastra init command, which creates a new Mastra project with interactive setup options.
+- [mastra lint | Validate Project | Mastra CLI](https://mastra.ai/en/reference/cli/lint): Lint your Mastra project
+- [@mastra/mcp-docs-server](https://mastra.ai/en/reference/cli/mcp-docs-server): Serve Mastra docs, examples and blog posts over MCP
+- [mastra scorers | Evaluation Management | Mastra CLI](https://mastra.ai/en/reference/cli/scorers): Manage scorers for evaluating AI outputs with the Mastra CLI
+- [mastra start](https://mastra.ai/en/reference/cli/start): Start your built Mastra application
+- [Mastra Client Agents API](https://mastra.ai/en/reference/client-js/agents): Learn how to interact with Mastra AI agents, including generating responses, streaming interactions, and managing agent tools using the client-js SDK.
+- [Mastra Client Error Handling](https://mastra.ai/en/reference/client-js/error-handling): Learn about the built-in retry mechanism and error handling capabilities in the Mastra client-js SDK.
+- [Mastra Client Logs API](https://mastra.ai/en/reference/client-js/logs): Learn how to access and query system logs and debugging information in Mastra using the client-js SDK.
+- [MastraClient](https://mastra.ai/en/reference/client-js/mastra-client): Learn how to interact with Mastra using the client-js SDK.
+- [Mastra Client Memory API](https://mastra.ai/en/reference/client-js/memory): Learn how to manage conversation threads and message history in Mastra using the client-js SDK.
+- [Mastra Client Telemetry API](https://mastra.ai/en/reference/client-js/telemetry): Learn how to retrieve and analyze traces from your Mastra application for monitoring and debugging using the client-js SDK.
+- [Mastra Client Tools API](https://mastra.ai/en/reference/client-js/tools): Learn how to interact with and execute tools available in the Mastra platform using the client-js SDK.
+- [Mastra Client Vectors API](https://mastra.ai/en/reference/client-js/vectors): Learn how to work with vector embeddings for semantic search and similarity matching in Mastra using the client-js SDK.
+- [Mastra Client Workflows (Legacy) API](https://mastra.ai/en/reference/client-js/workflows-legacy): Learn how to interact with and execute automated legacy workflows in Mastra using the client-js SDK.
+- [Mastra Client Workflows API](https://mastra.ai/en/reference/client-js/workflows): Learn how to interact with and execute automated workflows in Mastra using the client-js SDK.
+- [Reference: Agent.getAgent() | Agents | Mastra Docs](https://mastra.ai/en/reference/core/getAgent): Documentation for the `Agent.getAgent()` method in Mastra, which retrieves an agent by name.
+- [Reference: Mastra.getAgentById() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getAgentById): Documentation for the `Mastra.getAgentById()` method in Mastra, which retrieves an agent by its ID.
+- [Reference: Mastra.getAgents() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getAgents): Documentation for the `Mastra.getAgents()` method in Mastra, which retrieves all configured agents.
+- [Reference: Mastra.getDeployer() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getDeployer): Documentation for the `Mastra.getDeployer()` method in Mastra, which retrieves the configured deployer instance.
+- [Reference: Mastra.getLogger() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getLogger): Documentation for the `Mastra.getLogger()` method in Mastra, which retrieves the configured logger instance.
+- [Reference: Mastra.getLogs() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getLogs): Documentation for the `Mastra.getLogs()` method in Mastra, which retrieves all logs for a specific transport ID.
+- [Reference: Mastra.getLogsByRunId() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getLogsByRunId): Documentation for the `Mastra.getLogsByRunId()` method in Mastra, which retrieves logs for a specific run ID and transport ID.
+- [Reference: Mastra.getMCPServer() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getMCPServer): Documentation for the `Mastra.getMCPServer()` method in Mastra, which retrieves a specific MCP server instance by ID and optional version.
+- [Reference: Mastra.getMCPServers() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getMCPServers): Documentation for the `Mastra.getMCPServers()` method in Mastra, which retrieves all registered MCP server instances.
+- [Reference: Mastra.getMemory() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getMemory): Documentation for the `Mastra.getMemory()` method in Mastra, which retrieves the configured memory instance.
+- [Reference: Mastra.getServer() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getServer): Documentation for the `Mastra.getServer()` method in Mastra, which retrieves the configured server configuration.
+- [Reference: Mastra.getStorage() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getStorage): Documentation for the `Mastra.getStorage()` method in Mastra, which retrieves the configured storage instance.
+- [Reference: Mastra.getTelemetry() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getTelemetry): Documentation for the `Mastra.getTelemetry()` method in Mastra, which retrieves the configured telemetry instance.
+- [Reference: Mastra.getVector() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getVector): Documentation for the `Mastra.getVector()` method in Mastra, which retrieves a vector store by name.
+- [Reference: Mastra.getVectors() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getVectors): Documentation for the `Mastra.getVectors()` method in Mastra, which retrieves all configured vector stores.
+- [Reference: Mastra.getWorkflow() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getWorkflow): Documentation for the `Mastra.getWorkflow()` method in Mastra, which retrieves a workflow by ID.
+- [Reference: Mastra.getWorkflows() | Core | Mastra Docs](https://mastra.ai/en/reference/core/getWorkflows): Documentation for the `Mastra.getWorkflows()` method in Mastra, which retrieves all configured workflows.
+- [Mastra Core](https://mastra.ai/en/reference/core/mastra-class): Documentation for the Mastra Class, the core entry point for managing agents, workflows, MCP servers, and server endpoints.
+- [Reference: Mastra.setLogger() | Core | Mastra Docs](https://mastra.ai/en/reference/core/setLogger): Documentation for the `Mastra.setLogger()` method in Mastra, which sets the logger for all components (agents, workflows, etc.).
+- [Reference: Mastra.setStorage() | Core | Mastra Docs](https://mastra.ai/en/reference/core/setStorage): Documentation for the `Mastra.setStorage()` method in Mastra, which sets the storage instance for the Mastra instance.
+- [Reference: Mastra.setTelemetry() | Core | Mastra Docs](https://mastra.ai/en/reference/core/setTelemetry): Documentation for the `Mastra.setTelemetry()` method in Mastra, which sets the telemetry configuration for all components.
+- [Cloudflare Deployer](https://mastra.ai/en/reference/deployer/cloudflare): Documentation for the CloudflareDeployer class, which deploys Mastra applications to Cloudflare Workers.
+- [Mastra Deployer](https://mastra.ai/en/reference/deployer/deployer): Documentation for the Deployer abstract class, which handles packaging and deployment of Mastra applications.
+- [Netlify Deployer](https://mastra.ai/en/reference/deployer/netlify): Documentation for the NetlifyDeployer class, which deploys Mastra applications to Netlify Functions.
+- [Vercel Deployer](https://mastra.ai/en/reference/deployer/vercel): Documentation for the VercelDeployer class, which deploys Mastra applications to Vercel.
+- [Reference: Answer Relevancy | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/answer-relevancy): Documentation for the Answer Relevancy Metric in Mastra, which evaluates how well LLM outputs address the input query.
+- [Reference: Bias | Output Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/bias): Documentation for the Bias Metric in Mastra, which evaluates LLM outputs for various forms of bias, including gender, political, racial/ethnic, or geographical bias.
+- [Reference: Completeness | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/completeness): Documentation for the Completeness Metric in Mastra, which evaluates how thoroughly LLM outputs cover key elements present in the input.
+- [Reference: Content Similarity | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/content-similarity): Documentation for the Content Similarity Metric in Mastra, which measures textual similarity between strings and provides a matching score.
+- [Reference: Context Position | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/context-position): Documentation for the Context Position Metric in Mastra, which evaluates the ordering of context nodes based on their relevance to the query and output.
+- [Reference: Context Precision | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/context-precision): Documentation for the Context Precision Metric in Mastra, which evaluates the relevance and precision of retrieved context nodes for generating expected outputs.
+- [Reference: Context Relevancy | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/context-relevancy): Documentation for the Context Relevancy Metric, which evaluates the relevance of retrieved context in RAG pipelines.
+- [Reference: Contextual Recall | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/contextual-recall): Documentation for the Contextual Recall Metric, which evaluates the completeness of LLM responses in incorporating relevant context.
+- [Reference: Faithfulness | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/faithfulness): Documentation for the Faithfulness Metric in Mastra, which evaluates the factual accuracy of LLM outputs compared to the provided context.
+- [Reference: Hallucination | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/hallucination): Documentation for the Hallucination Metric in Mastra, which evaluates the factual correctness of LLM outputs by identifying contradictions with provided context.
+- [Reference: Keyword Coverage | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/keyword-coverage): Documentation for the Keyword Coverage Metric in Mastra, which evaluates how well LLM outputs cover important keywords from the input.
+- [Reference: Prompt Alignment | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/prompt-alignment): Documentation for the Prompt Alignment Metric in Mastra, which evaluates how well LLM outputs adhere to given prompt instructions.
+- [Reference: Summarization | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/summarization): Documentation for the Summarization Metric in Mastra, which evaluates the quality of LLM-generated summaries for content and factual accuracy.
+- [Reference: Textual Difference | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/textual-difference): Documentation for the Textual Difference Metric in Mastra, which measures textual differences between strings using sequence matching.
+- [Reference: Tone Consistency | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/tone-consistency): Documentation for the Tone Consistency Metric in Mastra, which evaluates emotional tone and sentiment consistency in text.
+- [Reference: Toxicity | Metrics | Evals | Mastra Docs](https://mastra.ai/en/reference/evals/toxicity): Documentation for the Toxicity Metric in Mastra, which evaluates LLM outputs for racist, biased, or toxic elements.
+- [API Reference](https://mastra.ai/en/reference): Mastra API Reference
+- [Reference: .after() | Building Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/after): Documentation for the `after()` method in workflows (legacy), enabling branching and merging paths.
+- [.afterEvent() Method | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/afterEvent): Reference for the afterEvent method in Mastra workflows that creates event-based suspension points.
+- [Reference: Workflow.commit() | Running Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/commit): Documentation for the `.commit()` method in workflows, which re-initializes the workflow machine with the current step configuration.
+- [Reference: Workflow.createRun() | Running Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/createRun): Documentation for the `.createRun()` method in workflows (legacy), which initializes a new workflow run instance.
+- [Reference: Workflow.else() | Conditional Branching | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/else): Documentation for the `.else()` method in Mastra workflows, which creates an alternative branch when an if condition is false.
+- [Event-Driven Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/events): Learn how to create event-driven workflows using afterEvent and resumeWithEvent methods in Mastra.
+- [Reference: Workflow.execute() | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/execute): Documentation for the `.execute()` method in Mastra workflows, which runs workflow steps and returns results.
+- [Reference: Workflow.if() | Conditional Branching | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/if): Documentation for the `.if()` method in Mastra workflows, which creates conditional branches based on specified conditions.
+- [Reference: run.resume() | Running Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/resume): Documentation for the `.resume()` method in workflows, which continues execution of a suspended workflow step.
+- [.resumeWithEvent() Method | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/resumeWithEvent): Reference for the resumeWithEvent method that resumes suspended workflows using event data.
+- [Reference: Snapshots | Workflow State Persistence (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/snapshots): Technical reference on snapshots in Mastra - the serialized workflow state that enables suspend and resume functionality
+- [Reference: start() | Running Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/start): Documentation for the `start()` method in workflows, which begins execution of a workflow run.
+- [Reference: Step | Building Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/step-class): Documentation for the Step class, which defines individual units of work within a workflow.
+- [Reference: StepCondition | Building Workflows (Legacy) | Mastra](https://mastra.ai/en/reference/legacyWorkflows/step-condition): Documentation for the step condition class in workflows, which determines whether a step should execute based on the output of previous steps or trigger data.
+- [Reference: Workflow.step() | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/step-function): Documentation for the `.step()` method in workflows, which adds a new step to the workflow.
+- [Reference: StepOptions | Building Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/step-options): Documentation for the step options in workflows, which control variable mapping, execution conditions, and other runtime behavior.
+- [Step Retries | Error Handling | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/step-retries): Automatically retry failed steps in Mastra workflows with configurable retry policies.
+- [Reference: suspend() | Control Flow | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/suspend): Documentation for the suspend function in Mastra workflows, which pauses execution until resumed.
+- [Reference: Workflow.then() | Building Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/then): Documentation for the `.then()` method in workflows, which creates sequential dependencies between steps.
+- [Reference: Workflow.until() | Looping in Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/until): Documentation for the `.until()` method in Mastra workflows, which repeats a step until a specified condition becomes true.
+- [Reference: run.watch() | Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/watch): Documentation for the `.watch()` method in workflows, which monitors the status of a workflow run.
+- [Reference: Workflow.while() | Looping in Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/while): Documentation for the `.while()` method in Mastra workflows, which repeats a step as long as a specified condition remains true.
+- [Reference: Workflow Class | Building Workflows (Legacy) | Mastra Docs](https://mastra.ai/en/reference/legacyWorkflows/workflow): Documentation for the Workflow class in Mastra, which enables you to create state machines for complex sequences of operations with conditional branching and data validation.
+- [Memory](https://mastra.ai/en/reference/memory/Memory)
+- [createThread](https://mastra.ai/en/reference/memory/createThread)
+- [deleteMessages](https://mastra.ai/en/reference/memory/deleteMessages)
+- [getThreadById](https://mastra.ai/en/reference/memory/getThreadById)
+- [getThreadsByResourceId](https://mastra.ai/en/reference/memory/getThreadsByResourceId)
+- [getThreadsByResourceIdPaginated](https://mastra.ai/en/reference/memory/getThreadsByResourceIdPaginated)
+- [query](https://mastra.ai/en/reference/memory/query)
+- [AgentNetwork (Experimental)](https://mastra.ai/en/reference/networks/agent-network): Reference documentation for the AgentNetwork class
+- [Reference: PinoLogger | Mastra Observability Docs](https://mastra.ai/en/reference/observability/logger): Documentation for PinoLogger, which provides methods to record events at various severity levels.
+- [Reference: OtelConfig | Mastra Observability Docs](https://mastra.ai/en/reference/observability/otel-config): Documentation for the OtelConfig object, which configures OpenTelemetry instrumentation, tracing, and exporting behavior.
+- [Reference: Arize AX Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/arize-ax): Documentation for integrating Arize AX with Mastra, a comprehensive AI observability platform for monitoring and evaluating LLM applications.
+- [Reference: Arize Phoenix Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/arize-phoenix): Documentation for integrating Arize Phoenix with Mastra, an open-source AI observability platform for monitoring and evaluating LLM applications.
+- [Reference: Braintrust | Observability | Mastra Docs](https://mastra.ai/en/reference/observability/providers/braintrust): Documentation for integrating Braintrust with Mastra, an evaluation and monitoring platform for LLM applications.
+- [Reference: Dash0 Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/dash0): Documentation for integrating Mastra with Dash0, an Open Telemetry native observability solution.
+- [Reference: Provider List | Observability | Mastra Docs](https://mastra.ai/en/reference/observability/providers): Overview of observability providers supported by Mastra, including Arize AX, Arize Phoenix, Dash0, SigNoz, Braintrust, Langfuse, and more.
+- [Reference: Keywords AI Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/keywordsai): Documentation for integrating Keywords AI (an observability platform for LLM applications) with Mastra.
+- [Reference: Laminar Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/laminar): Documentation for integrating Laminar with Mastra, a specialized observability platform for LLM applications.
+- [Reference: Langfuse Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/langfuse): Documentation for integrating Langfuse with Mastra, an open-source observability platform for LLM applications.
+- [Reference: LangSmith Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/langsmith): Documentation for integrating LangSmith with Mastra, a platform for debugging, testing, evaluating, and monitoring LLM applications.
+- [Reference: LangWatch Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/langwatch): Documentation for integrating LangWatch with Mastra, a specialized observability platform for LLM applications.
+- [Reference: New Relic Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/new-relic): Documentation for integrating New Relic with Mastra, a comprehensive observability platform supporting OpenTelemetry for full-stack monitoring.
+- [Reference: SigNoz Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/signoz): Documentation for integrating SigNoz with Mastra, an open-source APM and observability platform providing full-stack monitoring through OpenTelemetry.
+- [Reference: Traceloop Integration | Mastra Observability Docs](https://mastra.ai/en/reference/observability/providers/traceloop): Documentation for integrating Traceloop with Mastra, an OpenTelemetry-native observability platform for LLM applications.
+- [Reference: Astra Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/astra): Documentation for the AstraVector class in Mastra, which provides vector search using DataStax Astra DB.
+- [Reference: Chroma Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/chroma): Documentation for the ChromaVector class in Mastra, which provides vector search using ChromaDB.
+- [Reference: .chunk() | Document Processing | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/chunk): Documentation for the chunk function in Mastra, which splits documents into smaller segments using various strategies.
+- [Reference: Couchbase Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/couchbase): Documentation for the CouchbaseVector class in Mastra, which provides vector search using Couchbase Vector Search.
+- [Reference: DatabaseConfig | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/database-config): API reference for database-specific configuration types used with vector query tools in Mastra RAG systems.
+- [Reference: MDocument | Document Processing | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/document): Documentation for the MDocument class in Mastra, which handles document processing and chunking.
+- [Reference: embed() | Document Embedding | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/embeddings): Documentation for embedding functionality in Mastra using the AI SDK.
+- [Reference: ExtractParams | Document Processing | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/extract-params): Documentation for metadata extraction configuration in Mastra.
+- [Reference: GraphRAG | Graph-based RAG | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/graph-rag): Documentation for the GraphRAG class in Mastra, which implements a graph-based approach to retrieval augmented generation.
+- [Reference: Lance Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/lance): Documentation for the LanceVectorStore class in Mastra, which provides vector search using LanceDB, an embedded vector database based on the Lance columnar format.
+- [Default Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/libsql): Documentation for the LibSQLVector class in Mastra, which provides vector search using LibSQL with vector extensions.
+- [Reference: Metadata Filters | Metadata Filtering | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/metadata-filters): Documentation for metadata filtering capabilities in Mastra, which allow for precise querying of vector search results across different vector stores.
+- [Reference: MongoDB Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/mongodb): Documentation for the MongoDBVector class in Mastra, which provides vector search using MongoDB Atlas and Atlas Vector Search.
+- [Reference: OpenSearch Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/opensearch): Documentation for the OpenSearchVector class in Mastra, which provides vector search using OpenSearch.
+- [Reference: PG Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/pg): Documentation for the PgVector class in Mastra, which provides vector search using PostgreSQL with pgvector extension.
+- [Reference: Pinecone Vector Store | Vector DBs | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/pinecone): Documentation for the PineconeVector class in Mastra, which provides an interface to Pinecones vector database.
+- [Reference: Qdrant Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/qdrant): Documentation for integrating Qdrant with Mastra, a vector similarity search engine for managing vectors and payloads.
+- [Reference: Rerank | Document Retrieval | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/rerank): Documentation for the rerank function in Mastra, which provides advanced reranking capabilities for vector search results.
+- [Reference: Rerank | Document Retrieval | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/rerankWithScorer): Documentation for the rerank function in Mastra, which provides advanced reranking capabilities for vector search results.
+- [Reference: Amazon S3 Vectors Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/s3vectors): Documentation for the S3Vectors class in Mastra, which provides vector search using Amazon S3 Vectors (Preview).
+- [Reference: Turbopuffer Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/turbopuffer): Documentation for integrating Turbopuffer with Mastra, a high-performance vector database for efficient similarity search.
+- [Reference: Upstash Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/upstash): Documentation for the UpstashVector class in Mastra, which provides vector search using Upstash Vector.
+- [Reference: Cloudflare Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/en/reference/rag/vectorize): Documentation for the CloudflareVector class in Mastra, which provides vector search using Cloudflare Vectorize.
+- [Reference: Answer Relevancy | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/answer-relevancy): Documentation for the Answer Relevancy Scorer in Mastra, which evaluates how well LLM outputs address the input query.
+- [Reference: Bias | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/bias): Documentation for the Bias Scorer in Mastra, which evaluates LLM outputs for various forms of bias, including gender, political, racial/ethnic, or geographical bias.
+- [Reference: Completeness | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/completeness): Documentation for the Completeness Scorer in Mastra, which evaluates how thoroughly LLM outputs cover key elements present in the input.
+- [Reference: Content Similarity | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/content-similarity): Documentation for the Content Similarity Scorer in Mastra, which measures textual similarity between strings and provides a matching score.
+- [Reference: Context Precision Scorer | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/context-precision): Documentation for the Context Precision Scorer in Mastra. Evaluates the relevance and precision of retrieved context for generating expected outputs using Mean Average Precision.
+- [Reference: Context Relevance Scorer | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/context-relevance): Documentation for the Context Relevance Scorer in Mastra. Evaluates the relevance and utility of provided context for generating agent responses using weighted relevance scoring.
+- [Reference: Create Custom Scorer | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/create-scorer): Documentation for creating custom scorers in Mastra, allowing users to define their own evaluation logic using either JavaScript functions or LLM-based prompts.
+- [Reference: Faithfulness | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/faithfulness): Documentation for the Faithfulness Scorer in Mastra, which evaluates the factual accuracy of LLM outputs compared to the provided context.
+- [Reference: Hallucination | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/hallucination): Documentation for the Hallucination Scorer in Mastra, which evaluates the factual correctness of LLM outputs by identifying contradictions with provided context.
+- [Reference: Keyword Coverage | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/keyword-coverage): Documentation for the Keyword Coverage Scorer in Mastra, which evaluates how well LLM outputs cover important keywords from the input.
+- [Reference: MastraScorer | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/mastra-scorer): Documentation for the MastraScorer base class in Mastra, which provides the foundation for all custom and built-in scorers.
+- [Reference: Noise Sensitivity Scorer (CI/Testing) | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/noise-sensitivity): Documentation for the Noise Sensitivity Scorer in Mastra. A CI/testing scorer that evaluates agent robustness by comparing responses between clean and noisy inputs in controlled test environments.
+- [Reference: Prompt Alignment Scorer | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/prompt-alignment): Documentation for the Prompt Alignment Scorer in Mastra. Evaluates how well agent responses align with user prompt intent, requirements, completeness, and appropriateness using multi-dimensional analysis.
+- [Reference: Textual Difference | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/textual-difference): Documentation for the Textual Difference Scorer in Mastra, which measures textual differences between strings using sequence matching.
+- [Reference: Tone Consistency | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/tone-consistency): Documentation for the Tone Consistency Scorer in Mastra, which evaluates emotional tone and sentiment consistency in text.
+- [Reference: Tool Call Accuracy | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/tool-call-accuracy): Documentation for the Tool Call Accuracy Scorers in Mastra, which evaluate whether LLM outputs call the correct tools from available options.
+- [Reference: Toxicity | Scorers | Mastra Docs](https://mastra.ai/en/reference/scorers/toxicity): Documentation for the Toxicity Scorer in Mastra, which evaluates LLM outputs for racist, biased, or toxic elements.
+- [Cloudflare D1 Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/cloudflare-d1): Documentation for the Cloudflare D1 SQL storage implementation in Mastra.
+- [Cloudflare Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/cloudflare): Documentation for the Cloudflare KV storage implementation in Mastra.
+- [DynamoDB Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/dynamodb): Documentation for the DynamoDB storage implementation in Mastra, using a single-table design with ElectroDB.
+- [LanceDB Storage](https://mastra.ai/en/reference/storage/lance): Documentation for the LanceDB storage implementation in Mastra.
+- [LibSQL Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/libsql): Documentation for the LibSQL storage implementation in Mastra.
+- [MSSQL Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/mssql): Documentation for the MSSQL storage implementation in Mastra.
+- [PostgreSQL Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/postgresql): Documentation for the PostgreSQL storage implementation in Mastra.
+- [Upstash Storage | Storage System | Mastra Core](https://mastra.ai/en/reference/storage/upstash): Documentation for the Upstash storage implementation in Mastra.
+- [Templates Reference](https://mastra.ai/en/reference/templates): Complete guide to creating, using, and contributing Mastra templates
+- [Reference: MastraMCPClient | Tool Discovery | Mastra Docs](https://mastra.ai/en/reference/tools/client): API Reference for MastraMCPClient - A client implementation for the Model Context Protocol.
+- [Reference: createTool() | Tools | Mastra Docs](https://mastra.ai/en/reference/tools/create-tool): Documentation for the `createTool()` function in Mastra, used to define custom tools for agents.
+- [Reference: createDocumentChunkerTool() | Tools | Mastra Docs](https://mastra.ai/en/reference/tools/document-chunker-tool): Documentation for the Document Chunker Tool in Mastra, which splits documents into smaller chunks for efficient processing and retrieval.
+- [Reference: createGraphRAGTool() | RAG | Mastra Tools Docs](https://mastra.ai/en/reference/tools/graph-rag-tool): Documentation for the Graph RAG Tool in Mastra, which enhances RAG by building a graph of semantic relationships between documents.
+- [Reference: MCPClient | Tool Management | Mastra Docs](https://mastra.ai/en/reference/tools/mcp-client): API Reference for MCPClient - A class for managing multiple Model Context Protocol servers and their tools.
+- [Reference: MCPServer | Exposing Mastra Tools via MCP | Mastra Docs](https://mastra.ai/en/reference/tools/mcp-server): API Reference for MCPServer - A class for exposing Mastra tools and capabilities as a Model Context Protocol server.
+- [Reference: createVectorQueryTool() | RAG | Mastra Tools Docs](https://mastra.ai/en/reference/tools/vector-query-tool): Documentation for the Vector Query Tool in Mastra, which facilitates semantic search over vector stores with filtering and reranking capabilities.
+- [Reference: Azure Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/azure): Documentation for the AzureVoice class, providing text-to-speech and speech-to-text capabilities using Azure Cognitive Services.
+- [Reference: Cloudflare Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/cloudflare): Documentation for the CloudflareVoice class, providing text-to-speech capabilities using Cloudflare Workers AI.
+- [Reference: CompositeVoice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/composite-voice): Documentation for the CompositeVoice class, which enables combining multiple voice providers for flexible text-to-speech and speech-to-text operations.
+- [Reference: Deepgram Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/deepgram): Documentation for the Deepgram voice implementation, providing text-to-speech and speech-to-text capabilities with multiple voice models and languages.
+- [Reference: ElevenLabs Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/elevenlabs): Documentation for the ElevenLabs voice implementation, offering high-quality text-to-speech capabilities with multiple voice models and natural-sounding synthesis.
+- [Reference: Google Gemini Live Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/google-gemini-live): Documentation for the GeminiLiveVoice class, providing real-time multimodal voice interactions using Googles Gemini Live API with support for both Gemini API and Vertex AI.
+- [Reference: Google Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/google): Documentation for the Google Voice implementation, providing text-to-speech and speech-to-text capabilities.
+- [Reference: MastraVoice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/mastra-voice): Documentation for the MastraVoice abstract base class, which defines the core interface for all voice services in Mastra, including speech-to-speech capabilities.
+- [Reference: Murf Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/murf): Documentation for the Murf voice implementation, providing text-to-speech capabilities.
+- [Reference: OpenAI Realtime Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/openai-realtime): Documentation for the OpenAIRealtimeVoice class, providing real-time text-to-speech and speech-to-text capabilities via WebSockets.
+- [Reference: OpenAI Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/openai): Documentation for the OpenAIVoice class, providing text-to-speech and speech-to-text capabilities.
+- [Reference: PlayAI Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/playai): Documentation for the PlayAI voice implementation, providing text-to-speech capabilities.
+- [Reference: Sarvam Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/sarvam): Documentation for the Sarvam class, providing text-to-speech and speech-to-text capabilities.
+- [Reference: Speechify Voice | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/speechify): Documentation for the Speechify voice implementation, providing text-to-speech capabilities.
+- [Reference: voice.addInstructions() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.addInstructions): Documentation for the addInstructions() method available in voice providers, which adds instructions to guide the voice models behavior.
+- [Reference: voice.addTools() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.addTools): Documentation for the addTools() method available in voice providers, which equips voice models with function calling capabilities.
+- [Reference: voice.answer() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.answer): Documentation for the answer() method available in real-time voice providers, which triggers the voice provider to generate a response.
+- [Reference: voice.close() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.close): Documentation for the close() method available in voice providers, which disconnects from real-time voice services.
+- [Reference: voice.connect() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.connect): Documentation for the connect() method available in real-time voice providers, which establishes a connection for speech-to-speech communication.
+- [Reference: Voice Events | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.events): Documentation for events emitted by voice providers, particularly for real-time voice interactions.
+- [Reference: voice.getSpeakers() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.getSpeakers): Documentation for the getSpeakers() method available in voice providers, which retrieves available voice options.
+- [Reference: voice.listen() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.listen): Documentation for the listen() method available in all Mastra voice providers, which converts speech to text.
+- [Reference: voice.off() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.off): Documentation for the off() method available in voice providers, which removes event listeners for voice events.
+- [Reference: voice.on() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.on): Documentation for the on() method available in voice providers, which registers event listeners for voice events.
+- [Reference: voice.send() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.send): Documentation for the send() method available in real-time voice providers, which streams audio data for continuous processing.
+- [Reference: voice.speak() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.speak): Documentation for the speak() method available in all Mastra voice providers, which converts text to speech.
+- [Reference: voice.updateConfig() | Voice Providers | Mastra Docs](https://mastra.ai/en/reference/voice/voice.updateConfig): Documentation for the updateConfig() method available in voice providers, which updates the configuration of a voice provider at runtime.
+- [Reference: Run.cancel() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/cancel): Documentation for the `Run.cancel()` method in workflows, which cancels a workflow run.
+- [Reference: Run.resume() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/resume): Documentation for the `Run.resume()` method in workflows, which resumes a suspended workflow run with new data.
+- [Reference: Run.start() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/start): Documentation for the `Run.start()` method in workflows, which starts a workflow run with input data.
+- [Reference: Run.stream() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/stream): Documentation for the `Run.stream()` method in workflows, which allows you to monitor the execution of a workflow run as a stream.
+- [Reference: Run.streamVNext() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/streamVNext): Documentation for the `Run.streamVNext()` method in workflows, which enables real-time streaming of responses.
+- [Reference: Run.watch() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run-methods/watch): Documentation for the `Run.watch()` method in workflows, which allows you to monitor the execution of a workflow run.
+- [Reference: Run Class | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/run): Documentation for the Run class in Mastra, which represents a workflow execution instance.
+- [Reference: Step Class | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/step): Documentation for the Step class in Mastra, which defines individual units of work within a workflow.
+- [Reference: Workflow.branch() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/branch): Documentation for the `Workflow.branch()` method in workflows, which creates conditional branches between steps.
+- [Reference: Workflow.commit() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/commit): Documentation for the `Workflow.commit()` method in workflows, which finalizes the workflow and returns the final result.
+- [Reference: Workflow.createRunAsync() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/create-run): Documentation for the `Workflow.createRunAsync()` method in workflows, which creates a new workflow run instance.
+- [Reference: Workflow.dountil() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/dountil): Documentation for the `Workflow.dountil()` method in workflows, which creates a loop that executes a step until a condition is met.
+- [Reference: Workflow.dowhile() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/dowhile): Documentation for the `Workflow.dowhile()` method in workflows, which creates a loop that executes a step while a condition is met.
+- [Reference: Workflow.foreach() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/foreach): Documentation for the `Workflow.foreach()` method in workflows, which creates a loop that executes a step for each item in an array.
+- [Reference: Workflow.map() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/map): Documentation for the `Workflow.map()` method in workflows, which maps output data from a previous step to the input of a subsequent step.
+- [Reference: Workflow.parallel() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/parallel): Documentation for the `Workflow.parallel()` method in workflows, which executes multiple steps in parallel.
+- [Reference: Workflow.sendEvent() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/sendEvent): Documentation for the `Workflow.sendEvent()` method in workflows, which resumes execution when an event is sent.
+- [Reference: Workflow.sleep() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/sleep): Documentation for the `Workflow.sleep()` method in workflows, which pauses execution for a specified number of milliseconds.
+- [Reference: Workflow.sleepUntil() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/sleepUntil): Documentation for the `Workflow.sleepUntil()` method in workflows, which pauses execution until a specified date.
+- [Reference: Workflow.then() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/then): Documentation for the `Workflow.then()` method in workflows, which creates sequential dependencies between steps.
+- [Reference: Workflow.waitForEvent() | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow-methods/waitForEvent): Documentation for the `Workflow.waitForEvent()` method in workflows, which pauses execution until an event is received.
+- [Reference: Workflow Class | Workflows | Mastra Docs](https://mastra.ai/en/reference/workflows/workflow): Documentation for the `Workflow` class in Mastra, which enables you to create state machines for complex sequences of operations with conditional branching and data validation.
+
+## EN - showcase
+- [Showcase](https://mastra.ai/en/showcase): Check out these applications built with Mastra
+
+## JA - docs
+- [エージェントツール選択 | エージェントドキュメント | Mastra](https://mastra.ai/ja/docs/agents/adding-tools): ツールは、エージェントやワークフローによって実行できる型付き関数で、組み込みの統合アクセスとパラメータ検証機能を備えています。各ツールには、入力を定義するスキーマ、ロジックを実装する実行関数、および設定された統合へのアクセスがあります。
+- [adding-voice](https://mastra.ai/ja/docs/agents/adding-voice)
+- [エージェントメモリーの使用 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/docs/agents/agent-memory): Mastraのエージェントが会話履歴や文脈情報を保存するためにメモリーをどのように使用するかに関するドキュメント。
+- [Dynamic Agents](https://mastra.ai/ja/docs/agents/dynamic-agents): 実行時コンテキストを用いて、エージェントの指示、モデル、ツール、メモリを動的に設定します。
+- [Input Processors](https://mastra.ai/ja/docs/agents/input-processors): エージェントメッセージが言語モデルに到達する前にそれらを傍受し、変更するためのinput processorsの使用方法を学びます。
+- [MCPをMastraで使用する | エージェント | Mastraドキュメント](https://mastra.ai/ja/docs/agents/mcp-guide): MastraでMCPを使用して、AIエージェントにサードパーティのツールやリソースを統合します。
+- [出力プロセッサー](https://mastra.ai/ja/docs/agents/output-processors): 出力プロセッサーを使って、ユーザーに返す前に AI の応答をフックして変更する方法を学びましょう。
+- [エージェント概要 | エージェント ドキュメント | Mastra](https://mastra.ai/ja/docs/agents/overview): Mastra におけるエージェントの概要。エージェントの機能や、ツール、ワークフロー、外部システムとの連携方法について解説します。
+- [ランタイムコンテキスト | Agents | Mastra Docs](https://mastra.ai/ja/docs/agents/runtime-context): Mastra の RuntimeContext を使用して、エージェントに対して動的かつリクエスト固有の設定を提供する方法を学びます。
+- [ランタイムコンテキスト | エージェント | Mastra ドキュメント](https://mastra.ai/ja/docs/agents/runtime-variables): Mastraの依存性注入システムを使用して、エージェントとツールにランタイム設定を提供する方法を学びます。
+- [エージェントでのツールの使用 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/docs/agents/using-tools-and-mcp): ツールの作成方法、Mastraエージェントへの追加方法、およびMCPサーバーからのツールの統合方法について学びます。
+- [Auth概要](https://mastra.ai/ja/docs/auth): Mastraアプリケーションの異なるAuth オプションについて学ぶ
+- [MastraJwtAuth クラス](https://mastra.ai/ja/docs/auth/jwt): JSON Web Token を用いて Mastra アプリケーションを認証する MastraJwtAuth クラスのドキュメント。
+- [MastraAuthSupabase クラス](https://mastra.ai/ja/docs/auth/supabase): Supabase Auth を用いて Mastra アプリケーションを認証する MastraAuthSupabase クラスのドキュメント。
+- [テンプレートの貢献](https://mastra.ai/ja/docs/community/contributing-templates): Mastraエコシステムに独自のテンプレートを貢献する方法
+- [Discord コミュニティとボット | ドキュメント | Mastra](https://mastra.ai/ja/docs/community/discord): Mastra Discord コミュニティと MCP ボットに関する情報。
+- [ライセンス](https://mastra.ai/ja/docs/community/licensing): Mastraライセンス
+- [MastraClient](https://mastra.ai/ja/docs/deployment/client): Mastra Client SDKの設定と使用方法について学ぶ
+- [Amazon EC2](https://mastra.ai/ja/docs/deployment/cloud-providers/amazon-ec2): MastraアプリケーションをAmazon EC2にデプロイします。
+- [AWS Lambda](https://mastra.ai/ja/docs/deployment/cloud-providers/aws-lambda): DockerコンテナとAWS Lambda Web Adapterを使用してMastraアプリケーションをAWS Lambdaにデプロイします。
+- [Azure App Services](https://mastra.ai/ja/docs/deployment/cloud-providers/azure-app-services): MastraアプリケーションをAzure App Servicesにデプロイします。
+- [Digital Ocean](https://mastra.ai/ja/docs/deployment/cloud-providers/digital-ocean): Mastra アプリケーションを DigitalOcean にデプロイする。
+- [クラウドプロバイダー](https://mastra.ai/ja/docs/deployment/cloud-providers): 人気のクラウドプロバイダーにMastraアプリケーションをデプロイします。
+- [カスタムAPIルート](https://mastra.ai/ja/docs/deployment/custom-api-routes): Mastraサーバーから追加のHTTPエンドポイントを公開します。
+- [サーバーレスデプロイメント](https://mastra.ai/ja/docs/deployment/deployment): プラットフォーム固有のデプロイヤーまたは標準HTTPサーバーを使用してMastraアプリケーションを構築およびデプロイする
+- [ミドルウェア](https://mastra.ai/ja/docs/deployment/middleware): リクエストをインターセプトするためのカスタムミドルウェア関数を適用します。
+- [モノレポのデプロイ](https://mastra.ai/ja/docs/deployment/monorepo): モノレポ環境での Mastra アプリケーションのデプロイ方法を学ぶ
+- [デプロイの概要](https://mastra.ai/ja/docs/deployment/overview): Mastra アプリケーションのさまざまなデプロイ方法について学ぶ
+- [Mastra サーバーをデプロイする](https://mastra.ai/ja/docs/deployment/server-deployment): ビルド設定とデプロイ方法を含む、Mastra サーバーのデプロイ手順を学びましょう。
+- [Mastraサーバーの作成](https://mastra.ai/ja/docs/deployment/server): ミドルウェアやその他のオプションでMastraサーバーを設定およびカスタマイズする
+- [Cloudflare Deployer](https://mastra.ai/ja/docs/deployment/serverless-platforms/cloudflare-deployer): Mastra CloudflareDeployerを使用してMastraアプリケーションをCloudflareにデプロイする方法を学ぶ
+- [サーバーレスデプロイメント](https://mastra.ai/ja/docs/deployment/serverless-platforms): プラットフォーム固有のデプロイヤーまたは標準HTTPサーバーを使用してMastraアプリケーションをビルドおよびデプロイする
+- [Netlify Deployer](https://mastra.ai/ja/docs/deployment/serverless-platforms/netlify-deployer): Mastra NetlifyDeployerを使用してMastraアプリケーションをNetlifyにデプロイする方法を学ぶ
+- [Vercel Deployer](https://mastra.ai/ja/docs/deployment/serverless-platforms/vercel-deployer): Mastra VercelDeployerを使用してMastraアプリケーションをVercelにデプロイする方法を学ぶ
+- [WebフレームワークでのMastraのデプロイ](https://mastra.ai/ja/docs/deployment/web-framework): WebフレームワークとMastraを統合した際のデプロイ方法を学ぶ
+- [カスタムevalを作成する](https://mastra.ai/ja/docs/evals/custom-eval): Mastraでは独自のevalを作成することができます。その方法をご紹介します。
+- [概要](https://mastra.ai/ja/docs/evals/overview): Mastra evalsを使用してAIエージェントの品質を評価・測定する方法について理解する。
+- [CIでの実行](https://mastra.ai/ja/docs/evals/running-in-ci): CI/CDパイプラインでMastra evalsを実行し、エージェントの品質を継続的に監視する方法を学びます。
+- [テキスト評価](https://mastra.ai/ja/docs/evals/textual-evals): MastraがLLM-as-judge手法を使用してテキスト品質を評価する方法を理解します。
+- [ライセンス](https://mastra.ai/ja/docs/faq): Mastra ライセンス
+- [Vercel AI SDK と一緒に使う](https://mastra.ai/ja/docs/frameworks/agentic-uis/ai-sdk): Mastra が Vercel AI SDK ライブラリをどのように活用しているか、また Mastra と組み合わせてさらに活用する方法を学びましょう
+- [Assistant UIとの使用](https://mastra.ai/ja/docs/frameworks/agentic-uis/assistant-ui): Assistant UIをMastraと統合する方法を学ぶ
+- [CopilotKitとの使用](https://mastra.ai/ja/docs/frameworks/agentic-uis/copilotkit): MastraがCopilotKitのAGUIライブラリをどのように活用し、ユーザーエクスペリエンスの構築にどのように活用できるかを学ぶ
+- [OpenRouterとの使用](https://mastra.ai/ja/docs/frameworks/agentic-uis/openrouter): OpenRouterをMastraと統合する方法を学ぶ
+- [Vercel AI SDKとの併用](https://mastra.ai/ja/docs/frameworks/ai-sdk): MastraがVercel AI SDKライブラリをどのように活用しているか、そしてMastraでさらにどのように活用できるかを学ぶ
+- [CopilotKitとの使用](https://mastra.ai/ja/docs/frameworks/copilotkit): MastraがCopilotKitのAGUIライブラリをどのように活用しているか、そしてユーザーエクスペリエンスを構築するためにどのように活用できるかを学びましょう
+- [Mastra と NextJS のはじめ方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/next-js): Mastra を NextJS と統合するためのガイド。
+- [Mastra と Express のはじめ方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/servers/express): Mastra を Express のバックエンドに統合するための段階的なガイド。
+- [Mastra と Astro のはじめ方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/web-frameworks/astro): Mastra を Astro と統合するための手順ガイド。
+- [Mastra と Next.js の始め方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/web-frameworks/next-js): Mastra を Next.js に統合するための手順ガイド。
+- [Mastra と SvelteKit のはじめ方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/web-frameworks/sveltekit): Mastra を SvelteKit に統合するための段階的なガイド。
+- [Mastra と Vite/React の始め方 | Mastra ガイド](https://mastra.ai/ja/docs/frameworks/web-frameworks/vite-react): Mastra を Vite と React に統合するためのステップバイステップガイド。
+- [Mastra のインストール | はじめに | Mastra ドキュメント](https://mastra.ai/ja/docs/getting-started/installation): Mastra のインストール方法と、各種 LLM プロバイダーで実行するために必要な前提条件の設定手順を解説します。
+- [MCP ドキュメントサーバー | はじめに | Mastra ドキュメント](https://mastra.ai/ja/docs/getting-started/mcp-docs-server): IDE で Mastra MCP ドキュメントサーバーを使い、IDE をエージェント型の Mastra エキスパートに変える方法を学びましょう。
+- [model-capability](https://mastra.ai/ja/docs/getting-started/model-capability)
+- [モデルプロバイダー | はじめに | Mastra Docs](https://mastra.ai/ja/docs/getting-started/model-providers): Mastraで異なるモデルプロバイダーを設定し使用する方法を学びます。
+- [ローカルプロジェクト構造 | はじめに | Mastra ドキュメント](https://mastra.ai/ja/docs/getting-started/project-structure): Mastraでのフォルダとファイルの整理に関するガイド。ベストプラクティスと推奨される構造を含みます。
+- [テンプレート | はじめに | Mastra Docs](https://mastra.ai/ja/docs/getting-started/templates): 一般的なMastraのユースケースやパターンを示す、あらかじめ構築されたプロジェクト構成
+- [はじめに | Mastra ドキュメント](https://mastra.ai/ja/docs): Mastraは、TypeScriptエージェントフレームワークです。AIアプリケーションや機能を素早く構築するのに役立ちます。ワークフロー、エージェント、RAG、統合、同期、評価など、必要なプリミティブセットを提供します。
+- [Mastra 統合の使用 | Mastra ローカル開発ドキュメント](https://mastra.ai/ja/docs/integrations): サードパーティサービスのために自動生成された型安全なAPIクライアントであるMastra統合のドキュメント。
+- [既存のプロジェクトへの追加 | Mastraローカル開発ドキュメント](https://mastra.ai/ja/docs/local-dev/add-to-existing-project): 既存のNode.jsアプリケーションにMastraを追加する
+- [新しいプロジェクトの作成 | Mastra ローカル開発ドキュメント](https://mastra.ai/ja/docs/local-dev/creating-a-new-project): CLI を使って新しい Mastra プロジェクトを作成したり、既存の Node.js アプリケーションに Mastra を追加したりします
+- [`mastra dev`でエージェントを検査する | Mastra ローカル開発ドキュメント](https://mastra.ai/ja/docs/local-dev/mastra-dev): MastraアプリケーションのためのMastraローカル開発環境のドキュメント。
+- [Mastra Cloudダッシュボードの理解](https://mastra.ai/ja/docs/mastra-cloud/dashboard): Mastra Cloudで利用可能な各機能の詳細
+- [Mastra Cloudへのデプロイ](https://mastra.ai/ja/docs/mastra-cloud/deploying): Mastraアプリケーション向けのGitHubベースのデプロイプロセス
+- [Mastra Cloudでの可観測性](https://mastra.ai/ja/docs/mastra-cloud/observability): Mastra Cloudデプロイメントのモニタリングとデバッグツール
+- [Mastra Cloud](https://mastra.ai/ja/docs/mastra-cloud/overview): Mastraアプリケーションのデプロイメントと監視サービス
+- [プロジェクトのセットアップ](https://mastra.ai/ja/docs/mastra-cloud/setting-up): Mastra Cloudプロジェクトの設定手順
+- [memory-processors](https://mastra.ai/ja/docs/memory/memory-processors)
+- [overview](https://mastra.ai/ja/docs/memory/overview)
+- [semantic-recall](https://mastra.ai/ja/docs/memory/semantic-recall)
+- [working-memory](https://mastra.ai/ja/docs/memory/working-memory)
+- [AgentNetwork の loop メソッドで複雑なタスクを実行する](https://mastra.ai/ja/docs/networks-vnext/complex-task-execution): このページでは、Mastra vNext で AgentNetwork の loop メソッドを用い、メモリに基づくオーケストレーションや複数ステップの実行を含む、複数のエージェントとワークフローを要する複雑なタスクを扱う方法を紹介します。
+- [複雑なLLM操作の処理 | Networks | Mastra](https://mastra.ai/ja/docs/networks-vnext/overview): MastraのNetworksは、単一のAPIを使用して、個別または複数のMastraプリミティブを非決定論的な方法で実行するのに役立ちます。
+- [AgentNetwork の generate メソッドで実現する単一タスク実行](https://mastra.ai/ja/docs/networks-vnext/single-task-execution): Mastra vNext で AgentNetwork の generate メソッドを使い、非構造化入力を構造化タスクへ変換して、最適なエージェントまたはワークフローにルーティングする方法を学びます。
+- [AIトレーシング | Mastra Observability ドキュメント](https://mastra.ai/ja/docs/observability/ai-tracing): Mastra アプリケーションの AI トレーシングを設定する
+- [ログ記録 | Mastra 可観測性ドキュメント](https://mastra.ai/ja/docs/observability/logging): Mastraでログ記録を使用して実行を監視し、アプリケーションの動作をキャプチャし、AIアプリケーションの精度を向上させる方法を学びます。
+- [Next.js トレーシング | Mastra Observability ドキュメント](https://mastra.ai/ja/docs/observability/nextjs-tracing): Next.js アプリケーションのための OpenTelemetry トレーシングの設定
+- [トレーシング | Mastra 可観測性ドキュメント](https://mastra.ai/ja/docs/observability/tracing): Mastraアプリケーション用のOpenTelemetryトレーシングをセットアップする
+- [文書のチャンキングと埋め込み | RAG | Mastra ドキュメント](https://mastra.ai/ja/docs/rag/chunking-and-embedding): Mastraでの効率的な処理と検索のための文書のチャンキングと埋め込みに関するガイド。
+- [MastraにおけるRAG（検索拡張生成） | Mastraドキュメント](https://mastra.ai/ja/docs/rag/overview): Mastraにおける検索拡張生成（RAG）の概要。関連するコンテキストでLLMの出力を強化する機能の詳細。
+- [リトリーバル、セマンティック検索、再ランキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/docs/rag/retrieval): Mastra の RAG システムにおけるリトリーバル（セマンティック検索、フィルタリング、再ランキング）に関するガイド。
+- [ベクトルデータベースへの埋め込みの保存 | Mastra ドキュメント](https://mastra.ai/ja/docs/rag/vector-databases): Mastra におけるベクトル格納オプションのガイド。類似検索のための内蔵型および専用のベクトルデータベースについて解説します。
+- [custom-scorers](https://mastra.ai/ja/docs/scorers/custom-scorers)
+- [内蔵スコアラー](https://mastra.ai/ja/docs/scorers/off-the-shelf-scorers): 品質・安全性・パフォーマンスの観点からAIの出力を評価するための、Mastraのすぐに使えるスコアラーの概要。
+- [概要](https://mastra.ai/ja/docs/scorers/overview): MastraのスコアラーのAI出力評価とパフォーマンス測定機能について詳述した概要。
+- [カスタムAPIルート](https://mastra.ai/ja/docs/server-db/custom-api-routes): Mastraサーバーから追加のHTTPエンドポイントを公開します。
+- [mastra dev でエージェントとワークフローを確認する | Mastra ローカル開発ドキュメント](https://mastra.ai/ja/docs/server-db/local-dev-playground): Mastra アプリケーション向けのローカル開発環境に関するドキュメント。
+- [MastraClient](https://mastra.ai/ja/docs/server-db/mastra-client): Mastra Client SDKの設定と使用方法を学ぶ
+- [Middleware](https://mastra.ai/ja/docs/server-db/middleware): リクエストをインターセプトするためのカスタムミドルウェア関数を適用します。
+- [Mastra本番サーバーを作成する](https://mastra.ai/ja/docs/server-db/production-server): API、CORS、その他のカスタム設定を使用して本番環境対応のMastraサーバーを設定およびデプロイする方法を学ぶ
+- [リファレンス：スナップショット | ワークフロー状態の永続化 | Mastra ドキュメント](https://mastra.ai/ja/docs/server-db/snapshots): Mastra におけるスナップショットの技術リファレンス — 一時停止と再開を可能にする、ワークフロー状態のシリアライズ表現
+- [Mastra のストレージ | Mastra ドキュメント](https://mastra.ai/ja/docs/server-db/storage): Mastra のストレージシステムとデータ永続化機能の概要
+- [Mastraのストレージ | Mastraドキュメント](https://mastra.ai/ja/docs/storage/overview): Mastraのストレージシステムとデータ永続化機能の概要。
+- [Streaming Events | Streaming | Mastra](https://mastra.ai/ja/docs/streaming/events): Mastra における各種ストリーミングイベント（テキストの差分、ツール呼び出し、ステップイベントなど）と、それらをアプリケーションでの扱い方について学びます。
+- [ストリーミング概要 | Streaming | Mastra](https://mastra.ai/ja/docs/streaming/overview): Mastra のストリーミングは、エージェントおよびワークフローからのリアルタイムの段階的な応答を可能にし、AI 生成コンテンツの生成と同時に即時のフィードバックを提供します。
+- [Tool Streaming | Streaming | Mastra](https://mastra.ai/ja/docs/streaming/tool-streaming): Mastraにおけるツールストリーミングの使い方を学び、ストリーミング中のツール呼び出し・ツール結果・ツール実行イベントの扱い方を理解します。
+- [ワークフローストリーミング | ストリーミング | Mastra](https://mastra.ai/ja/docs/streaming/workflow-streaming): Mastra におけるワークフローストリーミングの使い方、ワークフロー実行イベントの処理、ステップのストリーミング、エージェントやツールとのワークフロー統合について学びます。
+- [高度なツール使用法 | ツール & MCP | Mastra ドキュメント](https://mastra.ai/ja/docs/tools-mcp/advanced-usage): このページでは、中断シグナルやVercel AI SDKツール形式との互換性など、Mastraツールの高度な機能について説明します。
+- [動的ツールコンテキスト | ツール & MCP | Mastra ドキュメント](https://mastra.ai/ja/docs/tools-mcp/dynamic-context): Mastraの RuntimeContextを使用して、動的なリクエスト固有の設定をツールに提供する方法を学びます。
+- [MCP 概要 | Tools & MCP | Mastra Docs](https://mastra.ai/ja/docs/tools-mcp/mcp-overview): Model Context Protocol（MCP）の概要、MCPClient を通じたサードパーティ製ツールの利用、レジストリへの接続、そして MCPServer を用いた自作ツールの共有方法について解説します。
+- [ツール概要 | Tools & MCP | Mastra ドキュメント](https://mastra.ai/ja/docs/tools-mcp/overview): Mastra におけるツールの概要、エージェントへの追加方法、効果的なツール設計のベストプラクティスを理解する。
+- [ランタイムコンテキスト | Tools & MCP | Mastra ドキュメント](https://mastra.ai/ja/docs/tools-mcp/runtime-context): Mastra の RuntimeContext を用いて、ツールに動的かつリクエストごとの設定を提供する方法を学びます。
+- [Mastra の音声機能 | Mastra Docs](https://mastra.ai/ja/docs/voice/overview): Mastra の音声機能の概要。テキスト読み上げ、音声認識、リアルタイムの音声対話を含みます。
+- [Mastraにおける音声対音声機能 | Mastra ドキュメント](https://mastra.ai/ja/docs/voice/speech-to-speech): Mastraの音声対音声機能の概要。リアルタイムの対話やイベント駆動型アーキテクチャについて説明します。
+- [Mastra における音声認識（STT） | Mastra ドキュメント](https://mastra.ai/ja/docs/voice/speech-to-text): Mastra の音声認識機能の概要、設定方法、使用方法、音声プロバイダーとの連携について説明します。
+- [Mastra におけるテキスト読み上げ（TTS） | Mastra ドキュメント](https://mastra.ai/ja/docs/voice/text-to-speech): Mastra のテキスト読み上げ機能の概要、設定方法、使用方法、音声プロバイダーとの連携について説明します。
+- [分岐、マージ、条件 | Workflows | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/control-flow): Mastra のワークフローにおける制御フローでは、分岐、マージ、条件を管理し、要件に合ったロジックのワークフローを構築できます。
+- [ダイナミックワークフロー | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/dynamic-workflows): ワークフローステップ内でダイナミックなワークフローを作成し、実行時の条件に基づいて柔軟にワークフローを構築する方法を学びます。
+- [ワークフローのエラー処理 | Workflows | Mastra Docs](https://mastra.ai/ja/docs/workflows/error-handling): Mastra のワークフローで、ステップの再試行・条件分岐・監視を用いたエラー処理の方法を学びます。
+- [Inngest Workflows | Workflows | Mastra Docs](https://mastra.ai/ja/docs/workflows/inngest-workflow): Inngest workflowを使用してMastra workflowをInngestで実行できます
+- [ワークフローを使った入力データマッピング | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/input-data-mapping): Mastraワークフローでより動的なデータフローを作成するためのワークフロー入力マッピングの使用方法を学びましょう。
+- [nested-workflows](https://mastra.ai/ja/docs/workflows/nested-workflows)
+- [複雑な LLM の操作を扱う | Workflows | Mastra](https://mastra.ai/ja/docs/workflows/overview): Mastra の Workflows は、分岐や並列実行、一時停止などの機能を備え、複雑な一連の処理を柔軟にオーケストレーションできます。
+- [実行の一時停止 | Mastra Docs](https://mastra.ai/ja/docs/workflows/pausing-execution): Mastraワークフローでの実行の一時停止により、.sleep()、.sleepUntil()、.waitForEvent()を使用して外部入力やリソースを待機している間、実行を一時停止できます。
+- [ランタイム変数 - 依存性注入 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/runtime-variables): Mastraの依存性注入システムを使用してワークフローとステップにランタイム設定を提供する方法を学びましょう。
+- [ステップの作成とワークフローへの追加 | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/steps): Mastraワークフローのステップは、入力、出力、実行ロジックを定義することで、操作を管理するための構造化された方法を提供します。
+- [ワークフローの一時停止と再開 | ヒューマン・イン・ザ・ループ | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/suspend-and-resume): Mastra のワークフローでは、一時停止と再開により、外部からの入力やリソースを待つ間に実行を一時停止できます。
+- [エージェントとツールでワークフローを使う | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/using-with-agents-and-tools): Mastra のワークフローにおけるステップは、入力、出力、実行ロジックを定義することで、運用を体系的に管理する方法を提供します。
+- [ワークフロー変数によるデータマッピング | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows/variables): Mastraワークフローでステップ間のデータをマッピングし、動的なデータフローを作成するためのワークフロー変数の使用方法を学びましょう。
+- [分岐、マージ、条件 | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/control-flow): Mastraレガシーワークフローの制御フローでは、分岐、マージ、条件を管理して、ロジック要件を満たすレガシーワークフローを構築できます。
+- [動的ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/dynamic-workflows): レガシーワークフローステップ内で動的ワークフローを作成する方法を学び、実行時の条件に基づいて柔軟なワークフロー作成を可能にします。
+- [ワークフローにおけるエラー処理（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/error-handling): ステップの再試行、条件分岐、モニタリングを使用して、Mastraレガシーワークフローでエラーを処理する方法を学びましょう。
+- [nested-workflows](https://mastra.ai/ja/docs/workflows-legacy/nested-workflows)
+- [複雑なLLM操作の処理 | ワークフロー（レガシー） | Mastra](https://mastra.ai/ja/docs/workflows-legacy/overview): Mastraのワークフローは、分岐、並列実行、リソースの一時停止などの機能を活用し、複雑な一連の操作をオーケストレーションするのに役立ちます。
+- [ランタイム変数 - 依存性注入 | Workflows（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/runtime-variables): Mastra の依存性注入システムを使用して、ワークフローやステップにランタイム設定を提供する方法を学びます。
+- [ステップの作成とワークフローへの追加（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/steps): Mastra のワークフローにおけるステップは、入力、出力、実行ロジックを定義することで、業務を体系的に管理する方法を提供します。
+- [ワークフローの一時停止と再開（レガシー） | Human-in-the-Loop | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/suspend-and-resume): Mastra のワークフローにおける一時停止と再開機能は、外部からの入力やリソースを待つ間に実行を一時停止することを可能にします。
+- [ワークフロー（レガシー）変数によるデータマッピング | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-legacy/variables): ワークフロー変数を使用してステップ間でデータをマッピングし、Mastra ワークフローで動的なデータフローを作成する方法を学びます。
+- [分岐、マージ、条件 | ワークフロー (vNext) | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-vnext/flow-control): Mastra (vNext) ワークフローのフロー制御により、分岐、マージ、条件を管理して、ロジック要件を満たすワークフローを構築できます。
+- [Inngest ワークフロー | ワークフロー (vNext) | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-vnext/inngest-workflow): Inngest ワークフローを使用すると、Inngest で Mastra vNext ワークフローを実行できます
+- [ワークフロー（vNext）での入力データマッピング | Mastra Docs](https://mastra.ai/ja/docs/workflows-vnext/input-data-mapping): Mastraワークフロー（vNext）でより動的なデータフローを作成するためのワークフロー入力マッピングの使用方法を学びましょう。
+- [複雑なLLM操作の取り扱い | ワークフロー（vNext） | Mastra](https://mastra.ai/ja/docs/workflows-vnext/overview): Mastraのワークフロー（vNext）は、分岐、並列実行、リソース停止などの機能を備えた複雑な操作シーケンスのオーケストレーションを支援します。
+- [ワークフローの一時停止と再開 (vNext) | ヒューマンインザループ | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-vnext/suspend-and-resume): Mastra vNextワークフローにおける一時停止と再開機能により、外部からの入力やリソースを待つ間、実行を一時停止することができます。
+- [エージェントとツールを使用したワークフロー | ワークフロー (vNext) | Mastra ドキュメント](https://mastra.ai/ja/docs/workflows-vnext/using-with-agents-and-tools): Mastraワークフロー（vNext）のステップは、入力、出力、実行ロジックを定義することで、操作を管理するための構造化された方法を提供します。
+
+## JA - examples
+- [例: 音声機能の追加 | Agents | Mastra](https://mastra.ai/ja/examples/agents/adding-voice-capabilities): Mastra のエージェントに音声機能を追加し、複数の音声プロバイダーを使って発話・聴取できるようにする例。
+- [例：エージェントワークフローの呼び出し | エージェント | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/agentic-workflows): Mastraでのエージェントワークフローの作成例。LLM駆動の計画と外部APIの統合を示しています。
+- [例: AI SDK v5 との統合 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/ai-sdk-v5-integration): メモリとツール連携を備えたストリーミングチャットインターフェースに向けて、Mastra のエージェントを AI SDK v5 と統合する例。
+- [例：鳥の分類 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/bird-checker): Unsplashからの画像が鳥を描写しているかどうかを判断するためにMastra AIエージェントを使用する例。
+- [エージェントの呼び出し | Agents | Mastra Docs](https://mastra.ai/ja/examples/agents/calling-agents): エージェントを呼び出す方法の例
+- [例: MCPServer のデプロイ | Agents | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/deploying-mcp-server): stdio トランスポートを使用して Mastra MCPServer をセットアップ、ビルド、デプロイし、NPM に公開する例です。
+- [動的コンテキストの例 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/dynamic-agents): Mastra でランタイムコンテキストを用いて動的なエージェントを作成・設定する方法を学びます。
+- [例: 階層的マルチエージェントシステム | エージェント | Mastra](https://mastra.ai/ja/examples/agents/hierarchical-multi-agent): Mastraを使用して、エージェントがツール機能を通じて相互作用する階層的マルチエージェントシステムを作成する例。
+- [例：画像分析エージェント | Agents | Mastra Docs](https://mastra.ai/ja/examples/agents/image-analysis): Unsplashの画像を分析して、物体の認識、種の特定、場所の説明を行うMastraのAIエージェントの使用例。
+- [例: マルチエージェントワークフロー | Agents | Mastra ドキュメント](https://mastra.ai/ja/examples/agents/multi-agent-workflow): Mastra におけるエージェント間で成果物を受け渡すエージェントワークフローの例。
+- [例: スーパーバイザーエージェント | エージェント | Mastra](https://mastra.ai/ja/examples/agents/supervisor-agent): Mastra を使ってスーパーバイザーエージェントを作成し、エージェント同士がツール関数を通じてやり取りする例。
+- [例: システムプロンプトを使ったエージェント | Agents | Mastra Docs](https://mastra.ai/ja/examples/agents/system-prompt): Mastraで、システムプロンプトにより性格と機能を定義したAIエージェントを作成する例。
+- [例：エージェントにツールを追加する | Agents | Mastra Docs](https://mastra.ai/ja/examples/agents/using-a-tool): Mastra で、天気情報を提供する専用ツールを用いる AI エージェントを作成する例。
+- [例: エージェントにワークフローを追加する | Agents | Mastra Docs](https://mastra.ai/ja/examples/agents/using-a-workflow): Mastraで、専用ワークフローを用いてサッカーの試合日程情報を提供するAIエージェントを作成する例。
+- [認証ミドルウェア](https://mastra.ai/ja/examples/deployment/auth-middleware)
+- [CORS ミドルウェア](https://mastra.ai/ja/examples/deployment/cors-middleware)
+- [カスタムAPIルート](https://mastra.ai/ja/examples/deployment/custom-api-route)
+- [Mastra サーバーのデプロイ](https://mastra.ai/ja/examples/deployment/deploying-mastra-server)
+- [デプロイメント例](https://mastra.ai/ja/examples/deployment)
+- [ロギングミドルウェア](https://mastra.ai/ja/examples/deployment/logging-middleware)
+- [例: Answer Relevancy | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/answer-relevancy): Answer Relevancy 指標を用いて、クエリに対する応答の妥当性（関連性）を評価する例。
+- [例: Bias | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/bias): さまざまなバイアスに対する応答を評価するためにBiasメトリックを使用する例。
+- [例: Completeness | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/completeness): 入力要素をどの程度網羅的にカバーできているかを評価するための Completeness メトリクスの使用例。
+- [例: コンテンツ類似度 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/content-similarity): コンテンツ間のテキスト類似性を評価するために Content Similarity 指標を用いる例。
+- [例: Context Position | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/context-position): 応答の順序を評価するために Context Position 指標を用いる例。
+- [例: コンテキスト精度 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/context-precision): コンテキスト精度（Context Precision）指標を用いて、コンテキスト情報の活用の正確さを評価する例。
+- [例: コンテキスト関連性 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/context-relevancy): クエリに対するコンテキスト情報の関連度を評価するために、Context Relevancy メトリクスを使用する例。
+- [例：Contextual Recall | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/contextual-recall): 応答がどの程度コンテキスト情報を取り入れているかを評価するために、Contextual Recall 指標を用いる例。
+- [例: カスタム評価 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/custom-eval): MastraでカスタムLLMベースの評価指標を作成する例。
+- [例: 実世界の国々 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/custom-llm-judge-eval): カスタムのLLMベースの評価指標を作成する例。
+- [例: 単語の包含 | Evals | Mastra ドキュメント](https://mastra.ai/ja/examples/evals/custom-native-javascript-eval): ネイティブの JavaScript でカスタム評価指標を作成する例。
+- [例: Faithfulness（忠実性） | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/faithfulness): コンテキストに対する応答の事実性（正確さ）を、Faithfulness 指標で評価する例。
+- [例: ハルシネーション | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/hallucination): 応答中の事実の矛盾を評価するためにハルシネーション指標を用いる例。
+- [例: キーワード網羅率 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/keyword-coverage): 入力テキストの重要なキーワードが応答でどの程度カバーされているかを評価するために、Keyword Coverage 指標を用いる例。
+- [例: プロンプト整合性 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/prompt-alignment): 応答の指示遵守を評価するために、プロンプト整合性の指標を用いる例。
+- [例: 要約 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/summarization): 要約メトリクスを用いて、LLM が生成した要約が内容を適切に捉えつつ、事実関係の正確さを維持しているかを評価する例。
+- [例: Textual Difference | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/textual-difference): テキスト列の差分や変更を解析し、文字列間の類似度を評価するために Textual Difference 指標を用いる例。
+- [例: トーン一貫性 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/tone-consistency): テキストの感情的なトーンの傾向と感情表現の一貫性を評価するために、Tone Consistency メトリクスを用いる例。
+- [例: Toxicity | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/toxicity): 有害なコンテンツや有毒な言語表現を評価するために、Toxicity 指標を使用する例。
+- [例: 単語の含有 | Evals | Mastra Docs](https://mastra.ai/ja/examples/evals/word-inclusion): 出力テキストに単語が含まれているかを評価するカスタムメトリクスの作成例。
+- [サンプル集：Workflows、Agents、RAG | Mastra ドキュメント](https://mastra.ai/ja/examples): Mastra を用いた AI 開発の実践例として、テキスト生成、RAG の実装、構造化出力、マルチモーダル対話を紹介します。OpenAI、Anthropic、Google Gemini を使って AI アプリケーションを構築する方法を学べます。
+- [例: メモリプロセッサ | Memory | Mastra Docs](https://mastra.ai/ja/examples/memory/memory-processors): メモリプロセッサを使ってトークンを制限し、ツール呼び出しをフィルタリングし、カスタムフィルタを作成する方法の例。
+- [例: LibSQL を使った Memory | Memory | Mastra Docs](https://mastra.ai/ja/examples/memory/memory-with-libsql): Mastra のメモリシステムを、LibSQL ストレージとベクターデータベースのバックエンドで使用する方法の例。
+- [例: Mem0 を使ったメモリ | Memory | Mastra Docs](https://mastra.ai/ja/examples/memory/memory-with-mem0): カスタムツールを用いて、Mastra のエージェントシステムで Mem0 をメモリバックエンドとして利用する例。
+- [例: PostgreSQL を使ったメモリ | メモリ | Mastra ドキュメント](https://mastra.ai/ja/examples/memory/memory-with-pg): PostgreSQL のストレージとベクター機能を使って Mastra のメモリシステムを利用する方法の例。
+- [例：Upstash を使ったメモリ | Memory | Mastra Docs](https://mastra.ai/ja/examples/memory/memory-with-upstash): Mastra のメモリシステムを、Upstash Redis のストレージとベクター機能と組み合わせて使用する方法の例です。
+- [ストリーミング作業メモリ（上級）](https://mastra.ai/ja/examples/memory/streaming-working-memory-advanced): 会話間でTodoリストを維持するための作業メモリの使用例
+- [ストリーミング作業メモリ](https://mastra.ai/ja/examples/memory/streaming-working-memory): エージェントで作業メモリを使用する例
+- [AI SDK useChat フック](https://mastra.ai/ja/examples/memory/use-chat): Mastra メモリを Vercel AI SDK useChat フックと統合する方法の例を示します。
+- [例: 基本的なワーキングメモリ | メモリ | Mastra ドキュメント](https://mastra.ai/ja/examples/memory/working-memory-basic): エージェントが会話のコンテキストを維持できるよう、基本的なワーキングメモリを有効にする方法を示す例。
+- [例: スキーマを用いた作業メモリ | メモリ | Mastra ドキュメント](https://mastra.ai/ja/examples/memory/working-memory-schema): Zod スキーマを使って作業メモリのデータを構造化・検証する方法を示す例。
+- [例: テンプレートを使ったワーキングメモリ | メモリー | Mastra Docs](https://mastra.ai/ja/examples/memory/working-memory-template): Markdownテンプレートでワーキングメモリのデータを構造化する方法を示す例。
+- [例：チャンクデリミタの調整 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/adjust-chunk-delimiters): Mastraでチャンクデリミタを調整して、コンテンツ構造により適合させる方法。
+- [例：チャンクサイズの調整 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/adjust-chunk-size): Mastraでチャンクサイズを調整して、コンテンツとメモリ要件により適合させます。
+- [例：HTMLのセマンティックチャンキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/chunk-html): MastraでドキュメントをセマンティックにチャンクするためにHTMLコンテンツをチャンクする。
+- [例：JSONのセマンティックチャンキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/chunk-json): MastraでセマンティックにドキュメントをチャンクするためのJSONデータのチャンキング。
+- [例：マークダウンのセマンティックチャンキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/chunk-markdown): 検索や取得目的でマークダウン文書をチャンク化するためのMastraの使用例。
+- [例：テキストの意味的チャンキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/chunking/chunk-text): 大きなテキスト文書を処理のために小さなチャンクに分割するためのMastraの使用例。
+- [例: チャンク配列の埋め込み | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/embedding/embed-chunk-array): 類似性検索のために、Mastra を使ってテキストチャンクの配列に対して埋め込みを生成する例です。
+- [例: テキストチャンクの埋め込み | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/embedding/embed-text-chunk): 類似性検索のために、Mastra を使って単一のテキストチャンクの埋め込みを生成する例です。
+- [例: Cohere を使ったテキスト埋め込み | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/embedding/embed-text-with-cohere): Mastra を使って Cohere の埋め込みモデルで埋め込みを生成する例。
+- [例: メタデータ抽出 | 検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/embedding/metadata-extraction): Mastra でドキュメントからメタデータを抽出し、強化されたドキュメント処理と検索に活用する例。
+- [例: ハイブリッドベクトル検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/query/hybrid-vector-search): PGVector でメタデータフィルターを使用し、Mastra のベクトル検索結果を強化する例。
+- [例: Top-K結果の取得 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/query/retrieve-results): Mastraを使用してベクトルデータベースにクエリを実行し、意味的に類似したチャンクを取得する例。
+- [例: ツールを使った再ランキング結果 | 検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/rerank/rerank-rag): OpenAI の埋め込みと PGVector を使って、Mastra で再ランキングを実装した RAG システムの例。
+- [例: 結果の再ランキング | 検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/rerank/rerank): OpenAI の埋め込みと PGVector を使ったベクトルストレージによる、Mastra でのセマンティック再ランキング実装例。
+- [例: Cohereによるリランキング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/rerank/reranking-with-cohere): Mastraを使用してCohereのリランキングサービスでドキュメント検索の関連性を向上させる例。
+- [例: ZeroEntropyを使ったリランキング | RAG | Mastra Docs](https://mastra.ai/ja/examples/rag/rerank/reranking-with-zeroentropy): ZeroEntropyのリランキングサービスを使用してドキュメント検索の関連性を向上させるMastraの使用例。
+- [例: 埋め込みのアップサート | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/upsert/upsert-embeddings): 類似性検索のために、Mastra を使ってさまざまなベクトルデータベースに埋め込みを保存する例。
+- [例: ベクタークエリツールの使用方法 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/basic-rag): OpenAI の埋め込みと PGVector を使って、Mastra で基本的な RAG システムを実装する例です。
+- [例: 情報密度の最適化 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/cleanup-rag): LLMベースの処理を用いて、Mastraで情報密度を最適化し、データの重複を排除するRAGシステムの実装例。
+- [例: Chain of Thought プロンプティング | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/cot-rag): OpenAI と PGVector を使用し、Mastra で chain-of-thought 推論を用いた RAG システムの実装例。
+- [例: ワークフローによる構造化推論 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/cot-workflow-rag): Mastra のワークフロー機能を使った RAG システムでの構造化推論の実装例。
+- [データベース固有の設定 | RAG | Mastra Examples](https://mastra.ai/ja/examples/rag/usage/database-specific-config): データベース固有の設定を使用してベクトル検索のパフォーマンスを最適化し、異なるベクトルストアの独自機能を活用する方法を学びます。
+- [例: エージェント主導のメタデータフィルタリング | 検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/filter-rag): RAG システムで Mastra エージェントを使用して、ドキュメント検索のためのメタデータフィルターを構築・適用する例。
+- [例: 完全なグラフRAGシステム | RAG | Mastra ドキュメント](https://mastra.ai/ja/examples/rag/usage/graph-rag): OpenAIの埋め込みとPGVectorによるベクトルストレージを用いた、MastraでのグラフRAGシステム実装例。
+- [例: Answer Relevancy | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/answer-relevancy): Answer Relevancyスコアラーを使用してクエリに対するレスポンスの関連性を評価する例。
+- [例: Bias | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/bias): Biasスコアラーを使用して、様々な形式のバイアスに対する応答を評価する例。
+- [例: Completeness | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/completeness): Completenessスコアラーを使用して、レスポンスがクエリのすべての側面をどの程度徹底的に扱っているかを評価する例。
+- [例: コンテンツ類似性 | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/content-similarity): Content Similarity scorerを使用してコンテンツ間のテキスト類似性を評価する例。
+- [例: Context Precision スコアラー | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/context-precision): Mean Average Precision を用いて、RAG システムで取得したコンテキストの関連性と順位付けを評価するための Context Precision スコアラーの使用例。
+- [例: コンテキスト関連度スコアラー | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/examples/scorers/context-relevance): コンテキスト関連度スコアラーを使用して、提供されたコンテキストがエージェントの応答生成にどれだけ関連し有用かを評価する例。
+- [例: カスタムジャッジ | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/examples/scorers/custom-scorer): プロンプトオブジェクトを使用してcreateScorerでカスタムスコアラーを作成する例。
+- [例: Faithfulness | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/faithfulness): Faithfulnessスコアラーを使用して、コンテキストと比較した応答の事実的正確性を評価する例。
+- [例: Hallucination | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/hallucination): Hallucinationスコアラーを使用して回答の事実的矛盾を評価する例。
+- [例: キーワードカバレッジ | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/keyword-coverage): Keyword Coverageスコアラーを使用して、レスポンスが入力テキストの重要なキーワードをどの程度カバーしているかを評価する例。
+- [例: ノイズ感受性スコアラー（CI/テスト） | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/examples/scorers/noise-sensitivity): 制御されたテスト環境で、ノイズ、注意散漫、誤情報に対するエージェントの堅牢性を評価するためのCI/テスト用の例。
+- [例：Prompt Alignment | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/prompt-alignment): Prompt Alignment スコアラーを使って、応答がユーザーのプロンプトの意図や要件にどの程度沿っているかを評価する例。
+- [例: Textual Difference | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/textual-difference): Textual Differenceスコアラーを使用してテキスト文字列間の類似性を評価する例。シーケンスの違いと変更を分析します。
+- [例: トーン一貫性 | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/tone-consistency): Tone Consistency scorerを使用してテキストの感情的なトーンパターンと感情の一貫性を評価する例。
+- [例: ツール呼び出し精度 | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/examples/scorers/tool-call-accuracy): 特定のタスクに対して LLM が適切なツールを選択できているかを評価するために、ツール呼び出し精度スコアラーを用いる例。
+- [例: Toxicity | Scorers | Mastra Docs](https://mastra.ai/ja/examples/scorers/toxicity): Toxicityスコアラーを使用して、有害なコンテンツや毒性のある言語について応答を評価する例。
+- [ツールの呼び出し | ツール | Mastra Docs](https://mastra.ai/ja/examples/tools/calling-tools): ツールエージェントの使用方法の例
+- [動的ツールの例 | ツール | Mastra ドキュメント](https://mastra.ai/ja/examples/tools/dynamic-tools): Mastraでランタイムコンテキストを使用して動的ツールを作成・設定する方法を学習します。
+- [例: ツールとしてのワークフロー | エージェント | Mastra ドキュメント](https://mastra.ai/ja/examples/tools/workflow-as-tools): ワークフローをツールとして使用する例。ツールのように呼び出し可能な再利用可能なワークフローコンポーネントの作成方法を紹介します。
+- [音声から音声へ](https://mastra.ai/ja/examples/voice/speech-to-speech): Mastra を使って音声から音声へのアプリケーションを作成する例。
+- [例: 音声からテキストへ | Voice | Mastra ドキュメント](https://mastra.ai/ja/examples/voice/speech-to-text): Mastra を使って音声からテキストへのアプリケーションを作成する例。
+- [例：Text to Speech | Voice | Mastra ドキュメント](https://mastra.ai/ja/examples/voice/text-to-speech): Mastra を使用してテキスト読み上げアプリを作成する例。
+- [発言の順番](https://mastra.ai/ja/examples/voice/turn-taking): Mastraを使用して、順番に発言するマルチエージェントのディベートを作成する例。
+- [例: ステップとしてエージェントを使用する | Workflows | Mastra Docs](https://mastra.ai/ja/examples/workflows/agent-as-step): ワークフローのステップとしてエージェントを組み込むために Mastra を使用する例。
+- [例: 配列を入力として扱う (.foreach()) | Workflows | Mastra Docs](https://mastra.ai/ja/examples/workflows/array-as-input): ワークフローで .foreach() を使って配列を処理する際の Mastra の使用例。
+- [例: 分岐パス | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/branching-paths): 中間結果に基づいて分岐パスを持つワークフローを作成するために Mastra を使用する例。
+- [例：ワークフローからエージェントを呼び出す | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/calling-agent): ワークフローのステップ内で AI エージェントを呼び出すために Mastra を使用する例。
+- [例: 条件分岐 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/conditional-branching):  `branch` ステートメントを使って、Mastra のワークフローで条件分岐を作成する例です。
+- [例：ワークフローの作成 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/creating-a-workflow): Mastraを使用して単一ステップの簡単なワークフローを定義し実行する例。
+- [例: 循環依存関係 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/cyclical-dependencies): Mastra を使用して循環依存関係や条件付きループを持つワークフローを作成する例。
+- [例: マルチターンのHuman-in-the-Loop | Workflows | Mastra Docs](https://mastra.ai/ja/examples/workflows/human-in-the-loop-multi-turn): suspend/resume と doUntil メソッドを使用して、Mastra でマルチターンの人間／エージェントの対話ポイントを含むワークフローを作成する例。
+- [例：Human in the Loop | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/human-in-the-loop): 人による介入ポイントを含むワークフローを Mastra で作成する例。
+- [Inngest Workflow | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/inngest-workflow): Mastra を使用して Inngest のワークフローを構築する例
+- [例: 並列実行 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/parallel-steps): ワークフロー内で複数の独立したタスクを並列実行するために Mastra を使う例。
+- [ワークフローを実行する | Workflows | Mastra Docs](https://mastra.ai/ja/examples/workflows/running-workflows): ワークフローの実行方法の例。
+- [例：順次実行 | Workflows | Mastra Docs](https://mastra.ai/ja/examples/workflows/sequential-steps): ワークフロー内で複数の独立したタスクを順番に実行するために Mastra を使用する例。
+- [例: 一時停止と再開 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/suspend-and-resume): 実行中にワークフローのステップを一時停止および再開するために Mastra を使用する例。
+- [例: ツールをステップとして使用する | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/tool-as-step): ワークフローでツールをステップとして統合する例（Mastra を使用）。
+- [例: ツールをステップとして使用する | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows/using-a-tool-as-a-step): Mastra を使ってカスタムツールをワークフローのステップとして統合する例。
+- [ワークフローバリアブルによるデータマッピング | Mastra 例](https://mastra.ai/ja/examples/workflows/workflow-variables): Mastra ワークフローでステップ間のデータをマッピングするためにワークフローバリアブルを使用する方法を学びましょう。
+- [例: 分岐パス | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/branching-paths): 中間結果に基づいて分岐パスを持つレガシーワークフローを作成するためのMastraの使用例。
+- [例: ワークフローからエージェントを呼び出す（レガシー） | Mastra Docs](https://mastra.ai/ja/examples/workflows_legacy/calling-agent): レガシーワークフローステップ内でMastraを使ってAIエージェントを呼び出す例。
+- [例：条件分岐（実験的） | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/conditional-branching): Mastra を使用して、レガシーワークフローで if/else 文による条件分岐を作成する例。
+- [例: ワークフローの作成 | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/creating-a-workflow): Mastra を使って、1つのステップからなるシンプルなワークフローを定義し実行する例。
+- [例: 循環依存関係 | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/cyclical-dependencies): Mastra を使用して、循環依存関係や条件付きループを含むレガシーワークフローを作成する例。
+- [例: Human in the Loop | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/human-in-the-loop): Mastra を使用して人間の介入ポイントを持つレガシーワークフローを作成する例。
+- [例: 並列実行 | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/parallel-steps): ワークフロー内で複数の独立したタスクを並列に実行するために Mastra を使用する例。
+- [例: 順次ステップ | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/sequential-steps): Mastra を使用してレガシーワークフローステップを特定の順序で連結し、データを受け渡す例。
+- [例: 一時停止と再開 | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/suspend-and-resume): 実行中に Mastra を使用してレガシーワークフローステップを一時停止および再開する例。
+- [例：ツールをステップとして使用する | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_legacy/using-a-tool-as-a-step): レガシーワークフローでカスタムツールをステップとして統合するためにMastraを使用する例。
+- [ワークフローバリアブルによるデータマッピング（レガシー） | Mastra 例](https://mastra.ai/ja/examples/workflows_legacy/workflow-variables): Mastra ワークフローでワークフローバリアブルを使ってステップ間のデータをマッピングする方法を学びます。
+- [例: ツール/エージェントをステップとして使用する | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/agent-and-tool-interop): ワークフローのステップとしてツールまたはエージェントを統合するためにMastraを使用する例。
+- [例: 配列を入力として使用する (.foreach()) | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/array-as-input): Mastraを使用してワークフローで.foreach()を使用して配列を処理する例。
+- [例：ワークフローからエージェントを呼び出す | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/calling-agent): ワークフローステップ内からAIエージェントを呼び出すためのMastraの使用例。
+- [例：条件分岐 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/conditional-branching): Mastraを使用して`branch`ステートメントによりワークフローに条件分岐を作成する例。
+- [例：制御フロー | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/control-flow): 提供された条件に基づいてループを持つワークフローを作成するためにMastraを使用する例。
+- [例：ヒューマン・イン・ザ・ループ | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/human-in-the-loop): 人間の介入ポイントを含むワークフローを作成するためのMastraの使用例。
+- [Inngest ワークフロー | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/inngest-workflow): Mastraを使用したinngestワークフローの構築例
+- [例: 並列実行 | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/examples/workflows_vNext/parallel-steps): Mastraを使用してワークフロー内で複数の独立したタスクを並列実行する例。
+
+## JA - guides
+- [AI リクルーターの構築 | Mastra Workflows | ガイド](https://mastra.ai/ja/guides/guide/ai-recruiter): Mastra でリクルーター向けのワークフローを構築し、LLM を使って候補者情報を収集・処理する方法を解説します。
+- [AIシェフアシスタントの作成 | Mastra Agent ガイド](https://mastra.ai/ja/guides/guide/chef-michel): Mastraで、手持ちの食材から料理を作るのを支援するシェフアシスタントエージェントを作成するためのガイド。
+- [MCP サーバー: Notes MCP サーバーの構築 | Mastra ガイド](https://mastra.ai/ja/guides/guide/notes-mcp-server): Mastra フレームワークを用いて、ノート管理向けのフル機能の MCP（Model Context Protocol）サーバーを構築するためのステップバイステップガイド。
+- [研究論文アシスタントの作成 | Mastra RAG ガイド](https://mastra.ai/ja/guides/guide/research-assistant): RAG を用いて学術論文を分析し、質問に回答する AI リサーチアシスタントの構築方法を解説するガイド。
+- [AI株式エージェントの構築 | Mastra Agents | ガイド](https://mastra.ai/ja/guides/guide/stock-agent): 指定したシンボルの前日の終値を取得する、Mastraでのシンプルな株式エージェントの作成ガイド。
+- [概要](https://mastra.ai/ja/guides): Mastraを使った構築に関するガイド
+
+## JA - reference
+- [リファレンス: ChunkType | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/ChunkType): Mastra のストリーミング応答で使用される ChunkType 型のリファレンス。想定されるすべてのチャンクタイプとそのペイロードを定義します。
+- [リファレンス: MastraModelOutput | Agents | Mastra Docs](https://mastra.ai/ja/reference/agents/MastraModelOutput): MastraModelOutput の完全なリファレンス。agent.streamVNext() が返すストリームオブジェクトで、モデル出力へのストリーミングおよび Promise ベースのアクセスを提供します。
+- [リファレンス: Agent クラス | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/agent): Mastra の `Agent` クラスに関するドキュメント。多様な機能を備えた AI エージェントを作成するための基盤を提供します。
+- [リファレンス: createTool() | ツール | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/createTool): Mastra の createTool 関数のドキュメント。エージェントやワークフロー用のカスタムツールを作成します。
+- [リファレンス: Agent.generate() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/generate): Mastra のエージェントにおける `Agent.generate()` メソッドのドキュメント。テキストまたは構造化された応答を生成します。
+- [リファレンス: getAgent() | エージェント設定 | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getAgent): getAgent の API リファレンス。
+- [リファレンス: Agent.getDefaultGenerateOptions() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getDefaultGenerateOptions): Mastra のエージェントで使用される `Agent.getDefaultGenerateOptions()` メソッドのドキュメント。generate 呼び出しに用いられるデフォルトのオプションを取得します。
+- [リファレンス: Agent.getDefaultStreamOptions() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getDefaultStreamOptions): Mastra のエージェントにおける `Agent.getDefaultStreamOptions()` メソッドのリファレンス。ストリーム呼び出しで使用される既定のオプションを取得します。
+- [リファレンス: Agent.getDefaultVNextStreamOptions() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getDefaultVNextStreamOptions): Mastra のエージェントにおける `Agent.getDefaultVNextStreamOptions()` メソッドのドキュメント。streamVNext 呼び出しで使用される既定のオプションを取得します。
+- [リファレンス: Agent.getDescription() | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getDescription): Mastraエージェントの`Agent.getDescription()`メソッドに関するドキュメントです。エージェントの説明を取得するメソッドについて説明します。
+- [リファレンス: Agent.getInstructions() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getInstructions): Mastra のエージェントにおける `Agent.getInstructions()` メソッドのリファレンス。エージェントの振る舞いを規定する指示を取得します。
+- [リファレンス: Agent.getLLM() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getLLM): Mastra のエージェントにおける `Agent.getLLM()` メソッドのリファレンス。使用する言語モデルのインスタンスを取得します。
+- [リファレンス: Agent.getMemory() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getMemory): Mastra のエージェントにおける `Agent.getMemory()` メソッドのリファレンス。エージェントに関連付けられたメモリシステムを取得します。
+- [リファレンス: Agent.getModel() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getModel): Mastra のエージェントにおける `Agent.getModel()` メソッドのドキュメント。エージェントを駆動する言語モデルを取得します。
+- [リファレンス: Agent.getScorers() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getScorers): Mastra のエージェントにおける `Agent.getScorers()` メソッドのリファレンス。スコアリング設定を取得します。
+- [リファレンス: Agent.getTools() | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getTools): Mastraエージェントの`Agent.getTools()`メソッドに関するドキュメントです。エージェントが利用可能なツールを取得するメソッドについて説明します。
+- [リファレンス: Agent.getVoice() | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getVoice): Mastraエージェントの`Agent.getVoice()`メソッドのドキュメント。音声機能用の音声プロバイダを取得します。
+- [リファレンス: Agent.getWorkflows() | エージェント | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/getWorkflows): Mastraエージェントの`Agent.getWorkflows()`メソッドに関するドキュメントです。エージェントが実行可能なワークフローを取得するメソッドについて説明します。
+- [リファレンス: Agent.stream() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/stream): Mastra のエージェントにおける `Agent.stream()` メソッドのドキュメント。応答をリアルタイムにストリーミングできます。
+- [リファレンス: Agent.streamVNext()（実験的） | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/agents/streamVNext): Mastra のエージェントにおける `Agent.streamVNext()` メソッドのドキュメント。拡張機能により、応答のリアルタイムストリーミングを可能にします。
+- [MastraJwtAuth クラス](https://mastra.ai/ja/reference/auth/jwt): JSON Web Token を使用して Mastra アプリケーションを認証する MastraJwtAuth クラスの API リファレンス。
+- [MastraAuthSupabase クラス](https://mastra.ai/ja/reference/auth/supabase): Supabase Auth を用いて Mastra アプリケーションを認証する MastraAuthSupabase クラスの API リファレンス。
+- [mastra build | 本番用バンドル | Mastra CLI](https://mastra.ai/ja/reference/cli/build): Mastra プロジェクトを本番環境にデプロイできるようビルドする
+- [create-mastra | プロジェクト作成 | Mastra CLI](https://mastra.ai/ja/reference/cli/create-mastra): create-mastraコマンドのドキュメント。インタラクティブなセットアップオプションで新しいMastraプロジェクトを作成します。
+- [mastra dev | 開発サーバー | Mastra CLI](https://mastra.ai/ja/reference/cli/dev): エージェント、ツール、ワークフローの開発サーバーを起動するmastra devコマンドのドキュメント。
+- [mastra init | プロジェクトの初期化 | Mastra CLI](https://mastra.ai/ja/reference/cli/init): 新しいMastraプロジェクトをインタラクティブなセットアップオプションで作成するmastra initコマンドのドキュメント。
+- [mastra lint | プロジェクトの検証 | Mastra CLI](https://mastra.ai/ja/reference/cli/lint): Mastraプロジェクトをlintする
+- [@mastra/mcp-docs-server](https://mastra.ai/ja/reference/cli/mcp-docs-server): MCP経由でMastraのドキュメント、例、ブログ投稿を提供する
+- [mastra scorers | 評価管理 | Mastra CLI](https://mastra.ai/ja/reference/cli/scorers): Mastra CLI で AI の出力を評価するスコアラーを管理する
+- [mastra start](https://mastra.ai/ja/reference/cli/start): ビルド済みの Mastra アプリケーションを起動する
+- [Mastra クライアントエージェント API](https://mastra.ai/ja/reference/client-js/agents): Mastra AIエージェントとの対話方法を学びましょう。レスポンスの生成、ストリーミング対話、client-js SDKを使用したエージェントツールの管理などが含まれます。
+- [Mastraクライアントのエラー処理](https://mastra.ai/ja/reference/client-js/error-handling): Mastra client-js SDKに組み込まれた再試行メカニズムとエラー処理機能について学びます。
+- [Mastra クライアントログ API](https://mastra.ai/ja/reference/client-js/logs): client-js SDKを使用してMastraでシステムログとデバッグ情報にアクセスし、クエリを実行する方法を学びます。
+- [MastraClient](https://mastra.ai/ja/reference/client-js/mastra-client): client-js SDK を使って Mastra と連携する方法を学びましょう。
+- [Mastra クライアントメモリAPI](https://mastra.ai/ja/reference/client-js/memory): client-js SDKを使用してMastraで会話スレッドとメッセージ履歴を管理する方法を学びます。
+- [Mastra クライアントテレメトリAPI](https://mastra.ai/ja/reference/client-js/telemetry): client-js SDKを使用して、監視やデバッグのためにMastraアプリケーションからトレースを取得し分析する方法を学びます。
+- [Mastra クライアントツール API](https://mastra.ai/ja/reference/client-js/tools): client-js SDKを使用してMastraプラットフォームで利用可能なツールを操作および実行する方法を学びます。
+- [Mastra クライアントベクトル API](https://mastra.ai/ja/reference/client-js/vectors): client-js SDKを使用して、セマンティック検索や類似性マッチングのためのベクトル埋め込みをMastraで操作する方法を学びます。
+- [Mastra クライアントワークフロー（レガシー）API](https://mastra.ai/ja/reference/client-js/workflows-legacy): client-js SDKを使用してMastraで自動化されたレガシーワークフローを操作および実行する方法を学びます。
+- [Mastra クライアントワークフロー (vNext) API](https://mastra.ai/ja/reference/client-js/workflows-vnext): client-js SDKを使用してMastraで自動化されたvNextワークフローを操作および実行する方法を学びます。
+- [Mastra クライアントワークフローAPI](https://mastra.ai/ja/reference/client-js/workflows): client-js SDKを使用してMastraで自動化されたワークフローを操作および実行する方法を学びます。
+- [リファレンス: Agent.getAgent() | Agents | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getAgent): Mastra の `Agent.getAgent()` メソッドのドキュメント。エージェントを名前で取得します。
+- [リファレンス: Mastra.getAgentById() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getAgentById): Mastra における `Mastra.getAgentById()` メソッドのドキュメント。ID を指定してエージェントを取得します。
+- [リファレンス: Mastra.getAgents() | コア | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getAgents): Mastra の `Mastra.getAgents()` メソッドのドキュメント。設定済みのすべてのエージェントを取得します。
+- [リファレンス: Mastra.getDeployer() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getDeployer): Mastra の `Mastra.getDeployer()` メソッドのドキュメント。設定済みのデプロイヤーインスタンスを取得します。
+- [リファレンス: Mastra.getLogger() | コア | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getLogger): Mastra の `Mastra.getLogger()` メソッドのドキュメント。設定されたロガーインスタンスを取得します。
+- [リファレンス: Mastra.getLogs() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getLogs): Mastra の `Mastra.getLogs()` メソッドに関するドキュメント。特定のトランスポート ID に対するすべてのログを取得します。
+- [リファレンス: Mastra.getLogsByRunId() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getLogsByRunId): Mastra の `Mastra.getLogsByRunId()` メソッドのドキュメント。特定のラン ID とトランスポート ID に対応するログを取得します。
+- [リファレンス: Mastra.getMCPServer() | Core | Mastra Docs](https://mastra.ai/ja/reference/core/getMCPServer): Mastra の `Mastra.getMCPServer()` メソッドに関するドキュメント。ID と任意のバージョンを指定して、特定の MCP サーバーインスタンスを取得します。
+- [リファレンス: Mastra.getMCPServers() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getMCPServers): Mastra における `Mastra.getMCPServers()` メソッドのリファレンス。登録済みのすべての MCP サーバーインスタンスを取得します。
+- [リファレンス: Mastra.getMemory() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getMemory): Mastra の `Mastra.getMemory()` メソッドに関するドキュメント。設定されたメモリインスタンスを取得します。
+- [リファレンス: Mastra.getServer() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getServer): Mastra の `Mastra.getServer()` メソッドに関するドキュメント。設定済みのサーバー設定を取得します。
+- [リファレンス: Mastra.getStorage() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getStorage): Mastra の `Mastra.getStorage()` メソッドに関するドキュメント。設定済みのストレージインスタンスを取得します。
+- [リファレンス: Mastra.getTelemetry() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getTelemetry): Mastra の `Mastra.getTelemetry()` メソッドのドキュメント。構成済みのテレメトリーインスタンスを取得します。
+- [リファレンス: Mastra.getVector() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getVector): Mastra の `Mastra.getVector()` メソッドに関するドキュメント。指定した名前のベクターストアを取得します。
+- [リファレンス: Mastra.getVectors() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getVectors): Mastra における `Mastra.getVectors()` メソッドのドキュメント。構成済みのすべてのベクターストアを取得します。
+- [リファレンス: Mastra.getWorkflow() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/getWorkflow): Mastra の `Mastra.getWorkflow()` メソッドのリファレンス。ID でワークフローを取得します。
+- [リファレンス: Mastra.getWorkflows() | Core | Mastra Docs](https://mastra.ai/ja/reference/core/getWorkflows): Mastra の `Mastra.getWorkflows()` メソッドのドキュメント。設定済みのすべてのワークフローを取得します。
+- [Mastra Core](https://mastra.ai/ja/reference/core/mastra-class): エージェント、ワークフロー、MCP サーバー、サーバーエンドポイントを管理するための中核となるエントリーポイントである Mastra クラスのドキュメント。
+- [リファレンス: Mastra.setLogger() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/setLogger): Mastra の `Mastra.setLogger()` メソッドのドキュメント。すべてのコンポーネント（エージェント、ワークフローなど）のロガーを設定します。
+- [リファレンス: Mastra.setStorage() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/setStorage): Mastra の `Mastra.setStorage()` メソッドのドキュメント。Mastra インスタンスに対して使用するストレージインスタンスを設定します。
+- [リファレンス: Mastra.setTelemetry() | Core | Mastra ドキュメント](https://mastra.ai/ja/reference/core/setTelemetry): Mastra の `Mastra.setTelemetry()` メソッドのドキュメント。すべてのコンポーネントのテレメトリー設定を一括で設定します。
+- [Cloudflare Deployer](https://mastra.ai/ja/reference/deployer/cloudflare): CloudflareDeployerクラスのドキュメント。MastraアプリケーションをCloudflare Workersにデプロイします。
+- [Mastra Deployer](https://mastra.ai/ja/reference/deployer/deployer): Mastraアプリケーションのパッケージングおよびデプロイを扱うDeployer抽象クラスのドキュメント。
+- [Netlify Deployer](https://mastra.ai/ja/reference/deployer/netlify): NetlifyDeployerクラスのドキュメント。MastraアプリケーションをNetlify Functionsにデプロイします。
+- [Vercel デプロイヤー](https://mastra.ai/ja/reference/deployer/vercel): Mastraアプリケーションを Vercel にデプロイする VercelDeployer クラスのドキュメント。
+- [リファレンス: Answer Relevancy | メトリクス | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/answer-relevancy): MastraのAnswer Relevancyメトリクスのドキュメント。LLMの出力が入力クエリにどの程度適切に対応しているかを評価します。
+- [リファレンス: Bias | Output Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/bias): MastraのBiasメトリックのドキュメント。LLM出力における性別、政治的、人種・民族的、地理的バイアスなど、様々な形態のバイアスを評価します。
+- [リファレンス: Completeness | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/completeness): Mastraの完全性メトリックのドキュメント。入力に含まれる重要な要素をLLM出力がどの程度網羅的にカバーしているかを評価します。
+- [リファレンス: Content Similarity | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/content-similarity): 文字列間のテキスト類似度を測定し、マッチングスコアを提供するMastraのContent Similarity Metricのドキュメント。
+- [リファレンス: Context Position | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/context-position): クエリと出力に対するコンテキストノードの関連性に基づいて、その順序を評価するMastraのContext Position Metricのドキュメント。
+- [リファレンス: Context Precision | メトリクス | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/context-precision): 期待される出力を生成するために取得されたコンテキストノードの関連性と精度を評価する、MastraのContext Precisionメトリクスのドキュメント。
+- [リファレンス: Context Relevancy | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/context-relevancy): RAGパイプラインにおける取得されたコンテキストの関連性を評価するContext Relevancyメトリックのドキュメント。
+- [リファレンス: Contextual Recall | メトリクス | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/contextual-recall): 関連するコンテキストを組み込んだLLMレスポンスの完全性を評価するContextual Recallメトリクスのドキュメント。
+- [リファレンス: Faithfulness | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/faithfulness): Mastraの忠実性メトリックのドキュメント。提供されたコンテキストと比較してLLM出力の事実的正確性を評価します。
+- [リファレンス: Hallucination | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/hallucination): Mastraにおけるハルシネーション（幻覚）メトリックのドキュメント。提供されたコンテキストとの矛盾を特定することで、LLM出力の事実的正確性を評価します。
+- [リファレンス: キーワードカバレッジ | メトリクス | 評価 | Mastra ドキュメント](https://mastra.ai/ja/reference/evals/keyword-coverage): 入力から重要なキーワードをLLM出力がどの程度カバーしているかを評価するMastraのキーワードカバレッジメトリクスのドキュメント。
+- [リファレンス: Prompt Alignment | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/prompt-alignment): MastraのPrompt Alignmentメトリックのドキュメント。LLM出力が与えられたプロンプト指示にどの程度従っているかを評価します。
+- [リファレンス: 要約 | メトリクス | 評価 | Mastra ドキュメント](https://mastra.ai/ja/reference/evals/summarization): Mastraの要約メトリクスのドキュメント。LLMが生成した要約の内容と事実の正確性の品質を評価します。
+- [リファレンス: テキスト差分 | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/textual-difference): シーケンスマッチングを使用して文字列間のテキスト差分を測定するMastraのテキスト差分メトリックのドキュメント。
+- [リファレンス: トーン一貫性 | メトリクス | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/tone-consistency): テキストの感情的なトーンと感情の一貫性を評価するMastraのトーン一貫性メトリクスのドキュメント。
+- [リファレンス: Toxicity | Metrics | Evals | Mastra Docs](https://mastra.ai/ja/reference/evals/toxicity): MastraのToxicity Metricのドキュメント。LLM出力における人種差別的、偏見的、または有害な要素を評価します。
+- [API リファレンス](https://mastra.ai/ja/reference): Mastra API リファレンス
+- [リファレンス: .after() | ワークフローの構築（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/after): ワークフロー（レガシー）における `after()` メソッドのドキュメント。分岐や統合パスを可能にします。
+- [.afterEvent() メソッド | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/afterEvent): Mastra ワークフローにおける afterEvent メソッドのリファレンス。イベントベースのサスペンションポイントを作成します。
+- [リファレンス: Workflow.commit() | ワークフローの実行（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/commit): ワークフロー内の `.commit()` メソッドのドキュメント。現在のステップ構成でワークフローマシンを再初期化します。
+- [リファレンス: Workflow.createRun() | ワークフローの実行（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/createRun): ワークフロー（レガシー）における `.createRun()` メソッドのドキュメント。新しいワークフロー実行インスタンスを初期化します。
+- [リファレンス: Workflow.else() | 条件分岐 | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/else): Mastra ワークフローにおける `.else()` メソッドのドキュメント。if 条件が偽の場合に代替の分岐を作成します。
+- [イベント駆動型ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/events): MastraでafterEventおよびresumeWithEventメソッドを使用してイベント駆動型ワークフローを作成する方法を学びます。
+- [リファレンス: Workflow.execute() | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/execute): Mastra ワークフローにおける `.execute()` メソッドのドキュメント。このメソッドはワークフローステップを実行し、結果を返します。
+- [リファレンス: Workflow.if() | 条件分岐 | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/if): Mastra ワークフローにおける `.if()` メソッドのドキュメント。指定した条件に基づいて条件分岐を作成します。
+- [リファレンス: run.resume() | ワークフローの実行（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/resume): ワークフロー内の `.resume()` メソッドのドキュメント。中断されたワークフローステップの実行を再開します。
+- [.resumeWithEvent() メソッド | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/resumeWithEvent): イベントデータを使用して一時停止中のワークフローを再開する resumeWithEvent メソッドのリファレンス。
+- [リファレンス: スナップショット | ワークフロー状態の永続化（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/snapshots): Mastra におけるスナップショットの技術リファレンス - サスペンドおよびレジューム機能を可能にするシリアライズされたワークフロー状態
+- [リファレンス: start() | ワークフローの実行（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/start): ワークフロー内の `start()` メソッドのドキュメント。ワークフローの実行を開始します。
+- [リファレンス: Step | ワークフローの構築（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/step-class): ワークフロー内の個々の作業単位を定義する Step クラスのドキュメント。
+- [リファレンス: StepCondition | ワークフローの構築（レガシー） | Mastra](https://mastra.ai/ja/reference/legacyWorkflows/step-condition): ワークフロー内のステップ条件クラスのドキュメント。前のステップの出力やトリガーデータに基づいて、ステップを実行するかどうかを決定します。
+- [リファレンス: Workflow.step() | Workflows (レガシー) | Mastra Docs](https://mastra.ai/ja/reference/legacyWorkflows/step-function): ワークフロー内の `.step()` メソッドのドキュメント。ワークフローに新しいステップを追加します。
+- [リファレンス: StepOptions | ワークフローの構築（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/step-options): ワークフロー内のステップオプションに関するドキュメント。これらは変数のマッピング、実行条件、その他のランタイム動作を制御します。
+- [ステップのリトライ | エラー処理 | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/step-retries): Mastra ワークフローで失敗したステップを自動的に再試行し、設定可能なリトライポリシーを利用できます。
+- [リファレンス: suspend() | 制御フロー | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/suspend): Mastra ワークフローにおける suspend 関数のドキュメント。実行を一時停止し、再開されるまで待機します。
+- [リファレンス: Workflow.then() | ワークフローの構築（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/then): ワークフロー内の `.then()` メソッドのドキュメント。ステップ間に順次依存関係を作成します。
+- [リファレンス: Workflow.until() | ワークフロー内のループ処理（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/until): Mastra ワークフローにおける `.until()` メソッドのドキュメント。指定した条件が真になるまでステップを繰り返します。
+- [リファレンス: run.watch() | ワークフロー（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/watch): ワークフロー内の `.watch()` メソッドのドキュメント。ワークフロー実行のステータスを監視します。
+- [リファレンス: Workflow.while() | ワークフロー内のループ処理（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/while): Mastra ワークフローにおける `.while()` メソッドのドキュメント。指定した条件が真である限り、ステップを繰り返します。
+- [リファレンス: Workflow クラス | ワークフローの構築（レガシー） | Mastra ドキュメント](https://mastra.ai/ja/reference/legacyWorkflows/workflow): Mastra の Workflow クラスのドキュメント。条件分岐やデータ検証を伴う複雑な操作のシーケンスのための状態機械を作成できます。
+- [Memory](https://mastra.ai/ja/reference/memory/Memory)
+- [createThread](https://mastra.ai/ja/reference/memory/createThread)
+- [deleteMessages](https://mastra.ai/ja/reference/memory/deleteMessages)
+- [getThreadById](https://mastra.ai/ja/reference/memory/getThreadById)
+- [getThreadsByResourceId](https://mastra.ai/ja/reference/memory/getThreadsByResourceId)
+- [getThreadsByResourceIdPaginated](https://mastra.ai/ja/reference/memory/getThreadsByResourceIdPaginated)
+- [query](https://mastra.ai/ja/reference/memory/query)
+- [AgentNetwork（実験的）](https://mastra.ai/ja/reference/networks/agent-network): AgentNetworkクラスのリファレンスドキュメント
+- [リファレンス: PinoLogger | Mastra Observability Docs](https://mastra.ai/ja/reference/observability/logger): さまざまな重要度レベルでイベントを記録するメソッドを提供するPinoLoggerのドキュメント。
+- [リファレンス: OtelConfig | Mastra Observability ドキュメント](https://mastra.ai/ja/reference/observability/otel-config): OpenTelemetry のインストルメンテーション、トレーシング、およびエクスポート動作を設定する OtelConfig オブジェクトのドキュメント。
+- [リファレンス: Arize AX 連携 | Mastra Observability ドキュメント](https://mastra.ai/ja/reference/observability/providers/arize-ax): Mastra と Arize AX の連携方法に関するドキュメント。LLM アプリケーションの監視と評価を行う、包括的な AI 可観測性プラットフォーム。
+- [リファレンス: Arize Phoenix との統合 | Mastra Observability ドキュメント](https://mastra.ai/ja/reference/observability/providers/arize-phoenix): オープンソースのAI可観測性プラットフォームである Mastra と Arize Phoenix を統合し、LLM アプリケーションを監視・評価するためのドキュメント。
+- [リファレンス: Braintrust | 観測性 | Mastra ドキュメント](https://mastra.ai/ja/reference/observability/providers/braintrust): BraintrustをMastraと統合するためのドキュメント。MastraはLLMアプリケーションの評価と監視プラットフォームです。
+- [リファレンス: Dash0統合 | Mastra可観測性ドキュメント](https://mastra.ai/ja/reference/observability/providers/dash0): MastraとOpen Telemetryネイティブな可観測性ソリューションであるDash0の統合に関するドキュメント。
+- [リファレンス: プロバイダー一覧 | オブザーバビリティ | Mastra ドキュメント](https://mastra.ai/ja/reference/observability/providers): Mastra がサポートするオブザーバビリティ・プロバイダーの概要。Arize AX、Arize Phoenix、Dash0、SigNoz、Braintrust、Langfuse など。
+- [リファレンス: Keywords AI統合 | Mastra Observability ドキュメント](https://mastra.ai/ja/reference/observability/providers/keywordsai): Keywords AI（LLMアプリケーション向けの可観測性プラットフォーム）とMastraの統合に関するドキュメント。
+- [リファレンス: Laminar 統合 | Mastra 観測性ドキュメント](https://mastra.ai/ja/reference/observability/providers/laminar): LLMアプリケーション向けの専門的な観測性プラットフォームであるMastraとLaminarを統合するためのドキュメント。
+- [リファレンス: Langfuse統合 | Mastra観測可能性ドキュメント](https://mastra.ai/ja/reference/observability/providers/langfuse): LLMアプリケーション向けのオープンソース観測可能性プラットフォームであるMastraとLangfuseを統合するためのドキュメント。
+- [リファレンス: LangSmith 統合 | Mastra オブザーバビリティ ドキュメント](https://mastra.ai/ja/reference/observability/providers/langsmith): LLMアプリケーションのデバッグ、テスト、評価、監視のためのプラットフォームであるMastraとLangSmithを統合するためのドキュメント。
+- [リファレンス: LangWatch統合 | Mastra可観測性ドキュメント](https://mastra.ai/ja/reference/observability/providers/langwatch): LLMアプリケーション向けの専門的な可観測性プラットフォームであるLangWatchとMastraの統合に関するドキュメント。
+- [リファレンス: New Relic 統合 | Mastra オブザーバビリティ ドキュメント](https://mastra.ai/ja/reference/observability/providers/new-relic): New Relic と Mastra の統合に関するドキュメント。Mastra は、OpenTelemetry をサポートするフルスタック監視のための包括的なオブザーバビリティ プラットフォームです。
+- [リファレンス: SigNoz 統合 | Mastra オブザーバビリティ ドキュメント](https://mastra.ai/ja/reference/observability/providers/signoz): SigNozをMastraと統合するためのドキュメント。Mastraは、OpenTelemetryを通じてフルスタック監視を提供するオープンソースのAPMおよびオブザーバビリティプラットフォームです。
+- [リファレンス: Traceloop 統合 | Mastra 観測性ドキュメント](https://mastra.ai/ja/reference/observability/providers/traceloop): Traceloop を Mastra と統合するためのドキュメント。Mastra は LLM アプリケーション向けの OpenTelemetry ネイティブの観測性プラットフォームです。
+- [リファレンス: Astra ベクトルストア | ベクトルデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/astra): Mastraの中のAstraVectorクラスのドキュメント。DataStax Astra DBを使用したベクトル検索を提供します。
+- [リファレンス: Chroma Vector Store | ベクトルデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/chroma): Mastra の ChromaVector クラスに関するドキュメント。ChromaDB を用いたベクトル検索を提供します。
+- [リファレンス: .chunk() | ドキュメント処理 | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/chunk): Mastra の chunk 関数のドキュメント。さまざまな戦略を用いてドキュメントを小さなセグメントに分割します。
+- [リファレンス: Couchbase Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/ja/reference/rag/couchbase): Couchbase Vector Searchを使用してベクトル検索を提供するMastraのCouchbaseVectorクラスのドキュメント。
+- [リファレンス: DatabaseConfig | RAG | Mastra Docs](https://mastra.ai/ja/reference/rag/database-config): MastraのRAGシステムでベクトルクエリツールと共に使用されるデータベース固有の設定タイプのAPIリファレンス。
+- [リファレンス: MDocument | ドキュメント処理 | RAG | Mastra Docs](https://mastra.ai/ja/reference/rag/document): ドキュメント処理とチャンク化を担当するMastraのMDocumentクラスのドキュメントです。
+- [リファレンス: embed() | ドキュメント埋め込み | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/embeddings): MastraでAI SDKを使用した埋め込み機能のドキュメント。
+- [リファレンス: ExtractParams | ドキュメント処理 | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/extract-params): Mastraにおけるメタデータ抽出設定のドキュメント。
+- [リファレンス: GraphRAG | グラフベースRAG | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/graph-rag): MastraのGraphRAGクラスのドキュメント。グラフベースの検索拡張生成手法を実装しています。
+- [リファレンス: Lance Vector Store | Vector Databases | RAG | Mastra Docs](https://mastra.ai/ja/reference/rag/lance): MastraのLanceVectorStoreクラスのドキュメント。Lance列形式に基づく組み込みベクトルデータベースであるLanceDBを使用してベクトル検索を提供します。
+- [デフォルトベクトルストア | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/libsql): Mastraにおける、ベクター拡張機能を持つLibSQLを使用したベクター検索を提供するLibSQLVectorクラスのドキュメント。
+- [リファレンス: メタデータフィルター | メタデータフィルタリング | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/metadata-filters): さまざまなベクトルストアでのベクトル検索結果に対して、正確なクエリを可能にする Mastra のメタデータフィルタリング機能に関するドキュメント。
+- [リファレンス: MongoDB ベクターストア | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/mongodb): Mastra の MongoDBVector クラスのドキュメント。MongoDB Atlas および Atlas Vector Search を使用したベクター検索を提供します。
+- [リファレンス: OpenSearch ベクトルストア | ベクトルデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/opensearch): Mastraの OpenSearchVector クラスに関するドキュメント。OpenSearchを使用したベクトル検索を提供します。
+- [リファレンス: PG Vector Store | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/pg): Mastra の PgVector クラスのドキュメント。pgvector 拡張機能を使用した PostgreSQL によるベクター検索を提供します。
+- [リファレンス: Pinecone Vector Store | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/pinecone): Mastra における PineconeVector クラスのドキュメント。Pinecone のベクターデータベースへのインターフェースを提供します。
+- [リファレンス: Qdrant ベクトルストア | ベクトルデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/qdrant): Mastraとの統合のためのQdrantのドキュメント。Qdrantはベクトルとペイロードを管理するためのベクトル類似性検索エンジンです。
+- [リファレンス: Rerank | ドキュメント検索 | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/rerank): Mastra の rerank 機能に関するドキュメント。ベクトル検索結果に対して高度なリランキング機能を提供します。
+- [リファレンス: Rerank | ドキュメント検索 | RAG | Mastra Docs](https://mastra.ai/ja/reference/rag/rerankWithScorer): Mastraのrerank関数のドキュメント。ベクトル検索結果の高度な再ランキング機能を提供します。
+- [リファレンス: Amazon S3 Vectors ストア | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/s3vectors): Mastra の S3Vectors クラスに関するドキュメント。Amazon S3 Vectors（プレビュー）を用いたベクトル検索を提供します。
+- [リファレンス: Turbopuffer ベクターストア | ベクターデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/turbopuffer): TurbopufferをMastraと統合するためのドキュメント。効率的な類似検索のための高性能ベクターデータベース。
+- [リファレンス: Upstashベクトルストア | ベクトルデータベース | RAG | Mastraドキュメント](https://mastra.ai/ja/reference/rag/upstash): Mastraにおける、Upstash Vectorを使用したベクトル検索を提供するUpstashVectorクラスのドキュメント。
+- [リファレンス: Cloudflare ベクトルストア | ベクトルデータベース | RAG | Mastra ドキュメント](https://mastra.ai/ja/reference/rag/vectorize): Mastraの CloudflareVectorクラスに関するドキュメント。Cloudflare Vectorizeを使用したベクトル検索を提供します。
+- [リファレンス: Answer Relevancy | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/answer-relevancy): 入力クエリに対してLLM出力がどの程度適切に対応しているかを評価するMastraのAnswer Relevancy Scorerのドキュメント。
+- [リファレンス: Bias | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/bias): MastraのBias Scorerのドキュメント。LLMの出力を性別、政治的、人種・民族的、地理的バイアスなど、様々な形態のバイアスについて評価します。
+- [リファレンス: Completeness | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/completeness): Mastraの Completeness Scorer のドキュメント。入力に含まれる主要な要素をLLM出力がどの程度網羅的にカバーしているかを評価します。
+- [リファレンス: Content Similarity | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/content-similarity): Mastraのコンテンツ類似性スコアラーのドキュメント。文字列間のテキスト類似性を測定し、マッチングスコアを提供します。
+- [リファレンス: Context Precision Scorer | Scorers | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/context-precision): Mastra における Context Precision Scorer のドキュメント。平均適合率（Mean Average Precision）を用いて、期待される出力の生成に向けて取得されたコンテキストの関連性と精度を評価します。
+- [リファレンス: コンテキスト関連度スコアラー | Scorers | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/context-relevance): Mastra の Context Relevance Scorer に関するドキュメント。重み付き関連度スコアリングにより、エージェントの応答生成に用いる提供コンテキストの関連性と有用性を評価します。
+- [リファレンス: カスタムスコアラーの作成 | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/create-scorer): Mastra でカスタムスコアラーを作成するためのドキュメント。ユーザーは JavaScript 関数または LLM ベースのプロンプトを用いて、独自の評価ロジックを定義できます。
+- [リファレンス: Faithfulness | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/faithfulness): Mastraの Faithfulness Scorer のドキュメント。提供されたコンテキストと比較してLLM出力の事実的正確性を評価します。
+- [リファレンス: Hallucination | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/hallucination): Mastraにおけるハルシネーションスコアラーのドキュメント。提供されたコンテキストとの矛盾を特定することで、LLM出力の事実的正確性を評価します。
+- [リファレンス: キーワードカバレッジ | スコアラー | Mastra Docs](https://mastra.ai/ja/reference/scorers/keyword-coverage): 入力から重要なキーワードをLLM出力がどの程度カバーしているかを評価するMastraのキーワードカバレッジスコアラーのドキュメント。
+- [リファレンス: MastraScorer | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/mastra-scorer): Mastraにおけるすべてのカスタムおよび組み込みスコアラーの基盤を提供するMastraScorerベースクラスのドキュメント。
+- [リファレンス: Noise Sensitivity Scorer（CI/テスト） | Scorers | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/noise-sensitivity): Mastra の Noise Sensitivity Scorer に関するドキュメント。制御されたテスト環境で、ノイズなしの入力とノイズありの入力に対する応答を比較し、エージェントのロバスト性を評価する CI/テスト向けスコアラー。
+- [リファレンス: Prompt Alignment Scorer | Scorer | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/prompt-alignment): Mastra における Prompt Alignment Scorer のドキュメント。エージェントの応答がユーザーのプロンプトの意図、要件、網羅性、適切性にどの程度合致しているかを、多角的な分析で評価します。
+- [リファレンス: Textual Difference | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/textual-difference): Mastraのテキスト差分スコアラーのドキュメント。シーケンスマッチングを使用して文字列間のテキスト差分を測定します。
+- [リファレンス: トーン一貫性 | スコアラー | Mastra Docs](https://mastra.ai/ja/reference/scorers/tone-consistency): テキストの感情的なトーンと感情の一貫性を評価するMastraのトーン一貫性スコアラーのドキュメント。
+- [リファレンス: ツール呼び出し精度 | スコアラー | Mastra ドキュメント](https://mastra.ai/ja/reference/scorers/tool-call-accuracy): Mastra の「ツール呼び出し精度」スコアラーに関するドキュメント。利用可能な選択肢の中から、LLM の出力が正しいツールを呼び出しているかを評価します。
+- [リファレンス: Toxicity | Scorers | Mastra Docs](https://mastra.ai/ja/reference/scorers/toxicity): Mastraの毒性スコアラーのドキュメント。LLM出力における人種差別的、偏見的、または有害な要素を評価します。
+- [Cloudflare D1 ストレージ | ストレージシステム | Mastra Core](https://mastra.ai/ja/reference/storage/cloudflare-d1): Mastra における Cloudflare D1 SQL ストレージ実装のドキュメントです。
+- [Cloudflare Storage | ストレージシステム | Mastra Core](https://mastra.ai/ja/reference/storage/cloudflare): MastraにおけるCloudflare KVストレージ実装のドキュメント。
+- [DynamoDB ストレージ | ストレージシステム | Mastra Core](https://mastra.ai/ja/reference/storage/dynamodb): ElectroDBを使用した単一テーブル設計によるMastraのDynamoDBストレージ実装のドキュメント。
+- [LanceDB Storage](https://mastra.ai/ja/reference/storage/lance): MastraにおけるLanceDBストレージ実装のドキュメント。
+- [LibSQL ストレージ | ストレージシステム | Mastra Core](https://mastra.ai/ja/reference/storage/libsql): Mastraにおける LibSQL ストレージ実装のドキュメント。
+- [MSSQL Storage | Storage System | Mastra Core](https://mastra.ai/ja/reference/storage/mssql): MastraのMSSQLストレージ実装に関するドキュメント。
+- [PostgreSQLストレージ | ストレージシステム | Mastra Core](https://mastra.ai/ja/reference/storage/postgresql): MastraにおけるPostgreSQLストレージ実装のドキュメント。
+- [Upstash Storage | Storage System | Mastra Core](https://mastra.ai/ja/reference/storage/upstash): MastraのUpstashストレージ実装に関するドキュメント。
+- [テンプレートリファレンス](https://mastra.ai/ja/reference/templates): Mastra テンプレートの作成・利用・貢献のための完全ガイド
+- [リファレンス: MastraMCPClient | ツールディスカバリー | Mastra ドキュメント](https://mastra.ai/ja/reference/tools/client): MastraMCPClient の API リファレンス - Model Context Protocol 用のクライアント実装。
+- [リファレンス: createTool() | Tools | Mastra Docs](https://mastra.ai/ja/reference/tools/create-tool): Mastra の `createTool()` 関数に関するドキュメント。エージェント用のカスタムツールを定義するために使用します。
+- [リファレンス: createDocumentChunkerTool() | ツール | Mastra ドキュメント](https://mastra.ai/ja/reference/tools/document-chunker-tool): Mastra の Document Chunker Tool のドキュメント。ドキュメントを効率的な処理と検索のために小さなチャンクに分割します。
+- [リファレンス: createGraphRAGTool() | RAG | Mastra Tools ドキュメント](https://mastra.ai/ja/reference/tools/graph-rag-tool): Mastra の Graph RAG ツールのドキュメント。ドキュメント間の意味的関係をグラフ化することで、RAG を強化します。
+- [リファレンス: MCPClient | ツール管理 | Mastra ドキュメント](https://mastra.ai/ja/reference/tools/mcp-client): MCPClientのAPIリファレンス - 複数のModel Context Protocolサーバーとそのツールを管理するためのクラス。
+- [リファレンス: MCPClient | ツール管理 | Mastra ドキュメント](https://mastra.ai/ja/reference/tools/mcp-configuration): MCPClient の API リファレンス - 複数のモデルコンテキストプロトコルサーバーとそのツールを管理するためのクラス。
+- [リファレンス: MCPServer | MCP経由でMastraツールを公開 | Mastra Docs](https://mastra.ai/ja/reference/tools/mcp-server): MCPServer のAPIリファレンス - MastraツールとCapabilityをModel Context Protocolサーバーとして公開するクラス。
+- [リファレンス: createVectorQueryTool() | RAG | Mastra Tools ドキュメント](https://mastra.ai/ja/reference/tools/vector-query-tool): フィルタリングやリランキングに対応し、ベクトルストア上でのセマンティック検索を可能にする Mastra の Vector Query Tool のドキュメント。
+- [リファレンス: Azure Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/azure): Azure Cognitive Services を使用したテキスト読み上げおよび音声認識機能を提供する AzureVoice クラスのドキュメント。
+- [リファレンス: Cloudflare Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/cloudflare): CloudflareVoice クラスのドキュメント。Cloudflare Workers AI を使用したテキスト読み上げ機能を提供します。
+- [リファレンス: CompositeVoice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/composite-voice): CompositeVoice クラスのドキュメント。複数の音声プロバイダーを組み合わせて、柔軟なテキスト読み上げおよび音声認識操作を可能にします。
+- [リファレンス: Deepgram Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/deepgram): Deepgram voice の実装に関するドキュメント。複数の音声モデルと言語によるテキスト読み上げおよび音声認識機能を提供します。
+- [リファレンス: ElevenLabs Voice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/elevenlabs): ElevenLabsの音声実装に関するドキュメント。複数の音声モデルと自然な音声合成による高品質なテキスト読み上げ機能を提供します。
+- [リファレンス: Google Gemini Live Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/google-gemini-live): GeminiLiveVoice クラスのドキュメント。Google の Gemini Live API を用い、Gemini API と Vertex AI の双方に対応したリアルタイムのマルチモーダル音声対話を提供します。
+- [リファレンス: Google Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/google): Google Voice 実装のドキュメント。テキスト読み上げおよび音声認識機能を提供します。
+- [リファレンス: MastraVoice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/mastra-voice): Mastra のすべての音声サービスのコアインターフェースを定義する抽象基底クラス MastraVoice のドキュメント。音声から音声への機能も含まれます。
+- [リファレンス: Murf Voice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/murf): Murf voice 実装のドキュメント。テキスト読み上げ機能を提供します。
+- [リファレンス: OpenAI Realtime Voice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/openai-realtime): OpenAIRealtimeVoice クラスのドキュメント。WebSocket を通じてリアルタイムのテキスト読み上げおよび音声認識機能を提供します。
+- [リファレンス: OpenAI Voice | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/openai): テキスト読み上げと音声認識機能を提供するOpenAIVoiceクラスのドキュメント。
+- [リファレンス: PlayAI Voice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/playai): PlayAI voice 実装のドキュメント。テキスト読み上げ機能を提供します。
+- [リファレンス: Sarvam Voice | Voice Providers | Mastra Docs](https://mastra.ai/ja/reference/voice/sarvam): Sarvamクラスのドキュメントで、テキストから音声への変換と音声からテキストへの変換機能を提供します。
+- [リファレンス: Speechify Voice | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/speechify): Speechify voice 実装のドキュメント。テキスト読み上げ機能について説明します。
+- [リファレンス: voice.addInstructions() | 音声プロバイダー | Mastra Docs](https://mastra.ai/ja/reference/voice/voice.addInstructions): 音声プロバイダーで利用可能なaddInstructions()メソッドのドキュメント。音声モデルの動作を導くための指示を追加します。
+- [リファレンス: voice.addTools() | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.addTools): voice プロバイダーで利用可能な addTools() メソッドのドキュメント。音声モデルに関数呼び出し機能を追加します。
+- [リファレンス: voice.answer() | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.answer): リアルタイム音声プロバイダーで利用可能な answer() メソッドのドキュメント。このメソッドは音声プロバイダーに応答の生成を指示します。
+- [リファレンス: voice.close() | Voice Providers | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.close): voice プロバイダーで利用可能な close() メソッドのドキュメント。リアルタイム音声サービスから切断します。
+- [リファレンス: voice.connect() | 音声プロバイダー | Mastra Docs](https://mastra.ai/ja/reference/voice/voice.connect): リアルタイム音声プロバイダーで利用可能なconnect()メソッドのドキュメント。音声対音声通信の接続を確立します。
+- [リファレンス：音声イベント | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.events): 音声プロバイダーから発信されるイベントのドキュメント、特にリアルタイム音声インタラクションに関するもの。
+- [リファレンス: voice.getSpeakers() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.getSpeakers): 音声プロバイダーで利用可能なgetSpeakers()メソッドのドキュメント。利用可能な音声オプションを取得します。
+- [リファレンス: voice.listen() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.listen): すべてのMastra音声プロバイダーで利用可能な、音声をテキストに変換するlisten()メソッドのドキュメント。
+- [リファレンス: voice.off() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.off): 音声プロバイダーで利用可能なoff()メソッドのドキュメント。音声イベントのイベントリスナーを削除します。
+- [リファレンス: voice.on() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.on): 音声プロバイダーで利用可能なon()メソッドのドキュメント。音声イベントのイベントリスナーを登録します。
+- [リファレンス: voice.send() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.send): リアルタイム音声プロバイダーで利用可能なsend()メソッドのドキュメント。連続処理のための音声データをストリーミングします。
+- [リファレンス: voice.speak() | 音声プロバイダー | Mastra ドキュメント](https://mastra.ai/ja/reference/voice/voice.speak): すべてのMastra音声プロバイダーで利用可能なspeak()メソッドのドキュメント。テキストを音声に変換します。
+- [リファレンス: voice.updateConfig() | Voice Providers | Mastra Docs](https://mastra.ai/ja/reference/voice/voice.updateConfig): voiceプロバイダーで利用可能なupdateConfig()メソッドのドキュメント。実行時にvoiceプロバイダーの設定を更新します。
+- [リファレンス: .after() | ワークフローの構築 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/after): ワークフロー内で分岐や統合パスを可能にする `after()` メソッドのドキュメント。
+- [.afterEvent() メソッド | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/afterEvent): Mastraワークフローにおいて、イベントベースの中断ポイントを作成するafterEventメソッドのリファレンス。
+- [リファレンス: Workflow.commit() | ワークフローの実行 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/commit): ワークフローの `.commit()` メソッドに関するドキュメント。現在のステップ構成でワークフローマシンを再初期化します。
+- [リファレンス: Workflow.createRun() | ワークフローの実行 | Mastra Docs](https://mastra.ai/ja/reference/workflows/createRun): ワークフローの `.createRun()` メソッドのドキュメント。新しいワークフロー実行インスタンスを初期化します。
+- [リファレンス: Workflow.else() | 条件分岐 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/else): Mastraワークフローの`.else()`メソッドに関するドキュメント。if条件がfalseの場合に代替ブランチを作成します。
+- [イベント駆動型ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/events): MastraでafterEventとresumeWithEventメソッドを使用してイベント駆動型ワークフローを作成する方法を学びましょう。
+- [リファレンス: Workflow.execute() | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/execute): Mastraワークフローの`.execute()`メソッドに関するドキュメント。ワークフローのステップを実行し、結果を返します。
+- [リファレンス: Workflow.if() | 条件分岐 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/if): Mastraワークフローの`.if()`メソッドに関するドキュメント。指定された条件に基づいて条件分岐を作成します。
+- [リファレンス: run.resume() | ワークフローの実行 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/resume): ワークフローにおける`.resume()`メソッドのドキュメント。一時停止されたワークフローステップの実行を継続します。
+- [.resumeWithEvent() メソッド | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/resumeWithEvent): イベントデータを使用して中断されたワークフローを再開する resumeWithEvent メソッドのリファレンス。
+- [リファレンス: Run.cancel() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/run-methods/cancel): ワークフローにおける `Run.cancel()` メソッドのリファレンス。ワークフローの実行をキャンセルします。
+- [リファレンス: Run.resume() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/run-methods/resume): ワークフローにおける `Run.resume()` メソッドのドキュメント。保留中のワークフロー実行を新しいデータで再開します。
+- [リファレンス: Run.start() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/run-methods/start): ワークフローで使用する `Run.start()` メソッドのドキュメント。入力データを用いてワークフロー実行を開始します。
+- [リファレンス: Run.stream() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/run-methods/stream): ワークフローで使用する `Run.stream()` メソッドのドキュメント。ワークフローの実行をストリーミング形式で監視できます。
+- [リファレンス: Run.streamVNext() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/run-methods/streamVNext): ワークフローにおける `Run.streamVNext()` メソッドのドキュメント。応答をリアルタイムでストリーミングします。
+- [リファレンス: Run.watch() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/run-methods/watch): ワークフローで使用する `Run.watch()` メソッドのドキュメント。ワークフロー実行の進行状況を監視できます。
+- [リファレンス: Run クラス | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/run): Mastra における Run クラスのドキュメント。ワークフローの実行インスタンスを表します。
+- [リファレンス: スナップショット | ワークフロー状態の永続化 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/snapshots): Mastraにおけるスナップショットに関する技術リファレンス - 一時停止と再開機能を可能にするシリアライズされたワークフロー状態
+- [リファレンス: start() | ワークフローの実行 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/start): ワークフローの実行を開始する`start()`メソッドのドキュメント。
+- [リファレンス: ステップ | ワークフローの構築 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/step-class): ワークフロー内の個々の作業単位を定義するステップクラスのドキュメント。
+- [リファレンス: StepCondition | ワークフローの構築 | Mastra](https://mastra.ai/ja/reference/workflows/step-condition): ワークフローのステップコンディションクラスに関するドキュメント。前のステップの出力またはトリガーデータに基づいて、ステップを実行するかどうかを決定します。
+- [リファレンス: Workflow.step() | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/step-function): ワークフローに新しいステップを追加する`.step()`メソッドのドキュメント。
+- [リファレンス: StepOptions | ワークフローの構築 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/step-options): ワークフローのステップオプションに関するドキュメント。変数マッピング、実行条件、その他のランタイム動作を制御します。
+- [ステップの再試行 | エラー処理 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/step-retries): 設定可能な再試行ポリシーでMastraワークフローの失敗したステップを自動的に再試行します。
+- [リファレンス: Step クラス | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/step): ワークフロー内の個々の作業単位を定義するMastraのStepクラスに関するドキュメント。
+- [リファレンス: suspend() | コントロールフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/suspend): Mastraワークフローにおけるsuspend関数のドキュメント。再開されるまで実行を一時停止します。
+- [リファレンス: Workflow.then() | ワークフローの構築 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/then): ワークフローにおける `.then()` メソッドのドキュメント。ステップ間の順次依存関係を作成します。
+- [リファレンス: Workflow.until() | ワークフロー内のループ処理 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/until): Mastra ワークフローにおける `.until()` メソッドのドキュメント。指定した条件が真になるまでステップを繰り返します。
+- [リファレンス: run.watch() | ワークフロー | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/watch): ワークフロー実行のステータスを監視する `.watch()` メソッドのドキュメント。
+- [リファレンス: Workflow.while() | ワークフロー内のループ処理 | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/while): Mastra ワークフローにおける `.while()` メソッドのドキュメント。指定した条件が真である限り、ステップを繰り返します。
+- [リファレンス: Workflow.branch() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/branch): ワークフローにおける `Workflow.branch()` メソッドのドキュメント。ステップ間に条件付きの分岐を作成します。
+- [リファレンス: Workflow.commit() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/commit): ワークフローで使用する `Workflow.commit()` メソッドのドキュメント。ワークフローを確定し、最終結果を返します。
+- [リファレンス: Workflow.createRunAsync() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/create-run): ワークフローで新しい実行インスタンスを作成する `Workflow.createRunAsync()` メソッドのドキュメント。
+- [リファレンス: Workflow.dountil() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/dountil): ワークフローの `Workflow.dountil()` メソッドに関するドキュメント。条件が満たされるまでステップを実行するループを作成します。
+- [リファレンス: Workflow.dowhile() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/dowhile): ワークフローで使用する `Workflow.dowhile()` メソッドのドキュメント。条件が満たされている間、ステップを実行し続けるループを作成します。
+- [リファレンス: Workflow.foreach() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/foreach): ワークフローにおける `Workflow.foreach()` メソッドのドキュメント。配列の各要素に対してステップを実行するループを作成します。
+- [リファレンス: Workflow.map() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/map): ワークフローにおける `Workflow.map()` メソッドのドキュメント。前のステップの出力データを後続のステップの入力に対応付けます。
+- [リファレンス: Workflow.parallel() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/parallel): ワークフローで複数のステップを並列に実行する `Workflow.parallel()` メソッドのドキュメントです。
+- [リファレンス: Workflow.sendEvent() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/sendEvent): ワークフローにおける `Workflow.sendEvent()` メソッドのドキュメント。イベントが送信されると、実行が再開されます。
+- [リファレンス: Workflow.sleep() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/sleep): ワークフローで使用する `Workflow.sleep()` メソッドのドキュメント。指定したミリ秒間、実行を一時停止します。
+- [リファレンス: Workflow.sleepUntil() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/sleepUntil): ワークフローにおける `Workflow.sleepUntil()` メソッドのドキュメント。指定した日時まで実行を停止します。
+- [リファレンス: Workflow.then() | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow-methods/then): ワークフローで `Workflow.then()` メソッドを使用して、ステップ間に順次的な依存関係を作成する方法のドキュメントです。
+- [リファレンス: Workflow.waitForEvent() | Workflows | Mastra ドキュメント](https://mastra.ai/ja/reference/workflows/workflow-methods/waitForEvent): ワークフローで使用する `Workflow.waitForEvent()` メソッドのリファレンス。イベントを受信するまで実行を停止します。
+- [リファレンス: Workflowクラス | Workflows | Mastra Docs](https://mastra.ai/ja/reference/workflows/workflow): Mastraの`Workflow`クラスのドキュメントです。条件分岐とデータ検証を含む複雑な操作シーケンスのステートマシンを作成することができます。
+
+## JA - showcase
+- [ショーケース](https://mastra.ai/ja/showcase): Mastraで構築されたこれらのアプリケーションをご覧ください
