@@ -396,10 +396,7 @@ export async function runGraphTurn(
   if ((awaitingSearchConsent && pendingSearchQuery) || (awaitingDeepResearch && pendingDeepResearchQuery)) {
     const pendingQuery = pendingSearchQuery || pendingDeepResearchQuery || '';
     
-    // Skip context check for obvious consent responses
-    const isSimpleConsent = /^(yes|no|sure|okay|ok)$/i.test(message.trim());
-    
-    if (!isSimpleConsent && pendingQuery) {
+    if (pendingQuery) {
       try {
         const contextPromptTemplate = await getPrompt('context_switch_detector');
         const contextPrompt = contextPromptTemplate
