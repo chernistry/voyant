@@ -861,12 +861,18 @@ export async function runGraphTurn(
   }
 
   if (!isComplexTravelQuery && uniqueDestinations.length > 1) {
-    return {
-      done: true,
-      reply:
-        `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. ` +
-        `Which specific destination would you like information about?${regexNote}`,
-    };
+    // Skip multiple destinations check for visa/policy questions
+    const isVisaQuestion = /\b(visa|passport|entry|immigration)\b/i.test(message);
+    if (isVisaQuestion) {
+      // Continue to routing instead of asking for clarification
+    } else {
+      return {
+        done: true,
+        reply:
+          `I see multiple destinations mentioned: ${uniqueDestinations.join(', ')}. ` +
+          `Which specific destination would you like information about?${regexNote}`,
+      };
+    }
   }
 
   // If this is complex and we are NOT already waiting on consent, set flags and ASK for consent now
@@ -1323,6 +1329,8 @@ async function policyNode(
   slots?: Record<string, string>,
   logger?: { log: pino.Logger }
 ): Promise<NodeOut> {
+  console.log('🔍 POLICY NODE CALLED:', ctx.msg);
+  
   const { PolicyAgent } = await import('./policy_agent.js');
   const agent = new PolicyAgent();
   
@@ -1334,9 +1342,42 @@ async function policyNode(
       logger?.log
     );
     
-    // Check if no results found in internal knowledge base
-    if (!citations.length || citations.every(c => !c.snippet?.trim())) {
-      // Set consent state for web search
+    if (logger?.log?.debug) {
+      logger.log.debug({ 
+        citationsLength: citations.length, 
+        hasSnippets: citations.some(c => c.snippet?.trim()),
+        message: ctx.msg 
+      }, '🔍 POLICY: RAG query results');
+    }
+    
+    // Check if no results found in internal knowledge base OR answer indicates no relevant info
+    const noRelevantInfo = !citations.length || 
+                          citations.every(c => !c.snippet?.trim()) ||
+                          /do not specify|cannot determine|not found|no information|don't contain/i.test(answer);
+    
+    if (noRelevantInfo) {
+      // For visa/immigration questions, automatically fall back to web search
+      if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(ctx.msg)) {
+        if (logger?.log?.debug) {
+          logger.log.debug({ message: ctx.msg }, '🔍 POLICY: No relevant RAG info for visa question, auto-fallback to web search');
+        }
+        
+        // Add friendly transition message
+        const transitionMessage = citations.length > 0 
+          ? "I haven't found this specific policy in our internal database, but let me search the web for current information:"
+          : "I don't have this information in our internal database, but let me search the web for current details:";
+        
+        const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
+        
+        // Prepend the transition message to the web search result
+        if ('reply' in webResult && webResult.reply) {
+          webResult.reply = `${transitionMessage}\n\n${webResult.reply}`;
+        }
+        
+        return webResult;
+      }
+      
+      // For other policy questions, ask for consent
       updateThreadSlots(ctx.threadId, {
         awaiting_web_search_consent: 'true',
         pending_web_search_query: ctx.msg
@@ -1397,7 +1438,7 @@ Type 'yes' to proceed with web search, or ask me something else.`;
     };
   } catch (error) {
     if (logger?.log?.warn) {
-      logger.log.warn({ error: String(error) }, '❌ PolicyAgent failed, falling back');
+      logger.log.warn({ error: String(error), message: ctx.msg }, '❌ PolicyAgent failed, falling back to web search');
     }
     
     // Fallback to web search

@@ -123,6 +123,22 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
   
+  // Handle visa questions early (before Transformers can misclassify as destinations)
+  if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(input.message)) {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ 
+        message: input.message.substring(0, 100),
+        reason: 'visa_keyword_detected'
+      }, '🏛️ POLICY: Early visa detection, routing to RAG system');
+    }
+    return RouterResult.parse({
+      intent: 'policy',
+      needExternal: true,
+      slots: ctxSlots,
+      confidence: 0.9
+    });
+  }
+  
   // Handle policy questions before explicit search (with safety check)
   if (contentClassification?.content_type === 'policy') {
     if (typeof input.logger?.log?.debug === 'function') {
