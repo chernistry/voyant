@@ -43,6 +43,18 @@ Output: {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.30,"m
 Input: "best places to visit in June from NYC"
 Output: {"intent":"destinations","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.85,"missingSlots":[]}
 
+Input: "what's the weather like?" (with context: {"city": "Paris"})
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"Paris"},"confidence":0.80,"missingSlots":[]}
+
+Input: "any good restaurants there?" (with context: {"city": "Tokyo"})
+Output: {"intent":"unknown","needExternal":true,"slots":{"city":"Tokyo"},"confidence":0.65,"missingSlots":[]}
+
+Input: "what should we do?" (ambiguous, no context)
+Output: {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.25,"missingSlots":["city"]}
+
+Input: "is it raining?" (with context: {"city": "London"})
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"London"},"confidence":0.75,"missingSlots":[]}
+
 Fallback guidelines:
 - If ambiguous, lower confidence ≤0.5 and list "missingSlots".
 - Prefer simple city names; normalize abbreviations (NYC→New York City, SF→San Francisco, LA→Los Angeles).

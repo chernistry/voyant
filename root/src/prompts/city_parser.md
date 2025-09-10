@@ -39,3 +39,9 @@ Few‑shot examples:
 - Input: "What to do there?" | Context: {} → {"city":"","normalized":"","confidence":0.30}
 - Input: "is it hot?" | Context: {"city":"Paris"} → {"city":"Paris","normalized":"Paris","confidence":0.60}
 - Input: "Погода в Москве" | Context: {} → {"city":"Moscow","normalized":"Moscow","confidence":0.95}
+- Input: "I love it here" | Context: {"city":"London"} → {"city":"London","normalized":"London","confidence":0.75}
+- Input: "What's the weather like there?" | Context: {"city":"Berlin"} → {"city":"Berlin","normalized":"Berlin","confidence":0.70}
+- Input: "Can you tell me about here?" | Context: {} → {"city":"","normalized":"","confidence":0.25}
+- Input: "Is it crowded there in June?" | Context: {"city":"Rome"} → {"city":"Rome","normalized":"Rome","confidence":0.80}
+- Input: "Tell me more about that place" | Context: {"city":"Madrid"} → {"city":"Madrid","normalized":"Madrid","confidence":0.65}
+- Input: "What should I do in that city?" | Context: {"city":"Barcelona"} → {"city":"Barcelona","normalized":"Barcelona","confidence":0.85}

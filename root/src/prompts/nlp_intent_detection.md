@@ -69,3 +69,21 @@ Output: {"intent":"unknown","confidence":0.40,"needExternal":true,"slots":{}}
 
 Input: "help me plan a trip" (very general)
 Output: {"intent":"destinations","confidence":0.60,"needExternal":false,"slots":{}}
+
+Input: "what should I do?" (ambiguous, no context)
+Output: {"intent":"unknown","confidence":0.25,"needExternal":false,"slots":{}}
+
+Input: "is it sunny?" (weather-related but missing location)
+Output: {"intent":"unknown","confidence":0.35,"needExternal":true,"slots":{"city":""}}
+
+Input: "where can I go?" (destination-related but missing details)
+Output: {"intent":"destinations","confidence":0.55,"needExternal":false,"slots":{}}
+
+Input: "what should I wear?" (packing-related but missing location)
+Output: {"intent":"unknown","confidence":0.40,"needExternal":false,"slots":{}}
+
+Input: "any good places?" (attraction-related but missing location)
+Output: {"intent":"unknown","confidence":0.30,"needExternal":false,"slots":{}}
+
+Input: "how much does it cost?" (budget-related but missing specifics)
+Output: {"intent":"unknown","confidence":0.45,"needExternal":true,"slots":{}}

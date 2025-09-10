@@ -26,3 +26,21 @@ Examples:
 - "possibly" → unclear
 - "sounds good to me" → yes
 - "I'd rather not" → no
+- "I suppose so" → yes
+- "not really" → no
+- "uh-huh" → yes
+- "uh-uh" → no
+- "I guess" → unclear
+- "perhaps" → unclear
+- "that works" → yes
+- "I don't think so" → no
+- "I'm good" → yes
+- "I'm okay" → yes
+- "nah" → no
+- "yea" → yes
+- "naw" → no
+- "I think so" → yes
+- "I don't know" → unclear
+- "I'm unsure" → unclear
+- "let me think" → unclear
+- "hold on" → unclear

@@ -25,6 +25,14 @@ Examples:
 - "Москва weather" → "Moscow"
 - "Tell me about travel" → ""
 
+Context-Aware Examples:
+- "What's the weather there?" (context: {"city": "Tokyo"}) → "Tokyo"
+- "I love it here" (context: {"city": "London"}) → "London"
+- "Is it crowded there in June?" (context: {"city": "Rome"}) → "Rome"
+- "What should I do in that city?" (context: {"city": "Barcelona"}) → "Barcelona"
+- "Can you tell me about here?" (context: {}) → ""
+- "What's the weather like there?" (context: {}) → ""
+
 User message: {message}
 
 City name:
@@ -34,3 +42,6 @@ Edge cases:
 - If message says "here/there" and context has city, prefer context city.
 - For ambiguous references like "there", use context when available.
 - For multilingual queries, translate city names while preserving confidence levels.
+- When multiple cities are mentioned, return the most relevant one based on context.
+- Handle cases where city names might be part of larger phrases or sentences.
+- For abbreviations not in the standard list, attempt to resolve based on context.

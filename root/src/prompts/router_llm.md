@@ -27,6 +27,9 @@ Multilingual Handling:
 - For non-English inputs, translate internally while preserving location names
 - Confidence may be slightly lower (0.1-0.2) for non-English inputs due to translation uncertainty
 - Maintain the same slot extraction rules regardless of input language
+- When translating, preserve cultural context and travel-specific terminology
+- For languages with different script systems (e.g., Cyrillic, Chinese), ensure accurate transliteration of city names
+- Handle mixed-language inputs by processing each language segment appropriately
 
 {instructions}
 
@@ -77,3 +80,18 @@ Output: {"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month"
 
 Input: "is it hot?" (ambiguous)
 Output: {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.30,"missingSlots":["city"]}
+
+Input: "Quel temps fait-il à Paris?" (French)
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"Paris"},"confidence":0.85,"missingSlots":[]}
+
+Input: "Qué hacer en Madrid?" (Spanish)
+Output: {"intent":"attractions","needExternal":false,"slots":{"city":"Madrid"},"confidence":0.80,"missingSlots":[]}
+
+Input: "东京の天気は？" (Japanese)
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"Tokyo"},"confidence":0.85,"missingSlots":[]}
+
+Input: "Погода в Берлине" (Russian)
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"Berlin"},"confidence":0.85,"missingSlots":[]}
+
+Input: "Previsão do tempo em Lisboa" (Portuguese)
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"Lisbon"},"confidence":0.80,"missingSlots":[]}

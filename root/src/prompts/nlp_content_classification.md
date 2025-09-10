@@ -33,6 +33,11 @@ Examples:
 - "What is the timeframe for Delta's cancellation policy?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "categories": ["special"], "confidence": 0.9}
 - "I need a hotel in Paris for 2 adults and 2 kids next month" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["accommodation", "location", "group", "time"], "confidence": 0.9}
 - "Looking for budget hotels in Tokyo for 2 adults and 2 kids next month" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["budget", "accommodation", "location", "group", "time"], "confidence": 0.9}
+- "What are the best family-friendly restaurants in Paris?" → {"content_type": "restaurant", "is_explicit_search": false, "needs_web_search": true, "categories": ["group", "location"], "confidence": 0.85}
+- "How much does it cost to travel to Japan for a family of four?" → {"content_type": "budget", "is_explicit_search": false, "needs_web_search": true, "categories": ["budget", "group", "location"], "confidence": 0.85}
+- "Can you search for flights from NYC to London next week?" → {"content_type": "flight", "is_explicit_search": true, "needs_web_search": true, "categories": ["transport", "location", "time"], "confidence": 0.9}
+- "I need help with my travel plans" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "categories": [], "confidence": 0.7}
+- "What's the weather like?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": [], "confidence": 0.5}
 
 System questions (about the AI assistant):
 - "can you help", "what can you do", "who are you", "how do you work", "tell me about yourself"
@@ -83,6 +88,12 @@ Edge Cases:
 - Ambiguous queries: Use lower confidence and consider multiple categories
 - Multilingual inputs: Process normally but may have slightly reduced confidence
 - Incomplete queries: Use lower confidence and note missing information
+- Mixed-category queries: When a query could belong to multiple categories, use moderate confidence and include all relevant categories
+- Overlapping keywords: When keywords from different categories appear, prioritize based on context and primary intent
+- Context-dependent classification: Use context to resolve ambiguity when the same phrase could belong to different categories
+- Mixed-category queries: When a query could belong to multiple categories, use medium confidence and include all relevant categories
+- Very short queries: Use lower confidence due to limited context
+- Queries with mixed languages: Set has_mixed_languages to true and adjust confidence accordingly
 
 User message: {message}
 

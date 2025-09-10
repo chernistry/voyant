@@ -40,3 +40,13 @@ Examples:
 - Input: "Jnne 2025" → {"dates":"June 2025","month":"June","confidence":0.80}
 - Input: "this weekend" → {"dates":"this weekend","month":"","confidence":0.65}
 - Input: "sometime" → {"dates":"sometime","month":"","confidence":0.30}
+- Input: "Mrch" → {"dates":"March","month":"March","confidence":0.80}
+- Input: "Jly" → {"dates":"July","month":"July","confidence":0.80}
+- Input: "Febuary" → {"dates":"February","month":"February","confidence":0.75}
+- Input: "Septemer" → {"dates":"September","month":"September","confidence":0.75}
+- Input: "Octorber" → {"dates":"October","month":"October","confidence":0.75}
+- Input: "Novemebr" → {"dates":"November","month":"November","confidence":0.75}
+- Input: "Decemer" → {"dates":"December","month":"December","confidence":0.75}
+- Input: "Janury" → {"dates":"January","month":"January","confidence":0.75}
+- Input: "Augest" → {"dates":"August","month":"August","confidence":0.75}
+- Input: "Aprill" → {"dates":"April","month":"April","confidence":0.75}

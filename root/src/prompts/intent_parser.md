@@ -46,3 +46,18 @@ Output: {"intent":"attractions","confidence":0.70,"slots":{"city":"Rome","month"
 
 Input: "best places to visit in summer" (partial information)
 Output: {"intent":"destinations","confidence":0.65,"slots":{"city":"","month":"","dates":"summer"}}
+
+Input: "what should I pack for my trip?" (general packing query)
+Output: {"intent":"packing","confidence":0.55,"slots":{"city":"","month":"","dates":""}}
+
+Input: "where should I go?" (general destination query)
+Output: {"intent":"destinations","confidence":0.50,"slots":{"city":"","month":"","dates":""}}
+
+Input: "help me plan" (very ambiguous)
+Output: {"intent":"unknown","confidence":0.20,"slots":{"city":"","month":"","dates":""}}
+
+Input: "Quel temps fait-il à Paris?" (French weather query)
+Output: {"intent":"weather","confidence":0.85,"slots":{"city":"Paris","month":"","dates":""}}
+
+Input: "What are the top attractions in London?" (clear attraction query)
+Output: {"intent":"attractions","confidence":0.90,"slots":{"city":"London","month":"","dates":""}}
