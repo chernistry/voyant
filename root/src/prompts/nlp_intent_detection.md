@@ -21,6 +21,12 @@ Intent definitions:
 Explicit search mapping (Option A alignment):
 - If the message explicitly asks to search (e.g., "search for", "google", "look up", "find info") or requests live data (events, restaurants, hotels, safety, transport, prices, visas, flights), keep intent within the allowed set (usually "unknown" or the closest domain) and set needExternal=true.
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear intent with strong signal words
+- 0.50-0.79: Clear intent but with some ambiguity
+- 0.20-0.49: Ambiguous intent that could belong to multiple categories
+- 0.00-0.19: No clear travel-related intent detected
+
 User message: {message}
 Context: {context}
 
@@ -50,3 +56,16 @@ Output: {"intent":"attractions","confidence":0.75,"needExternal":false,"slots":{
 
 Input: "Any festivals or events that week we should plan around?"
 Output: {"intent":"unknown","confidence":0.90,"needExternal":true,"slots":{}}
+
+Input: "is it hot?" (ambiguous)
+Output: {"intent":"unknown","confidence":0.30,"needExternal":false,"slots":{"city":""}}
+
+Input: "что взять в Токио в марте" (Russian)
+Output: {"intent":"packing","confidence":0.80,"needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"}}
+
+Edge Cases:
+Input: "I need to find..." (incomplete)
+Output: {"intent":"unknown","confidence":0.40,"needExternal":true,"slots":{}}
+
+Input: "help me plan a trip" (very general)
+Output: {"intent":"destinations","confidence":0.60,"needExternal":false,"slots":{}}

@@ -19,6 +19,12 @@ Rules:
 - Return high confidence for clear intents
 {contextInfo}
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear intent with strong signal words
+- 0.50-0.79: Clear intent but with some ambiguity
+- 0.20-0.49: Ambiguous intent that could belong to multiple categories
+- 0.00-0.19: No clear travel-related intent detected
+
 Input: "{text}"
 
 Output JSON only:
@@ -30,3 +36,13 @@ Output: {"intent":"weather","confidence":0.90,"slots":{"city":"New York","month"
 
 Input: "что взять в Токио в марте"
 Output: {"intent":"packing","confidence":0.85,"slots":{"city":"Tokyo","month":"March","dates":"March"}}
+
+Input: "is it hot?" (ambiguous)
+Output: {"intent":"unknown","confidence":0.30,"slots":{"city":"","month":"","dates":""}}
+
+Input: "what should I do there?" (context dependent)
+Context: {"city": "Rome"}
+Output: {"intent":"attractions","confidence":0.70,"slots":{"city":"Rome","month":"","dates":""}}
+
+Input: "best places to visit in summer" (partial information)
+Output: {"intent":"destinations","confidence":0.65,"slots":{"city":"","month":"","dates":"summer"}}

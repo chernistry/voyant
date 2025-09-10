@@ -15,6 +15,18 @@ Rules:
 - If NO dates/months mentioned, return confidence 0.0
 - Do NOT fabricate dates that aren't in the text
 
+Confidence Calibration Guidelines:
+- 0.90-1.00: Specific date ranges or exact months
+- 0.70-0.89: General time references (summer, winter, next week)
+- 0.50-0.69: Single months or seasons
+- 0.20-0.49: Ambiguous or vague time references
+- 0.00-0.19: No clear time reference
+
+Typo Handling Guidelines:
+- Common typos should be corrected with slightly reduced confidence
+- If multiple corrections are possible, use lower confidence (0.50-0.69)
+- Very unclear typos should result in low confidence or 0.0
+
 Input: "{text}"
 Context: {context}
 
@@ -25,3 +37,6 @@ Examples:
 - Input: "June 24-28" → {"dates":"June 24-28","month":"June","confidence":0.95}
 - Input: "next week" → {"dates":"next week","month":"","confidence":0.70}
 - Input: "15-20 июня" → {"dates":"15-20 June","month":"June","confidence":0.85}
+- Input: "Jnne 2025" → {"dates":"June 2025","month":"June","confidence":0.80}
+- Input: "this weekend" → {"dates":"this weekend","month":"","confidence":0.65}
+- Input: "sometime" → {"dates":"sometime","month":"","confidence":0.30}

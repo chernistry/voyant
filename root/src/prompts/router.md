@@ -48,6 +48,12 @@ CRITICAL RULES for slot extraction:
 - If month or explicit date range present for destinations/packing, set needExternal=true.
 - Confidence in [0..1]. Use <=0.5 when unsure; choose "unknown" when unclear or unrelated.
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear intent with all required slots present
+- 0.50-0.79: Clear intent but with some missing or ambiguous slots
+- 0.20-0.49: Ambiguous intent that could belong to multiple categories
+- 0.00-0.19: No clear travel-related intent detected
+
 Output (strict JSON only):
 {"intent":"destinations|packing|attractions|weather|unknown","needExternal":true|false,
  "slots":{"city":"CLEAN_CITY_NAME","month":"...","dates":"...","travelerProfile":"..."},"confidence":0..1,
@@ -65,4 +71,26 @@ Edge‑case examples:
 {"intent":"packing","needExternal":false,"slots":{"city":"San Francisco","dates":"winter"},"confidence":0.78,"missingSlots":[]}
 {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.3,"missingSlots":[]}
 {"intent":"attractions","needExternal":true,"slots":{"city":"Rome"},"confidence":0.73,"missingSlots":["city"]}
+{"intent":"weather","needExternal":true,"slots":{"city":"Barcelona","dates":"this weekend"},"confidence":0.65,"missingSlots":[]}
+{"intent":"destinations","needExternal":true,"slots":{"city":"Tel Aviv","month":"August"},"confidence":0.82,"missingSlots":[]}
+{"intent":"unknown","needExternal":true,"slots":{},"confidence":0.45,"missingSlots":[]}
+{"intent":"unknown","needExternal":false,"slots":{},"confidence":0.25,"missingSlots":[]}
+{"intent":"weather","needExternal":true,"slots":{"city":"London","dates":"today"},"confidence":0.90,"missingSlots":[]}
+{"intent":"packing","needExternal":false,"slots":{"city":"Paris","month":"July"},"confidence":0.80,"missingSlots":[]}
+```
+
+Multilingual Examples:
+```json
+{"intent":"weather","needExternal":true,"slots":{"city":"Moscow"},"confidence":0.90,"missingSlots":[]}
+{"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month":"March"},"confidence":0.85,"missingSlots":[]}
+{"intent":"destinations","needExternal":false,"slots":{"dates":"summer"},"confidence":0.70,"missingSlots":["city"]}
+{"intent":"attractions","needExternal":false,"slots":{"city":"Berlin"},"confidence":0.85,"missingSlots":[]}
+```
+
+Ambiguous Case Examples:
+```json
+{"intent":"unknown","needExternal":false,"slots":{},"confidence":0.40,"missingSlots":[]}
+{"intent":"weather","needExternal":true,"slots":{"city":"Sydney","dates":"next week"},"confidence":0.75,"missingSlots":[]}
+{"intent":"unknown","needExternal":true,"slots":{},"confidence":0.35,"missingSlots":[]}
+{"intent":"destinations","needExternal":false,"slots":{"dates":"June"},"confidence":0.65,"missingSlots":["city"]}
 ```

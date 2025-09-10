@@ -9,10 +9,21 @@ Rules:
 - Prefer explicit temperatures (°C/°F) or high/low if present; otherwise provide a short paraphrase grounded in Results.
 - If Results lack weather info for the city, return {"summary": ""}.
 
+Confidence Calibration Guidelines:
+- High confidence (0.80-1.00): Clear weather information with specific data
+- Medium confidence (0.50-0.79): General weather information without specific data
+- Low confidence (0.20-0.49): Limited or ambiguous weather information
+- Very low confidence (0.00-0.19): No relevant weather information
+
 City: {city}
 
 Results:
 {results}
 
 Output STRICT JSON only with key "summary".
+
+Examples:
+- With temperature data: {"summary": "Current weather in Paris: 22°C with sunny conditions"}
+- Without specific data: {"summary": "Weather in Tokyo: Generally mild with occasional rain"}
+- No relevant data: {"summary": ""}
 

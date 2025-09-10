@@ -10,6 +10,12 @@ Rules:
 - For destination-discovery queries ("where to go", "destinations from X"), include "from <origin>" and time window.
 - Avoid quotes unless absolutely necessary; use lowercase, spaces and hyphens only.
 
+Confidence Calibration Guidelines:
+- High confidence (0.80-1.00): Clear optimization with all relevant keywords
+- Medium confidence (0.50-0.79): Good optimization but missing some context
+- Low confidence (0.20-0.49): Basic optimization with limited keywords
+- Very low confidence (0.00-0.19): Poor optimization missing key information
+
 Examples:
 - "What's the weather like in Paris today?" → "paris weather today"
 - "I need to find cheap flights from NYC to London" → "cheap flights nyc london"
@@ -19,6 +25,11 @@ Examples:
 - "What are visa requirements for Germans in Israel?" → "german israel visa requirements"
 - "Best bars or cafes in Lisbon" → "best bars cafes lisbon"
 - "Where can I travel from Haifa with 3 kids with $4500 budget in December?" → "family destinations from haifa december under 4500 usd"
+
+Edge Cases:
+- Ambiguous queries: Focus on the core intent and include available context
+- Multilingual queries: Translate to English while preserving location names
+- Incomplete queries: Optimize based on available information
 
 User query: {query}
 Context: {context}

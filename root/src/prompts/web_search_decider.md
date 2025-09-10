@@ -18,6 +18,12 @@ Return "no" if it asks about:
 - What to pack (use weather API)
 - General destination advice
 
+Confidence Calibration Guidelines:
+- High confidence (0.80-1.00): Clear distinction between web search and API use
+- Medium confidence (0.50-0.79): Borderline cases that could go either way
+- Low confidence (0.20-0.49): Ambiguous queries requiring careful consideration
+- Very low confidence (0.00-0.19): Unclear or unrelated queries
+
 Output strictly one word: yes or no
 
 Examples:
@@ -25,3 +31,7 @@ Examples:
 - "Weather in Paris today" → no
 - "Best restaurants in Rome" → yes
 - "What to pack for London in winter" → no
+- "What are the current safety concerns in Egypt?" → yes
+- "What's the weather like in Tokyo?" → no
+- "How much does it cost to visit Italy for a week?" → yes
+- "What are the top attractions in Paris?" → no

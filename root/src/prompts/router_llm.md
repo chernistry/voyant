@@ -17,6 +17,17 @@ Guidelines:
 - Set `confidence` in [0,1]; use ≤0.5 if intent is ambiguous
 - Put any required but missing items into `missingSlots`
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear intent with all required slots present
+- 0.50-0.79: Clear intent but with some missing or ambiguous slots
+- 0.20-0.49: Ambiguous intent that could belong to multiple categories
+- 0.00-0.19: No clear travel-related intent detected
+
+Multilingual Handling:
+- For non-English inputs, translate internally while preserving location names
+- Confidence may be slightly lower (0.1-0.2) for non-English inputs due to translation uncertainty
+- Maintain the same slot extraction rules regardless of input language
+
 {instructions}
 
 User: {message}
@@ -60,3 +71,9 @@ Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Tel Aviv",
 
 Input: "Going to LA 10/12–10/15 for a conference—what should I bring?"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"Los Angeles","month":"October","dates":"2025-10-12 to 2025-10-15","travelerProfile":"business"},"confidence":0.85,"missingSlots":[]}
+
+Input: "что взять в Токио в марте" (Russian)
+Output: {"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"},"confidence":0.80,"missingSlots":[]}
+
+Input: "is it hot?" (ambiguous)
+Output: {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.30,"missingSlots":["city"]}

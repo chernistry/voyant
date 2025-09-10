@@ -9,10 +9,21 @@ Rules:
 - Use only attraction names present in Results (titles or descriptions). Do not invent or guess.
 - If no attractions found, return {"summary": ""}.
 
+Confidence Calibration Guidelines:
+- High confidence (0.80-1.00): Clear extraction of multiple attractions
+- Medium confidence (0.50-0.79): Extraction of some attractions
+- Low confidence (0.20-0.49): Limited or ambiguous attraction information
+- Very low confidence (0.00-0.19): No relevant attraction information
+
 City: {city}
 
 Results:
 {results}
 
 Output STRICT JSON only with key "summary".
+
+Examples:
+- With attractions: {"summary": "Popular attractions in Paris: Eiffel Tower, Louvre Museum, Notre-Dame Cathedral"}
+- With fewer attractions: {"summary": "Popular attractions in London: Tower of London, Buckingham Palace"}
+- No relevant data: {"summary": ""}
 

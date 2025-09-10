@@ -9,10 +9,21 @@ Rules:
 - Prefer currency code/name, primary language(s), and capital if explicitly found. If absent, produce an empty summary.
 - Do not invent or infer missing facts.
 
+Confidence Calibration Guidelines:
+- High confidence (0.80-1.00): Clear extraction of multiple country facts
+- Medium confidence (0.50-0.79): Extraction of some country facts
+- Low confidence (0.20-0.49): Limited or ambiguous country facts
+- Very low confidence (0.00-0.19): No relevant country information
+
 Country: {country}
 
 Results:
 {results}
 
 Output STRICT JSON only with key "summary".
+
+Examples:
+- With complete information: {"summary": "Japan: Capital Tokyo, Japanese yen (JPY), Japanese language"}
+- With partial information: {"summary": "France: Capital Paris, French language"}
+- No relevant data: {"summary": ""}
 

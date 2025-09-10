@@ -7,6 +7,12 @@ Hard requirements:
 - `has_mixed_languages` is true when the message clearly contains multiple languages or scripts (e.g., Latin + Cyrillic); otherwise false.
 - `categories` should include constraint categories detected in the message (e.g., budget, group, special, accommodation, transport, time, location, person).
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear classification with strong signal words
+- 0.50-0.79: Clear classification but with some ambiguity
+- 0.20-0.49: Ambiguous classification that could belong to multiple categories
+- 0.00-0.19: No clear classification possible
+
 Examples:
 - "Hey can you help plan a trip?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "categories": [], "confidence": 0.9}
 - "From NYC, end of June. Ideas?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["location", "time"], "confidence": 0.9}
@@ -72,6 +78,11 @@ Content types:
 - flight: airlines, flights, bookings, tickets
 - gibberish: nonsensical text
 - emoji_only: only emojis
+
+Edge Cases:
+- Ambiguous queries: Use lower confidence and consider multiple categories
+- Multilingual inputs: Process normally but may have slightly reduced confidence
+- Incomplete queries: Use lower confidence and note missing information
 
 User message: {message}
 

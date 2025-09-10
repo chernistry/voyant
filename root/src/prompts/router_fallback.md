@@ -21,6 +21,12 @@ Output (strict JSON only):
   "missingSlots": ["city"|"dates"|"month"|...]
 }
 
+Confidence Calibration Guidelines:
+- 0.80-1.00: Clear intent with all required slots present
+- 0.50-0.79: Clear intent but with some missing or ambiguous slots
+- 0.20-0.49: Ambiguous intent that could belong to multiple categories
+- 0.00-0.19: No clear travel-related intent detected
+
 Few‑shot examples:
 Input: "summer weather in Barcelona"
 Output: {"intent":"weather","needExternal":true,"slots":{"city":"Barcelona","dates":"summer"},"confidence":0.82,"missingSlots":[]}
@@ -28,7 +34,18 @@ Output: {"intent":"weather","needExternal":true,"slots":{"city":"Barcelona","dat
 Input: "what should I pack for SF?"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"San Francisco"},"confidence":0.78,"missingSlots":[]}
 
+Input: "what should I do there?" (with context: {"city": "Rome"})
+Output: {"intent":"attractions","needExternal":false,"slots":{"city":"Rome"},"confidence":0.70,"missingSlots":[]}
+
+Input: "is it hot?" (ambiguous)
+Output: {"intent":"unknown","needExternal":false,"slots":{},"confidence":0.30,"missingSlots":["city"]}
+
+Input: "best places to visit in June from NYC"
+Output: {"intent":"destinations","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.85,"missingSlots":[]}
+
 Fallback guidelines:
 - If ambiguous, lower confidence ≤0.5 and list "missingSlots".
 - Prefer simple city names; normalize abbreviations (NYC→New York City, SF→San Francisco, LA→Los Angeles).
 - Use provided context slots to fill gaps when user refers to "here/there".
+- When context slots are used, confidence should reflect the certainty of the context match.
+- For multilingual inputs, translate internally but preserve location names; confidence may be slightly lower for non-English inputs.
