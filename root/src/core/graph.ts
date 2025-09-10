@@ -392,16 +392,69 @@ export async function runGraphTurn(
   const awaitingDeepResearch = threadSlots.awaiting_deep_research_consent === 'true';
   const pendingDeepResearchQuery = threadSlots.pending_deep_research_query;
   
+  // Detect context switching using LLM - clear unrelated pending queries
+  if ((awaitingSearchConsent && pendingSearchQuery) || (awaitingDeepResearch && pendingDeepResearchQuery)) {
+    const pendingQuery = pendingSearchQuery || pendingDeepResearchQuery || '';
+    
+    // Skip context check for obvious consent responses
+    const isSimpleConsent = /^(yes|no|sure|okay|ok)$/i.test(message.trim());
+    
+    if (!isSimpleConsent && pendingQuery) {
+      try {
+        const contextPrompt = `Compare these two travel queries and determine if they are about the same trip/topic:
+
+Current query: "${message}"
+Previous query: "${pendingQuery}"
+
+Are these queries related to the same travel context? Reply only "SAME" or "DIFFERENT".`;
+
+        const contextResponse = await callLLM(contextPrompt, { 
+          log: ctx.log
+        });
+        
+        const isDifferentContext = contextResponse.toLowerCase().includes('different');
+        
+        if (isDifferentContext) {
+          ctx.log.info({ 
+            currentQuery: message, 
+            pendingQuery, 
+            contextResponse,
+            isDifferentContext 
+          }, '🔍 CONTEXT: LLM detected context switch, clearing pending queries');
+          
+          updateThreadSlots(threadId, { 
+            awaiting_search_consent: '', 
+            pending_search_query: '',
+            awaiting_deep_research_consent: '',
+            pending_deep_research_query: '',
+            complexity_reasoning: ''
+          }, []);
+          
+          // Continue processing with cleared state - no recursive call needed
+        }
+      } catch (error) {
+        ctx.log.warn({ error }, '🔍 CONTEXT: LLM context detection failed, keeping pending state');
+      }
+    }
+  }
+  
+  // Re-fetch slots after potential clearing
+  const currentSlots = getThreadSlots(threadId);
+  const currentAwaitingSearchConsent = currentSlots.awaiting_search_consent === 'true';
+  const currentPendingSearchQuery = currentSlots.pending_search_query;
+  const currentAwaitingDeepResearch = currentSlots.awaiting_deep_research_consent === 'true';
+  const currentPendingDeepResearchQuery = currentSlots.pending_deep_research_query;
+  
   ctx.log.info({ 
-    threadSlots,
-    awaitingDeepResearch,
-    pendingDeepResearchQuery,
-    awaitingSearchConsent,
-    pendingSearchQuery,
+    threadSlots: currentSlots,
+    awaitingDeepResearch: currentAwaitingDeepResearch,
+    pendingDeepResearchQuery: currentPendingDeepResearchQuery,
+    awaitingSearchConsent: currentAwaitingSearchConsent,
+    pendingSearchQuery: currentPendingSearchQuery,
     threadId
   }, '🔍 THREAD: Slots state check');
   
-  if (awaitingSearchConsent && pendingSearchQuery) {
+  if (currentAwaitingSearchConsent && currentPendingSearchQuery) {
     const consent = await detectConsent(message, ctx, turnCache);
     const isConsentResponse = consent !== 'unclear';
     
@@ -417,8 +470,8 @@ export async function runGraphTurn(
       if (isPositiveConsent) {
         // Optimize the pending search query
         const optimizedQuery = await optimizeSearchQuery(
-          pendingSearchQuery,
-          threadSlots,
+          currentPendingSearchQuery,
+          currentSlots,
           'web_search',
           ctx.log
         );
@@ -434,10 +487,10 @@ export async function runGraphTurn(
   }
 
   // Handle consent responses for deep research
-  if (awaitingDeepResearch && pendingDeepResearchQuery) {
+  if (currentAwaitingDeepResearch && currentPendingDeepResearchQuery) {
     ctx.log.info({ 
-      awaitingDeepResearch, 
-      pendingDeepResearchQuery, 
+      awaitingDeepResearch: currentAwaitingDeepResearch, 
+      pendingDeepResearchQuery: currentPendingDeepResearchQuery, 
       message,
       threadId 
     }, '🔍 CONSENT: Deep research consent check triggered');
@@ -455,7 +508,9 @@ export async function runGraphTurn(
         "This looks complex. I can research live options and search the web to build a plan. " +
         "Proceed with web/deep research? Reply 'yes' to continue or 'no' to skip.";
       // Use semantic similarity to detect if user switched topics
-      const isSemanticContextSwitch = await isContextSwitchQuery(message, pendingDeepResearchQuery, ctx, turnCache);
+      const isSemanticContextSwitch = currentPendingDeepResearchQuery ? 
+        await isContextSwitchQuery(message, currentPendingDeepResearchQuery, ctx, turnCache) : 
+        false;
       
       if (isSemanticContextSwitch) {
         ctx.log.info({ isContextSwitch: true }, '🔍 CONSENT: Context switch detected, clearing state');
@@ -492,11 +547,11 @@ export async function runGraphTurn(
           }, []);
           
           if (isPositive) {
-            ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
-            return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
+            ctx.log.info({ query: currentPendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
+            return await performDeepResearchNode(currentPendingDeepResearchQuery, ctx, threadId);
           } else {
             // Fall back to standard routing with the pending query
-            const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
+            const routeResult = await routeIntentNode({ msg: currentPendingDeepResearchQuery, threadId }, ctx);
             if ('done' in routeResult) return routeResult;
             return { next: routeResult.next, slots: routeResult.slots };
           }
@@ -534,11 +589,11 @@ export async function runGraphTurn(
         }, []);
         
         if (isPositive) {
-          ctx.log.info({ query: pendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
-          return await performDeepResearchNode(pendingDeepResearchQuery, ctx, threadId);
+          ctx.log.info({ query: currentPendingDeepResearchQuery }, '🚀 CONSENT: Executing deep research');
+          return await performDeepResearchNode(currentPendingDeepResearchQuery, ctx, threadId);
         } else {
           // Fall back to standard routing with the pending query
-          const routeResult = await routeIntentNode({ msg: pendingDeepResearchQuery, threadId }, ctx);
+          const routeResult = await routeIntentNode({ msg: currentPendingDeepResearchQuery, threadId }, ctx);
           if ('done' in routeResult) return routeResult;
           return { next: routeResult.next, slots: routeResult.slots };
         }
