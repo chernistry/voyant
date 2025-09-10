@@ -11,22 +11,11 @@ Return strict JSON with:
 - needExternal: boolean (true if external APIs needed)
 - slots: { city?: string, dates?: string, month?: string, originCity?: string, destinationCity?: string, departureDate?: string, returnDate?: string, passengers?: number, cabinClass?: string }
 
-CRITICAL: Date formatting depends on intent type:
-
-For FLIGHTS intent:
-For FLIGHTS intent:
-- departureDate/returnDate: MUST be YYYY-MM-DD format (e.g., "2025-09-24")
-- This is required for Amadeus flight API compatibility
-- Convert ALL date inputs to this exact format:
-  * "12-10-2025" → "2025-10-12" (DD-MM-YYYY to YYYY-MM-DD)
-  * "September 24" → "2025-09-24"
-  * "Oct 15 2025" → "2025-10-15"
-- If year missing, assume 2025
-- If date is vague ("next month"), leave departureDate empty, use "dates" field
-
-For ALL OTHER intents (weather, attractions, etc.):
-- dates/month: Keep natural language (e.g., "September", "next week", "March 2025")
-- Do NOT use departureDate/returnDate fields for non-flight queries
+Date extraction rules:
+- Extract dates in natural language format (e.g., "October 12", "next month", "March 2025")
+- Use departureDate/returnDate for flight-related queries
+- Use dates/month for general travel queries
+- ALWAYS extract BOTH originCity and destinationCity from "from X to Y" patterns
 
 Intent definitions:
 - weather: asking about weather conditions, temperature, forecast
@@ -58,18 +47,21 @@ Return strict JSON:
 
 Few‑shot examples:
 
-FLIGHTS (use YYYY-MM-DD format):
+FLIGHTS (extract natural language dates):
 Input: "flights from NYC to London on March 15"
-Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"New York City","destinationCity":"London","departureDate":"2025-03-15","passengers":1}}
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"New York City","destinationCity":"London","departureDate":"March 15","passengers":1}}
+
+Input: "Find me flights from Moscow to Obzor 24th september 2025"
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Moscow","destinationCity":"Obzor","departureDate":"24th september 2025","passengers":1}}
 
 Input: "flights from tel aviv to moscow september 24 2025 one way"
-Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Tel Aviv","destinationCity":"Moscow","departureDate":"2025-09-24","passengers":1}}
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Tel Aviv","destinationCity":"Moscow","departureDate":"september 24 2025","passengers":1}}
 
 Input: "flights from moscow to tel aviv 12-10-2025 one way"
-Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Moscow","destinationCity":"Tel Aviv","departureDate":"2025-10-12","passengers":1}}
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Moscow","destinationCity":"Tel Aviv","departureDate":"12-10-2025","passengers":1}}
 
 Input: "business class flights from LAX to Paris on December 1st 2025"
-Output: {"intent":"flights","confidence":0.92,"needExternal":true,"slots":{"originCity":"Los Angeles","destinationCity":"Paris","departureDate":"2025-12-01","cabinClass":"business","passengers":1}}
+Output: {"intent":"flights","confidence":0.92,"needExternal":true,"slots":{"originCity":"Los Angeles","destinationCity":"Paris","departureDate":"December 1st 2025","cabinClass":"business","passengers":1}}
 
 Input: "find me a round trip flight to Tokyo next month"
 Output: {"intent":"flights","confidence":0.90,"needExternal":true,"slots":{"destinationCity":"Tokyo","dates":"next month","passengers":1}}

@@ -694,36 +694,10 @@ export async function runGraphTurn(
     ctx.log.error({ error: String(error) }, '🔍 ENTITY: AI extraction failed, using regex fallback');
   }
   
-  // Stage 3: Regex fallback (only if AI methods failed) — guarded
+  // Stage 3: Skip regex fallback - rely fully on LLM for better accuracy
+  // Regex fallback disabled to prevent false positives like "Find" being treated as a city
   if (actualCities.length === 0) {
-    const tokens = message.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3}\b/g) || [];
-    const questionWords = new Set(['what', 'where', 'when', 'how', 'which', 'who', 'why', 'can', 'should', 'do', 'is', 'are', 'will', 'would', 'could']);
-    const candidates = Array.from(new Set(tokens))
-      .filter(tok => MULTIWORD_PROPER.test(tok) && 
-                     !BRAND_DENY.has(tok.toLowerCase()) && 
-                     !questionWords.has(tok.toLowerCase()));
-
-    const validated: string[] = [];
-    for (const c of candidates) {
-      // Validate via geocoder to avoid brands/noise
-      // eslint-disable-next-line no-await-in-loop
-      if (await isRealCity(c, ctx.log)) validated.push(c);
-    }
-
-    if (validated.length === 0 && candidates.length > 0) {
-      return {
-        done: true,
-        reply: `I spotted ${candidates.slice(0, 3).join(', ')} in your message. Which city did you mean?`
-      };
-    }
-
-    if (validated.length > 0) {
-      actualCities = validated;
-      extractionMethod = 'regex_geocode';
-      extractionConfidence = 0.75;
-      ctx.log.info({ cities: actualCities, method: extractionMethod, confidence: extractionConfidence },
-        '🔍 ENTITY: Regex fallback validated via geocode');
-    }
+    ctx.log.debug('🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy');
   }
   
   // Confidence-driven routing with explicit thresholds
@@ -1283,7 +1257,7 @@ async function flightsNode(
     const result = await searchFlights({
       origin: mergedSlots.originCity,
       destination: mergedSlots.destinationCity || mergedSlots.city,
-      departureDate: departureDate ? convertToAmadeusDate(departureDate) : undefined,
+      departureDate: departureDate ? await convertToAmadeusDate(departureDate) : undefined,
       returnDate: returnDate ? returnDate : undefined,
       passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
       cabinClass: mergedSlots.cabinClass,

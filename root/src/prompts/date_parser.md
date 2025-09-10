@@ -52,3 +52,7 @@ Examples:
 - Input: "2025-12-24" → {"dates":"December 24, 2025","month":"December","confidence":0.95}
 - Input: "Augest" → {"dates":"August","month":"August","confidence":0.75}
 - Input: "Aprill" → {"dates":"April","month":"April","confidence":0.75}
+- Input: "12th of October" → {"dates":"October 12","month":"October","confidence":0.90}
+- Input: "October 12" → {"dates":"October 12","month":"October","confidence":0.95}
+- Input: "12-10-2025" → {"dates":"October 12, 2025","month":"October","confidence":0.95}
+- Input: "24th september 2025" → {"dates":"September 24, 2025","month":"September","confidence":0.95}

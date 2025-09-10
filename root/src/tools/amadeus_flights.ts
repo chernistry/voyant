@@ -239,59 +239,57 @@ async function searchAmadeusFlights(params: FlightSearchParams): Promise<FlightS
   }
 }
 
-function convertToAmadeusDate(dateStr: string): string {
+async function convertToAmadeusDate(dateStr: string): Promise<string> {
   // If already in YYYY-MM-DD format, return as-is
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
   
-  // Handle DD-MM-YYYY format specifically (like 12-10-2025)
-  const dmyMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (dmyMatch) {
-    const [, day, month, year] = dmyMatch;
-    if (day && month && year) {
-      // For DD-MM-YYYY format, we need to be more specific
-      // Let's check if the first number is likely a day (≤31) and second is likely a month (≤12)
-      const dayNum = parseInt(day, 10);
-      const monthNum = parseInt(month, 10);
-      
-      // If first number > 12, it's likely DD-MM-YYYY
-      if (dayNum > 12) {
-        const paddedDay = day.padStart(2, '0');
-        const paddedMonth = month.padStart(2, '0');
-        return `${year}-${paddedMonth}-${paddedDay}`;
-      }
-      
-      // If second number > 12, it's likely MM-DD-YYYY
-      if (monthNum > 12) {
-        const paddedMonth = day.padStart(2, '0');
-        const paddedDay = month.padStart(2, '0');
-        return `${year}-${paddedMonth}-${paddedDay}`;
-      }
-      
-      // If second number > 31, it's likely MM-DD-YYYY
-      if (monthNum > 31) {
-        const paddedMonth = day.padStart(2, '0');
-        const paddedDay = month.padStart(2, '0');
-        return `${year}-${paddedMonth}-${paddedDay}`;
-      }
-      
-      // Default to DD-MM-YYYY (European format) as that's what the error shows
-      const paddedDay = day.padStart(2, '0');
-      const paddedMonth = month.padStart(2, '0');
-      return `${year}-${paddedMonth}-${paddedDay}`;
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  
+  // Handle common formats directly
+  if (dateStr.match(/^(October|Oct)\s+(\d{1,2})$/i)) {
+    const day = dateStr.match(/(\d{1,2})/)?.[1];
+    if (day) {
+      const testDate = new Date(currentYear, 9, parseInt(day)); // October = month 9
+      const targetYear = testDate < today ? currentYear + 1 : currentYear;
+      return `${targetYear}-10-${day.padStart(2, '0')}`;
     }
   }
   
-  // Try to parse various other formats and convert to YYYY-MM-DD
-  const date = new Date(dateStr);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString().split('T')[0] || `${new Date().getFullYear()}-01-01`;
+  try {
+    // Use dedicated date parser for other formats
+    const promptTemplate = await getPrompt('date_parser');
+    const prompt = promptTemplate.replace('{text}', dateStr).replace('{context}', 'flight booking');
+    const response = await callLLM(prompt);
+    const parsed = JSON.parse(response);
+    
+    if (parsed.confidence > 0.5 && parsed.dates) {
+      let date = new Date(parsed.dates);
+      if (!isNaN(date.getTime())) {
+        // If date is in the past, assume next year
+        if (date < today) {
+          date.setFullYear(date.getFullYear() + 1);
+        }
+        return date.toISOString().split('T')[0] || `${currentYear}-01-01`;
+      }
+    }
+  } catch (error) {
+    console.debug('Date parser failed, using fallback:', error);
   }
   
-  // Fallback: assume current year if parsing fails
-  const currentYear = new Date().getFullYear();
-  return `${currentYear}-01-01`;
+  // Fallback: try basic parsing
+  let date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    if (date < today) {
+      date.setFullYear(date.getFullYear() + 1);
+    }
+    return date.toISOString().split('T')[0] || `${currentYear}-01-01`;
+  }
+  
+  // Last resort
+  return `${currentYear + 1}-01-01`;
 }
 
 export { convertToAmadeusDate };
@@ -314,8 +312,14 @@ export async function searchFlights(input: {
   const destinationCode = await getIataCode(input.destination);
 
   // Convert dates to Amadeus format (YYYY-MM-DD)
-  const formattedDepartureDate = convertToAmadeusDate(input.departureDate);
-  const formattedReturnDate = input.returnDate ? convertToAmadeusDate(input.returnDate) : undefined;
+  const formattedDepartureDate = await convertToAmadeusDate(input.departureDate);
+  const formattedReturnDate = input.returnDate ? await convertToAmadeusDate(input.returnDate) : undefined;
+
+  console.debug('Date conversion:', {
+    input: input.departureDate,
+    output: formattedDepartureDate,
+    today: new Date().toISOString().split('T')[0]
+  });
 
   // Convert cabin class to Amadeus format
   let travelClass: FlightSearchParams['travelClass'] = 'ECONOMY';
