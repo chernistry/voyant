@@ -4,7 +4,7 @@ Builds trust, then answers fast.
 
 ![Voyant Travel Assistant Screenshot](./assets/screenshot.png)
 
-Short, production‑minded demo of a travel assistant: LLM for NLP, API‑first facts (Open‑Meteo, REST Countries, OpenTripMap), consented web/deep search fallback, strict guardrails (no fabricated citations), receipts + self‑check, metrics, and clean CLI/HTTP interfaces.
+Short, production‑minded demo of a travel assistant: LLM for NLP, API‑first facts (Open‑Meteo, REST Countries, OpenTripMap, Amadeus), consented web/deep search fallback, strict guardrails (no fabricated citations), receipts + self‑check, metrics, and clean CLI/HTTP interfaces.
 
 ## Quick Start
 ```bash
@@ -19,12 +19,14 @@ npm run dev
 
 ## Minimal Config
 - LLM: set one of `OPENROUTER_API_KEY` or `LLM_PROVIDER_BASEURL` + `LLM_API_KEY` (+ optional `LLM_MODEL`).
+- Flight search: `AMADEUS_CLIENT_ID` + `AMADEUS_CLIENT_SECRET` for live flight data.
 - Optional external: `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `OPENTRIPMAP_API_KEY`, `VECTARA_API_KEY`.
 - Search provider: set `SEARCH_PROVIDER=brave|tavily` (default `brave`). Both providers support web search with automatic fallback for visa/policy questions.
 - Flags: `METRICS=json|prom`, `DEEP_RESEARCH_ENABLED=true`, `POLICY_RAG=on`.
 
 ## Highlights
-- 8 intents (weather, packing, destinations, attractions, policy, system, web_search, unknown) with context and targeted clarifiers.
+- 9 intents (weather, packing, destinations, attractions, flights, policy, system, web_search, unknown) with context and targeted clarifiers.
+- Live flight search via Amadeus API with complete itineraries, pricing, and booking details.
 - API‑first facts with receipts and self‑verification; no fake citations.
 - Web/deep search only with user consent; query optimizer reduces noise.
 - Resilience: timeouts, retries with jitter, host allowlist, `/metrics` (Prom/JSON), circuit breaker + rate limiting.
@@ -32,6 +34,7 @@ npm run dev
 - Enterprise RAG: Vectara integration for policy documents with paragraph-level citations.
 
 ## Roadmap (selected)
+- Hotel search: Amadeus API integration for accommodations with city search, dates, pricing, and availability.
 - Parallel branches + rollbacks: current graph is linear for debuggability; interfaces ready for LangGraph/xstate merge.
 - Browser policy mode: evidence via Playwright screenshots/snippets in receipts.
 - Interview‑grade demos: IRROPS and partial‑leg change scripted flows with transcripts.

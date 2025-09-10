@@ -642,13 +642,17 @@ export async function runGraphTurn(
   let extractionConfidence = 0.0;
   
   try {
-    // Stage 1: NER/Transformers (cached)
+    // Stage 1: NER/Transformers (cached) - be more strict for multi-word cities
     entityResult = entityResult ?? (await getEntities());
-    const nerCities = entityResult.locations
+    let nerCities = entityResult.locations
       .filter(loc => loc.score >= 0.80)
       .map(loc => loc.text);
     
-    if (nerCities.length > 0) {
+    // If we detect potential multi-word cities (short tokens), prefer LLM
+    const hasShortTokens = nerCities.some(city => city.length <= 3);
+    const shouldUseLLM = hasShortTokens && nerCities.length > 1;
+    
+    if (nerCities.length > 0 && !shouldUseLLM) {
       actualCities = nerCities;
       extractionMethod = 'ner';
       extractionConfidence = Math.max(...entityResult.locations.map(l => l.score));
@@ -1249,11 +1253,38 @@ async function flightsNode(
   const { searchFlights } = await import('../tools/amadeus_flights.js');
   
   try {
+    // Import the date conversion function
+    const { convertToAmadeusDate } = await import('../tools/amadeus_flights.js');
+    
+    // Format dates properly for Amadeus API
+    const departureDate = mergedSlots.departureDate || mergedSlots.dates;
+    const returnDate = mergedSlots.returnDate;
+    
+    // Validate required fields
+    if (!mergedSlots.originCity || !(mergedSlots.destinationCity || mergedSlots.city) || !departureDate) {
+      // Fallback to blend with facts for error handling
+      const { reply, citations } = await blendWithFacts(
+        {
+          message: ctx.msg,
+          route: {
+            intent: 'flights',
+            needExternal: true,
+            slots: mergedSlots,
+            confidence: 0.7,
+          },
+          threadId: ctx.threadId,
+        },
+        logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
+      );
+      const finalReply = disclaimer ? disclaimer + reply : reply;
+      return { done: true, reply: finalReply, citations };
+    }
+    
     const result = await searchFlights({
       origin: mergedSlots.originCity,
       destination: mergedSlots.destinationCity || mergedSlots.city,
-      departureDate: mergedSlots.departureDate || mergedSlots.dates,
-      returnDate: mergedSlots.returnDate,
+      departureDate: departureDate ? convertToAmadeusDate(departureDate) : undefined,
+      returnDate: returnDate ? returnDate : undefined,
       passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
       cabinClass: mergedSlots.cabinClass,
     });
@@ -1263,7 +1294,7 @@ async function flightsNode(
       return { 
         done: true, 
         reply: finalReply, 
-        citations: ['amadeus-api'] 
+        citations: ['Amadeus Flight API - Live flight search results']
       };
     } else {
       // Fallback to blend with facts for error handling

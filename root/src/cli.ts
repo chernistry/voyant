@@ -168,6 +168,7 @@ async function main() {
   console.log(chalk.green('  • Packing — "What to pack for Tokyo in March?"'));
   console.log(chalk.green('  • Attractions — "Kid‑friendly things to do in SF in late Aug"'));
   console.log(chalk.green('  • Destinations — "Where to go from Tel Aviv in August?"'));
+  console.log(chalk.green('  • Flights — "Flights from NYC to London March 15" (live search via Amadeus)'));
   console.log(chalk.green('  • Policies (RAG) — "United baggage allowance", "Marriott cancellation"'));
   console.log(chalk.green('    and visas — "Do I need a visa for Japan with a US passport?"'));
   console.log(chalk.green('  • Web search on consent — events, flights, live info'));

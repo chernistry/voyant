@@ -898,6 +898,7 @@ body {
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Packing — "What to pack for Tokyo in March?"</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Attractions — "Kid‑friendly things to do in SF in late Aug"</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Destinations — "Where to go from Tel Aviv in August?"</div>
+                    <div style="color: #7ed321; margin-bottom: 2px;">  • Flights — "Flights from NYC to London March 15" (live search via Amadeus)</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">  • Policies (RAG) — "United baggage allowance", "Marriott cancellation"</div>
                     <div style="color: #7ed321; margin-bottom: 2px;">    and visas — "Do I need a visa for Japan with a US passport?"</div>
                     <div style="color: #7ed321; margin-bottom: 5px;">  • Web search on consent — events, flights, live info</div>
@@ -1006,6 +1007,42 @@ npm test
                 </div>
 
                 <div class="chat-messages">
+                    <div class="message-group">
+                        <div class="message user-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">User</span>
+                                </div>
+                                <div class="message-text">
+                                    flights from moscow to tel aviv 12-10-2025 one way
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="message agent-message">
+                            <div class="message-avatar"><span class="material-symbols-outlined">smart_toy</span></div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">AI Assistant</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>Found 1 one-way flight from moscow to tel aviv on 2025-10-12:</p>
+                                    <p><strong>EUR 427.78 (1 stop) - Total: PT24H</strong><br>
+                                    AT221: 04:30 AM SVO → 08:45 AM CMN<br>
+                                    AT228: 08:10 PM CMN → 03:30 AM TLV</p>
+                                    <p><em>Note: Times shown in UTC. Check airline for local times and booking details.</em></p>
+                                </div>
+                                <div class="sources-section">
+                                    <strong>Sources:</strong>
+                                    <ul>
+                                        <li>Amadeus Flight API - Live flight search results</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="message-group">
                         <div class="message user-message">
                             <div class="message-avatar"><span class="material-symbols-outlined">person</span></div>
@@ -1486,6 +1523,8 @@ npm test
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Router Optimization:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Transformers.js with 'Xenova/bert-base-multilingual-cased-ner-hrl' for multilingual NER, language detection with langdetect library, enhanced entity extraction (LOCATION, DATE, MONEY, DURATION), and Transformers > LLM > Rules cascade routing with 20-40% latency reduction.</span></li>
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Browser Fallback:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Crawlee (Cheerio/Playwright) for comprehensive web page content extraction and AI summarization when users request complex queries, providing detailed analysis beyond basic search snippets with source citations and receipts. Cheerio handles the fast/simple pages, Playwright handles the complex ones that need JavaScript rendering.</span></li>
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Policy RAG & Anchored Citations:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Vectara RAG integration with PolicyAgent for airlines, hotels, and visas. Seeded 6 policy documents with paragraph-level citations including URL + snippet in receipts. Full cascade routing (Transformers > LLM > Rules) with robust error handling and Brave search fallbacks.</span></li>
+                            <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Flight Search Integration:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented Amadeus API integration for live flight search with complete itineraries, pricing, connection details, and IATA code conversion. Features natural language date parsing and comprehensive flight information display.</span></li>
+                            <li><strong>Hotel Search Integration:</strong> Amadeus API integration for accommodations with city search, check-in/check-out dates, room quantity, guest count, and price range filtering.</li>
                             <li><strong>Agent Flow Scaling:</strong> Parallel branches (weather/country/POI) with merge and simple rollbacks.</li>
                             <li style="background: rgba(126, 211, 33, 0.15); border: 2px solid var(--color-success); border-left: 6px solid var(--color-success); padding: var(--space-3); border-radius: var(--border-radius); margin-bottom: var(--space-3); color: var(--color-primary); position: relative;" class="completed-item"><strong><span class="material-symbols-outlined" style="color: var(--color-success); vertical-align: middle; margin-right: 4px;">check_circle</span>Circuit Breaker & Rate Limiting:</strong> <span style="background: var(--color-success); color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">COMPLETED</span><br><span style="margin-top: var(--space-2); display: block; font-size: var(--fs-s); color: var(--color-secondary);">Implemented opossum circuit breaker with per-host configuration and Bottleneck rate limiter. Features configurable timeouts, error thresholds, and comprehensive metrics/stats collection with /metrics endpoint integration.</span></li>
                             <li><strong>Browser Policy Mode (Playwright):</strong> Navigate to policy pages; extract key clauses; attach screenshot/snippet to receipts.</li>

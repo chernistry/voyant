@@ -245,7 +245,45 @@ function convertToAmadeusDate(dateStr: string): string {
     return dateStr;
   }
   
-  // Try to parse various formats and convert to YYYY-MM-DD
+  // Handle DD-MM-YYYY format specifically (like 12-10-2025)
+  const dmyMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    if (day && month && year) {
+      // For DD-MM-YYYY format, we need to be more specific
+      // Let's check if the first number is likely a day (≤31) and second is likely a month (≤12)
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      
+      // If first number > 12, it's likely DD-MM-YYYY
+      if (dayNum > 12) {
+        const paddedDay = day.padStart(2, '0');
+        const paddedMonth = month.padStart(2, '0');
+        return `${year}-${paddedMonth}-${paddedDay}`;
+      }
+      
+      // If second number > 12, it's likely MM-DD-YYYY
+      if (monthNum > 12) {
+        const paddedMonth = day.padStart(2, '0');
+        const paddedDay = month.padStart(2, '0');
+        return `${year}-${paddedMonth}-${paddedDay}`;
+      }
+      
+      // If second number > 31, it's likely MM-DD-YYYY
+      if (monthNum > 31) {
+        const paddedMonth = day.padStart(2, '0');
+        const paddedDay = month.padStart(2, '0');
+        return `${year}-${paddedMonth}-${paddedDay}`;
+      }
+      
+      // Default to DD-MM-YYYY (European format) as that's what the error shows
+      const paddedDay = day.padStart(2, '0');
+      const paddedMonth = month.padStart(2, '0');
+      return `${year}-${paddedMonth}-${paddedDay}`;
+    }
+  }
+  
+  // Try to parse various other formats and convert to YYYY-MM-DD
   const date = new Date(dateStr);
   if (!isNaN(date.getTime())) {
     return date.toISOString().split('T')[0] || `${new Date().getFullYear()}-01-01`;
@@ -256,6 +294,8 @@ function convertToAmadeusDate(dateStr: string): string {
   return `${currentYear}-01-01`;
 }
 
+export { convertToAmadeusDate };
+
 export async function searchFlights(input: {
   origin?: string;
   destination?: string;
@@ -264,6 +304,7 @@ export async function searchFlights(input: {
   passengers?: number;
   cabinClass?: string;
 }): Promise<{ ok: true; summary: string; source: string } | { ok: false; reason: string }> {
+  // Validation is now handled in graph.ts, but we'll keep a basic check
   if (!input.origin || !input.destination || !input.departureDate) {
     return { ok: false, reason: 'missing_required_fields' };
   }
@@ -271,6 +312,10 @@ export async function searchFlights(input: {
   // Convert city names to IATA codes
   const originCode = await getIataCode(input.origin);
   const destinationCode = await getIataCode(input.destination);
+
+  // Convert dates to Amadeus format (YYYY-MM-DD)
+  const formattedDepartureDate = convertToAmadeusDate(input.departureDate);
+  const formattedReturnDate = input.returnDate ? convertToAmadeusDate(input.returnDate) : undefined;
 
   // Convert cabin class to Amadeus format
   let travelClass: FlightSearchParams['travelClass'] = 'ECONOMY';
@@ -284,8 +329,8 @@ export async function searchFlights(input: {
   const searchParams: FlightSearchParams = {
     origin: originCode,
     destination: destinationCode,
-    departureDate: input.departureDate,
-    returnDate: input.returnDate,
+    departureDate: formattedDepartureDate,
+    returnDate: formattedReturnDate,
     adults: input.passengers || 1,
     travelClass,
     max: 5, // Limit results for summary
@@ -304,12 +349,35 @@ export async function searchFlights(input: {
   // Create AI-friendly summary
   const tripType = input.returnDate ? 'round-trip' : 'one-way';
   const flightSummaries = result.flights.slice(0, 3).map((flight, idx) => {
-    const mainSegment = flight.segments[0];
+    if (!flight.segments.length) return `${idx + 1}. Flight details unavailable`;
+    
     const stops = flight.segments.length > 1 ? ` (${flight.segments.length - 1} stop${flight.segments.length > 2 ? 's' : ''})` : ' (nonstop)';
-    return `${idx + 1}. ${mainSegment?.airline || 'Unknown'} ${flight.price.currency} ${flight.price.total}${stops} - ${flight.duration}`;
-  }).join('\n');
+    
+    // Show all segments for complete journey
+    const segmentDetails = flight.segments.map((segment, segIdx) => {
+      const departureTime = new Date(segment.departure.time).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC'
+      });
+      const arrivalTime = new Date(segment.arrival.time).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC' 
+      });
+      
+      return `   ${segment.flightNumber}: ${departureTime} ${segment.departure.airport} → ${arrivalTime} ${segment.arrival.airport}`;
+    }).join('\n');
+    
+    return `${idx + 1}. ${flight.price.currency} ${flight.price.total}${stops} - Total: ${flight.duration}
+${segmentDetails}`;
+  }).join('\n\n');
 
-  const summary = `Found ${result.flights.length} ${tripType} flights from ${input.origin} (${originCode}) to ${input.destination} (${destinationCode}) on ${input.departureDate}${input.returnDate ? ` returning ${input.returnDate}` : ''}:\n\n${flightSummaries}`;
+  const summary = `Found ${result.flights.length} ${tripType} flight${result.flights.length > 1 ? 's' : ''} from ${input.origin} to ${input.destination} on ${formattedDepartureDate}:
+
+${flightSummaries}
+
+Note: Times shown in UTC. Check airline for local times and booking details.`;
 
   return {
     ok: true,
