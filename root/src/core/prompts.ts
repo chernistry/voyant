@@ -10,6 +10,7 @@ type PromptName =
   | 'web_search_decider'
   | 'query_type_detector'
   | 'consent_detector'
+  | 'context_switch_detector'
   | 'city_parser'
   | 'date_parser'
   | 'intent_parser'

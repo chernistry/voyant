@@ -401,12 +401,10 @@ export async function runGraphTurn(
     
     if (!isSimpleConsent && pendingQuery) {
       try {
-        const contextPrompt = `Compare these two travel queries and determine if they are about the same trip/topic:
-
-Current query: "${message}"
-Previous query: "${pendingQuery}"
-
-Are these queries related to the same travel context? Reply only "SAME" or "DIFFERENT".`;
+        const contextPromptTemplate = await getPrompt('context_switch_detector');
+        const contextPrompt = contextPromptTemplate
+          .replace('{current_query}', message)
+          .replace('{previous_query}', pendingQuery);
 
         const contextResponse = await callLLM(contextPrompt, { 
           log: ctx.log
