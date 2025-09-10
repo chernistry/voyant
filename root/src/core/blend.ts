@@ -10,7 +10,12 @@ import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
 import { getCountryFacts } from '../tools/country.js';
 import { getAttractions } from '../tools/attractions.js';
-import { searchTravelInfo } from '../tools/brave_search.js';
+import {
+  searchTravelInfo,
+  getSearchCitation,
+  getSearchSource,
+} from '../tools/search.js';
+import type { SearchResult } from '../tools/search.js';
 import { validateNoCitation } from './citations.js';
 import type { Fact } from './receipts.js';
 import { getLastReceipts, setLastReceipts, updateThreadSlots } from './slot_memory.js';
@@ -117,7 +122,7 @@ async function summarizeSearch(
     }
     return {
       reply: finalText,
-      citations: ['Brave Search']
+      citations: [getSearchCitation()]
     };
   } catch (error) {
     ctx.log.debug('Search summarization failed, using fallback');
@@ -137,8 +142,8 @@ function formatSearchResultsFallback(
   }).join('\n');
   
   return {
-    reply: `Based on web search results:\n\n${formattedResults}\n\nSources: Brave Search`,
-    citations: ['Brave Search']
+    reply: `Based on web search results:\n\n${formattedResults}\n\nSources: ${getSearchCitation()}`,
+    citations: [getSearchCitation()]
   };
 }
 async function performWebSearch(
@@ -198,22 +203,24 @@ async function performWebSearch(
   
   if (searchResult.deepSummary) {
     reply = searchResult.deepSummary;
-    citations = ['Brave Search + Deep Research'];
+    citations = [`${getSearchCitation()} + Deep Research`];
     ctx.log.debug('using_crawlee_deep_research_summary');
   } else {
     const result = await summarizeSearch(searchResult.results, query, ctx);
     reply = result.reply;
-    citations = result.citations || ['Brave Search'];
+    citations = result.citations || [getSearchCitation()];
   }
   
   // Store search facts for receipts
   if (threadId) {
     try {
-      const facts: Fact[] = searchResult.results.slice(0, 3).map((result, index) => ({
-        source: 'Brave Search',
-        key: `search_result_${index}`,
-        value: `${result.title}: ${result.description}`,
-      }));
+      const facts: Fact[] = searchResult.results.slice(0, 3).map(
+        (result: SearchResult, index: number) => ({
+          source: getSearchCitation(),
+          key: `search_result_${index}`,
+          value: `${result.title}: ${result.description}`,
+        }),
+      );
       const decisions = ['Used web search because user requested search or question couldn\'t be answered by travel APIs.'];
       setLastReceipts(threadId, facts, decisions, reply);
     } catch {
@@ -614,7 +621,8 @@ export async function blendWithFacts(
         datesOrMonth: whenHint || 'today',
       });
       if (wx.ok) {
-        const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
+        const source =
+          wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
         cits.push(source);
         ctx.log.debug({ wxSource: wx.source, source, citsLength: cits.length }, 'weather_citation_added');
         facts += `Weather for ${cityHint}: ${wx.summary}\n`;
@@ -638,7 +646,8 @@ export async function blendWithFacts(
         datesOrMonth: whenHint || 'today',
       });
       if (wx.ok) {
-        const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
+        const source =
+          wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
         cits.push(source);
         facts += `Weather for ${cityHint}: ${wx.summary}\n`;
         factsArr.push({ source, key: 'weather_summary', value: wx.summary });
@@ -705,7 +714,8 @@ export async function blendWithFacts(
           datesOrMonth: whenHint || 'today',
         });
         if (wx.ok) {
-          const source = wx.source === 'brave-search' ? 'Brave Search' : 'Open-Meteo';
+          const source =
+            wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
           cits.push(source);
           facts += `Weather for ${originCity}: ${wx.summary} (${source})\n`;
           factsArr.push({ source, key: 'weather_summary', value: wx.summary });
@@ -739,7 +749,10 @@ export async function blendWithFacts(
           country: isCountryQuery ? countryTarget : undefined 
         });
         if (cf.ok) {
-          const source = cf.source === 'brave-search' ? 'Brave Search' : 'REST Countries';
+          const source =
+            cf.source === getSearchSource()
+              ? getSearchCitation()
+              : 'REST Countries';
           cits.push(source);
           facts += `Country: ${cf.summary} (${source})\n`;
           factsArr.push({ source, key: 'country_summary', value: cf.summary });
@@ -753,10 +766,23 @@ export async function blendWithFacts(
       ctx.onStatus?.('Finding attractions and activities...');
       const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
       const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
-      if (at.ok && (at.source === 'opentripmap' || at.source === 'brave-search')) {
-        cits.push(at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search');
-        facts += `POIs: ${at.summary} (${at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search'})\n`;
-        factsArr.push({ source: at.source === 'opentripmap' ? 'OpenTripMap' : 'Brave Search', key: 'poi_list', value: at.summary });
+      if (at.ok && (at.source === 'opentripmap' || at.source === getSearchSource())) {
+        cits.push(
+          at.source === 'opentripmap'
+            ? 'OpenTripMap'
+            : getSearchCitation(),
+        );
+        facts += `POIs: ${at.summary} (${
+          at.source === 'opentripmap' ? 'OpenTripMap' : getSearchCitation()
+        })\n`;
+        factsArr.push({
+          source:
+            at.source === 'opentripmap'
+              ? 'OpenTripMap'
+              : getSearchCitation(),
+          key: 'poi_list',
+          value: at.summary,
+        });
         decisions.push(wantsKid ? 'Listed kid-friendly attractions from travel APIs.' : 'Listed top attractions from travel APIs.');
       } else if (!at.ok && at.reason === 'unknown_city') {
         // Handle unknown cities gracefully - don't fabricate attractions

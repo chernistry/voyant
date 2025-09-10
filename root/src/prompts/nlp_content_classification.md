@@ -31,6 +31,7 @@ Examples:
 - "Marriott cancellation policy" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "categories": ["special"], "confidence": 0.9}
 - "Delta risk-free cancellation policy" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "categories": ["special"], "confidence": 0.9}
 - "What is the timeframe for Delta's cancellation policy?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "categories": ["special"], "confidence": 0.9}
+- "Do US passport holders need a visa for Canada?" → {"content_type": "policy", "is_explicit_search": false, "needs_web_search": false, "categories": ["special"], "confidence": 0.9}
 - "I need a hotel in Paris for 2 adults and 2 kids next month" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["accommodation", "location", "group", "time"], "confidence": 0.9}
 - "Looking for budget hotels in Tokyo for 2 adults and 2 kids next month" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["budget", "accommodation", "location", "group", "time"], "confidence": 0.9}
 - "What are the best family-friendly restaurants in Paris?" → {"content_type": "restaurant", "is_explicit_search": false, "needs_web_search": true, "categories": ["group", "location"], "confidence": 0.85}

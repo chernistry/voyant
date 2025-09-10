@@ -1,7 +1,7 @@
 import type pino from 'pino';
 import { getPrompt } from './prompts.js';
 import { callLLM } from './llm.js';
-import { searchTravelInfo } from '../tools/brave_search.js';
+import { searchTravelInfo } from '../tools/search.js';
 
 export type ResearchCitation = { source: string; url: string; confidence: number };
 export type ResearchResult = {
