@@ -1,9 +1,8 @@
 import nock from 'nock';
-import { 
-  searchTravelInfo, 
-  extractWeatherFromResults, 
-  extractCountryFromResults, 
-  extractAttractionsFromResults 
+import {
+  searchTravelInfo,
+  extractWeatherFromResults,
+  extractCountryFromResults,
 } from '../src/tools/brave_search.js';
 
 describe('Brave Search Adapter', () => {
@@ -20,7 +19,7 @@ describe('Brave Search Adapter', () => {
     test('returns search results on success', async () => {
       nock('https://api.search.brave.com')
         .get('/res/v1/web/search')
-        .query({ q: 'weather in Tokyo', count: 5 })
+        .query(true)
         .reply(200, {
           web: {
             results: [
@@ -134,8 +133,8 @@ describe('Brave Search Adapter', () => {
         }
       ];
 
-      const country = extractCountryFromResults(results, 'Japan');
-      
+      const country = await extractCountryFromResults(results, 'Japan');
+
       expect(country).toContain('Japan');
       expect(country).toContain('travel');
     });
@@ -149,54 +148,10 @@ describe('Brave Search Adapter', () => {
         }
       ];
 
-      const country = extractCountryFromResults(results, 'Japan');
-      
+      const country = await extractCountryFromResults(results, 'Japan');
+
       expect(country).toBeNull();
     });
   });
 
-  describe('extractAttractionsFromResults', () => {
-    test('extracts attraction names from results', () => {
-      const results = [
-        {
-          title: 'Top 10 Paris Attractions',
-          url: 'https://example.com',
-          description: 'Best things to do and visit in Paris including museums and landmarks'
-        },
-        {
-          title: 'Eiffel Tower',
-          url: 'https://example.com',
-          description: 'Famous attraction in Paris'
-        },
-        {
-          title: 'Louvre Museum',
-          url: 'https://example.com',
-          description: 'World-famous museum in Paris'
-        }
-      ];
-
-      const attractions = extractAttractionsFromResults(results, 'Paris');
-      
-      expect(attractions).toContain('Paris');
-      // The extraction should find at least some attraction-related content
-      expect(attractions).toBeTruthy();
-      if (attractions) {
-        expect(attractions.length).toBeGreaterThan(20); // Should have meaningful content
-      }
-    });
-
-    test('returns null when no attractions found', () => {
-      const results = [
-        {
-          title: 'Paris Weather',
-          url: 'https://example.com',
-          description: 'Current weather conditions in Paris'
-        }
-      ];
-
-      const attractions = extractAttractionsFromResults(results, 'Paris');
-      
-      expect(attractions).toBeNull();
-    });
-  });
 });

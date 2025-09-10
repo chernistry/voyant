@@ -13,14 +13,22 @@ jest.unstable_mockModule('../../src/core/llm.js', () => ({
   }),
 }));
 
-// Mock Brave search to return deterministic results
+// Mock search provider to return deterministic results
 // @ts-ignore
-jest.unstable_mockModule('../../src/tools/brave_search.js', () => ({
+jest.unstable_mockModule('../../src/tools/search.js', () => ({
   searchTravelInfo: jest.fn(async (q: string) => ({
     ok: true,
     results: [
-      { title: `Result for ${q} A`, url: 'https://example.com/a', description: 'Some description A' },
-      { title: `Result for ${q} B`, url: 'https://example.org/b', description: 'Some description B' },
+      {
+        title: `Result for ${q} A`,
+        url: 'https://example.com/a',
+        description: 'Some description A',
+      },
+      {
+        title: `Result for ${q} B`,
+        url: 'https://example.org/b',
+        description: 'Some description B',
+      },
     ],
   })),
 }));

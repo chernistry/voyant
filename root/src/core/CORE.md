@@ -177,7 +177,7 @@ This document provides a detailed overview of each module in the `/src/core` dir
 
 #### circuit-breaker.ts
 **What it does:** Implements the circuit breaker pattern for resilience in external API calls. Prevents cascading failures when services are down.
-**Where used:** Used by various tools that make external API calls, such as `brave_search.ts`.
+**Where used:** Used by various tools that make external API calls, such as `search.ts`.
 **Technology:** Utility
 
 #### citations.ts

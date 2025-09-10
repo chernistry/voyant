@@ -1,6 +1,6 @@
 import { CircuitBreaker, CircuitBreakerState } from '../../src/core/circuit-breaker.js';
 import { RateLimiter } from '../../src/core/rate-limiter.js';
-import { searchTravelInfo } from '../../src/tools/brave_search.js';
+import { searchTravelInfo } from '../../src/tools/search.js';
 import { searchPOIs } from '../../src/tools/opentripmap.js';
 import nock from 'nock';
 

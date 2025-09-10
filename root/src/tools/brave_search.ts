@@ -5,13 +5,15 @@ import { deepResearchPages } from './crawlee_research.js';
 import { CircuitBreaker } from '../core/circuit-breaker.js';
 import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
 
-interface BraveSearchResult {
+export interface SearchResult {
   title: string;
   url: string;
   description: string;
 }
 
-type Out = { ok: true; results: BraveSearchResult[]; deepSummary?: string } | { ok: false; reason: string };
+export type Out =
+  | { ok: true; results: SearchResult[]; deepSummary?: string }
+  | { ok: false; reason: string };
 
 // Circuit breaker for Brave Search API
 const braveSearchCircuitBreaker = new CircuitBreaker(CIRCUIT_BREAKER_CONFIG, 'brave-search');
@@ -60,7 +62,7 @@ export async function searchTravelInfo(query: string, log?: any, deepResearch = 
     if (log) log.debug(`✅ Brave Search success after ${duration}ms`);
     
     // Extract results from the wrapper response
-    const results: BraveSearchResult[] = [];
+    const results: SearchResult[] = [];
     
     if (response.web?.results) {
       for (const result of response.web.results) {
@@ -152,7 +154,7 @@ export async function searchTravelInfo(query: string, log?: any, deepResearch = 
 /**
  * Extract weather information from search results
  */
-export function extractWeatherFromResults(results: BraveSearchResult[], city: string): string | null {
+export function extractWeatherFromResults(results: SearchResult[], city: string): string | null {
   const weatherKeywords = ['temperature', 'weather', 'forecast', 'climate', '°c', '°f', 'degrees'];
   
   for (const result of results) {
@@ -174,7 +176,10 @@ export function extractWeatherFromResults(results: BraveSearchResult[], city: st
 /**
  * Extract country facts from search results
  */
-export async function extractCountryFromResults(results: BraveSearchResult[], country: string): Promise<string | null> {
+export async function extractCountryFromResults(
+  results: SearchResult[],
+  country: string,
+): Promise<string | null> {
   // Semantic extraction using LLM first
   const llmResult = await llmExtractCountryFromResults(results, country);
   if (llmResult) return llmResult;
@@ -208,7 +213,7 @@ export async function extractCountryFromResults(results: BraveSearchResult[], co
  * LLM-first extraction: Weather summary from search results (fallback to heuristics elsewhere)
  */
 export async function llmExtractWeatherFromResults(
-  results: BraveSearchResult[],
+  results: SearchResult[],
   city: string,
   log?: any,
 ): Promise<string | null> {
@@ -231,7 +236,7 @@ export async function llmExtractWeatherFromResults(
  * LLM-first extraction: Country facts summary from search results
  */
 export async function llmExtractCountryFromResults(
-  results: BraveSearchResult[],
+  results: SearchResult[],
   country: string,
   log?: any,
 ): Promise<string | null> {
@@ -254,7 +259,7 @@ export async function llmExtractCountryFromResults(
  * LLM-first extraction: Attractions list from search results
  */
 export async function llmExtractAttractionsFromResults(
-  results: BraveSearchResult[],
+  results: SearchResult[],
   city: string,
   log?: any,
 ): Promise<string | null> {

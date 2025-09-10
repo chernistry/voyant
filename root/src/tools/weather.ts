@@ -1,5 +1,10 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { searchTravelInfo, extractWeatherFromResults, llmExtractWeatherFromResults } from './brave_search.js';
+import {
+  searchTravelInfo,
+  extractWeatherFromResults,
+  llmExtractWeatherFromResults,
+  getSearchSource,
+} from './search.js';
 
 
 function withTimeout(ms: number, signal?: AbortSignal) {
@@ -37,13 +42,13 @@ export async function getWeather(input: {
     return primaryResult;
   }
 
-  // Fallback to Brave Search
+  // Fallback to configured web search
   const fallbackResult = await tryWeatherFallback(input.city, input.datesOrMonth);
   if (fallbackResult.ok) {
     return { 
       ...fallbackResult, 
       summary: `The weather service is currently unavailable, but here are some web search results: ${fallbackResult.summary}`,
-      source: 'brave-search' 
+      source: getSearchSource(),
     };
   }
 
@@ -111,7 +116,7 @@ async function tryWeatherFallback(city: string, datesOrMonth?: string): Promise<
   // LLM-first extraction
   const weatherInfoLLM = await llmExtractWeatherFromResults(searchResult.results, city);
   if (weatherInfoLLM) {
-    return { ok: true, summary: weatherInfoLLM, source: 'brave-search' };
+    return { ok: true, summary: weatherInfoLLM, source: getSearchSource() };
   }
 
   return { ok: false, reason: 'no_weather_data' };
