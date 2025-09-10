@@ -449,39 +449,7 @@ export async function runGraphTurn(
     threadId
   }, '🔍 THREAD: Slots state check');
   
-  if (currentAwaitingSearchConsent && currentPendingSearchQuery) {
-    const consent = await detectConsent(message, ctx, turnCache);
-    const isConsentResponse = consent !== 'unclear';
-    
-    if (isConsentResponse) {
-      const isPositiveConsent = consent === 'yes';
-      
-      // Clear consent state
-      updateThreadSlots(threadId, { 
-        awaiting_search_consent: '', 
-        pending_search_query: '' 
-      }, []);
-      
-      if (isPositiveConsent) {
-        // Optimize the pending search query
-        const optimizedQuery = await optimizeSearchQuery(
-          currentPendingSearchQuery,
-          currentSlots,
-          'web_search',
-          ctx.log
-        );
-        
-        return await performWebSearchNode(optimizedQuery, ctx, threadId);
-      } else {
-        return {
-          done: true,
-          reply: 'No problem! Is there something else about travel planning I can help with?',
-        };
-      }
-    }
-  }
-
-  // Handle consent responses for deep research
+  // Handle consent responses for deep research (higher priority)
   if (currentAwaitingDeepResearch && currentPendingDeepResearchQuery) {
     ctx.log.info({ 
       awaitingDeepResearch: currentAwaitingDeepResearch, 
@@ -595,6 +563,39 @@ export async function runGraphTurn(
       } else {
         // Still unclear — ask clearly for consent
         return { done: true, reply: consentPrompt };
+      }
+    }
+  }
+
+  // Handle consent responses for web search (lower priority)
+  if (currentAwaitingSearchConsent && currentPendingSearchQuery) {
+    const consent = await detectConsent(message, ctx, turnCache);
+    const isConsentResponse = consent !== 'unclear';
+    
+    if (isConsentResponse) {
+      const isPositiveConsent = consent === 'yes';
+      
+      // Clear consent state
+      updateThreadSlots(threadId, { 
+        awaiting_search_consent: '', 
+        pending_search_query: '' 
+      }, []);
+      
+      if (isPositiveConsent) {
+        // Optimize the pending search query
+        const optimizedQuery = await optimizeSearchQuery(
+          currentPendingSearchQuery,
+          currentSlots,
+          'web_search',
+          ctx.log
+        );
+        
+        return await performWebSearchNode(optimizedQuery, ctx, threadId);
+      } else {
+        return {
+          done: true,
+          reply: 'No problem! Is there something else about travel planning I can help with?',
+        };
       }
     }
   }
