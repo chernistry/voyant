@@ -226,7 +226,7 @@ async function isContextSwitchQuery(
 
 export type NodeCtx = { msg: string; threadId: string; onStatus?: (status: string) => void };
 export type NodeOut =
-  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
+  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'flights' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
 
 export async function runGraphTurn(
@@ -1098,7 +1098,7 @@ export async function runGraphTurn(
     ctx.log.debug({ prior: priorSlots, extracted: routeResult.slots, merged: slots, intent }, 'slot_merge');
   }
   
-  const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather';
+  const needsCity = intent === 'attractions' || intent === 'packing' || intent === 'destinations' || intent === 'weather' || intent === 'flights';
   // For destinations, originCity can satisfy city ("from NYC"). For attractions/weather we require explicit city.
   const hasCity = intent === 'destinations'
     ? ((typeof slots.city === 'string' && slots.city.trim().length > 0) || (typeof slots.originCity === 'string' && slots.originCity.trim().length > 0))
@@ -1215,6 +1215,8 @@ export async function runGraphTurn(
       return packingNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'attractions':
       return attractionsNode(routeCtx, mergedSlots, ctx, allDisclaimers);
+    case 'flights':
+      return flightsNode(routeCtx, mergedSlots, ctx, allDisclaimers);
     case 'policy':
       return policyNode(routeCtx, mergedSlots, ctx);
     case 'system':
@@ -1231,6 +1233,74 @@ export async function runGraphTurn(
 async function routeIntentNode(ctx: NodeCtx, logger?: { log: pino.Logger }): Promise<NodeOut> {
   const r = await routeIntent({ message: ctx.msg, threadId: ctx.threadId, logger });
   return { next: r.intent, slots: r.slots };
+}
+
+async function flightsNode(
+  ctx: NodeCtx,
+  slots?: Record<string, string>,
+  logger?: { log: pino.Logger },
+  disclaimer?: string,
+): Promise<NodeOut> {
+  // Use thread slots to ensure we have the latest context
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
+  const mergedSlots = { ...threadSlots, ...(slots || {}) };
+  
+  // Directly call flight search tool
+  const { searchFlights } = await import('../tools/amadeus_flights.js');
+  
+  try {
+    const result = await searchFlights({
+      origin: mergedSlots.originCity,
+      destination: mergedSlots.destinationCity || mergedSlots.city,
+      departureDate: mergedSlots.departureDate || mergedSlots.dates,
+      returnDate: mergedSlots.returnDate,
+      passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
+      cabinClass: mergedSlots.cabinClass,
+    });
+
+    if (result.ok) {
+      const finalReply = disclaimer ? disclaimer + result.summary : result.summary;
+      return { 
+        done: true, 
+        reply: finalReply, 
+        citations: ['amadeus-api'] 
+      };
+    } else {
+      // Fallback to blend with facts for error handling
+      const { reply, citations } = await blendWithFacts(
+        {
+          message: ctx.msg,
+          route: {
+            intent: 'flights',
+            needExternal: true,
+            slots: mergedSlots,
+            confidence: 0.7,
+          },
+          threadId: ctx.threadId,
+        },
+        logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
+      );
+      const finalReply = disclaimer ? disclaimer + reply : reply;
+      return { done: true, reply: finalReply, citations };
+    }
+  } catch (error) {
+    // Fallback to blend with facts on error
+    const { reply, citations } = await blendWithFacts(
+      {
+        message: ctx.msg,
+        route: {
+          intent: 'flights',
+          needExternal: true,
+          slots: mergedSlots,
+          confidence: 0.7,
+        },
+        threadId: ctx.threadId,
+      },
+      logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
+    );
+    const finalReply = disclaimer ? disclaimer + reply : reply;
+    return { done: true, reply: finalReply, citations };
+  }
 }
 
 async function weatherNode(
@@ -1511,6 +1581,30 @@ function formatPolicyAnswer(
 }
 
 async function systemNode(ctx: NodeCtx): Promise<NodeOut> {
+  const threadSlots = ctx.threadId ? getThreadSlots(ctx.threadId) : {};
+  
+  // Handle flight clarification requests
+  if (threadSlots.flight_clarification_needed === 'true') {
+    const clarificationOptions = threadSlots.clarification_options;
+    const ambiguityReason = threadSlots.ambiguity_reason || 'Unable to determine query type';
+    
+    if (clarificationOptions === 'direct_search_or_web_research') {
+      return {
+        done: true,
+        reply: `I can help you with flights in two ways:
+
+• **Direct flight search** - Find specific flights with prices and times (e.g., "flights from NYC to London in March")
+• **Travel planning research** - Get comprehensive travel advice including flight options, tips, and recommendations
+
+Which would you prefer for your query: "${threadSlots.pending_flight_query || ctx.msg}"?
+
+You can say "direct search" for flight booking or "travel research" for broader planning help.`,
+        citations: undefined,
+      };
+    }
+  }
+  
+  // Default system response for general clarification
   return {
     done: true,
     reply: 'Which city and what dates are you planning to travel to?',

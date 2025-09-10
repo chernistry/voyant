@@ -166,6 +166,16 @@ This document provides a comprehensive overview of all prompt templates in the `
 
 **Usage:** Used by clarifier.ts to generate follow-up questions for incomplete queries.
 
+#### iata_code_generator.md
+**Purpose:** Converts city or airport names to their 3-letter IATA airport codes.
+**Structure:**
+- Clear output format specification (3-letter IATA code only)
+- Disambiguation rules for cities with multiple airports
+- Examples for common city/airport mappings
+- Input/output format guidelines
+
+**Usage:** Used by amadeus_flights.ts for converting city names to IATA codes in flight searches.
+
 ### Content Classification & Analysis
 
 #### nlp_content_classification.md

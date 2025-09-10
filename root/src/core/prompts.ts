@@ -25,7 +25,8 @@ type PromptName =
   | 'search_extract_weather'
   | 'search_extract_country'
   | 'search_extract_attractions'
-  | 'complexity_assessor';
+  | 'complexity_assessor'
+  | 'iata_code_generator';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -96,6 +97,9 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.search_extract_attractions = await loadFileSafe(
     path.join(base, 'search_extract_attractions.md'),
+  );
+  PROMPTS.iata_code_generator = await loadFileSafe(
+    path.join(base, 'iata_code_generator.md'),
   );
   PROMPTS.complexity_assessor = await loadFileSafe(
     path.join(base, 'complexity_assessor.md'),

@@ -24,7 +24,7 @@ const ContentClassificationSchema = z.object({
 export type ContentClassification = z.infer<typeof ContentClassificationSchema>;
 
 export type IntentClassification = {
-  intent: 'weather' | 'packing' | 'attractions' | 'destinations' | 'web_search' | 'unknown';
+  intent: 'weather' | 'packing' | 'attractions' | 'destinations' | 'flights' | 'web_search' | 'unknown';
   confidence: number;
   needExternal: boolean;
 };

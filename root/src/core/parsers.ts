@@ -696,6 +696,10 @@ export async function extractSlots(text: string, context?: Record<string, any>, 
     if (!slots.city && originDestResult.data.destinationCity) {
       slots.city = originDestResult.data.destinationCity;
     }
+    // For flights, also set destinationCity explicitly
+    if (originDestResult.data.destinationCity) {
+      slots.destinationCity = originDestResult.data.destinationCity;
+    }
   }
   
   // Parse dates with high confidence threshold
@@ -704,6 +708,51 @@ export async function extractSlots(text: string, context?: Record<string, any>, 
     slots.dates = dateResult.data.dates;
     if (dateResult.data.month) {
       slots.month = dateResult.data.month;
+    }
+    // For flights, try to extract specific departure/return dates
+    const dateText = dateResult.data.dates;
+    if (dateText.includes(' to ') || dateText.includes(' - ')) {
+      const [departure, returnDate] = dateText.split(/ to | - /);
+      if (departure) slots.departureDate = departure.trim();
+      if (returnDate) slots.returnDate = returnDate.trim();
+    } else {
+      slots.departureDate = dateText;
+    }
+  }
+  
+  // Extract flight-specific information using AI-first approach
+  if (text.toLowerCase().includes('flight') || text.toLowerCase().includes('fly') || 
+      text.toLowerCase().includes('airline') || text.toLowerCase().includes('air travel')) {
+    
+    // Use LLM to extract passenger count with confidence
+    const passengerResult = await callLLM(
+      `Extract the number of passengers from this flight request: "${text}". 
+       Return only the number, or "1" if not specified. Examples:
+       "2 passengers" -> 2
+       "family of 4" -> 4  
+       "book a flight" -> 1`,
+      { responseFormat: 'text', log: logger }
+    ).catch(() => '1');
+    
+    const passengerNum = parseInt(passengerResult.trim());
+    if (!isNaN(passengerNum) && passengerNum > 0) {
+      slots.passengers = passengerNum.toString();
+    }
+    
+    // Use LLM to extract cabin class with confidence
+    const cabinResult = await callLLM(
+      `Extract the cabin class from this flight request: "${text}". 
+       Return one of: economy, business, first, premium, or "economy" if not specified. Examples:
+       "business class flight" -> business
+       "first class to Paris" -> first
+       "cheap flight" -> economy
+       "premium economy" -> premium`,
+      { responseFormat: 'text', log: logger }
+    ).catch(() => 'economy');
+    
+    const cabin = cabinResult.trim().toLowerCase();
+    if (['economy', 'business', 'first', 'premium'].includes(cabin)) {
+      slots.cabinClass = cabin;
     }
   }
   

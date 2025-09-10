@@ -23,6 +23,8 @@ const ALLOWLIST = new Set<string>([
   'api.search.brave.com',
   'api.opentripmap.com',
   'api.vectara.io',
+  'test.api.amadeus.com',
+  'api.amadeus.com',
   // Test hosts
   'api.test-service-cb1.com',
   'api.stats-test-cb2.com',

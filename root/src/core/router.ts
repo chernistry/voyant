@@ -11,6 +11,58 @@ import type pino from 'pino';
 
 // No winkNLP; use regex + transformers signals
 
+// AI-first flight query complexity detection
+async function isDirectFlightQuery(message: string, logger?: any): Promise<{
+  isDirect: boolean;
+  confidence: number;
+  reasoning: string;
+}> {
+  try {
+    const prompt = `Analyze this flight-related query and determine if it's a DIRECT flight search or COMPLEX travel planning.
+
+DIRECT flight search characteristics:
+- Specific origin and destination mentioned
+- Clear travel dates or timeframe
+- Focused on finding/booking flights
+- Examples: "flights from NYC to London in March", "book flight Moscow to Tel Aviv October", "find flights Paris to Tokyo next week"
+
+COMPLEX travel planning characteristics:
+- Multiple constraints (budget, family needs, preferences)
+- Seeking recommendations or ideas
+- Multiple travel components (hotels, activities, etc.)
+- Examples: "From NYC, end of June, 4-5 days, 2 adults + toddler, budget $2.5k, ideas?", "family trip to Europe with elderly parents, need short flights"
+
+Query: "${message}"
+
+Return JSON with:
+- isDirect: true/false
+- confidence: 0.0-1.0 (how certain you are)
+- reasoning: brief explanation
+
+Examples:
+"flights from moscow to tel aviv in october" → {"isDirect": true, "confidence": 0.95, "reasoning": "Clear origin, destination, and timeframe specified"}
+"From NYC, end of June, 4-5 days, 2 adults + toddler, budget $2.5k, ideas?" → {"isDirect": false, "confidence": 0.9, "reasoning": "Complex planning with multiple constraints and seeking ideas"}`;
+
+    const response = await callLLM(prompt, { responseFormat: 'json', log: logger });
+    const parsed = JSON.parse(response);
+    
+    return {
+      isDirect: parsed.isDirect || false,
+      confidence: parsed.confidence || 0.5,
+      reasoning: parsed.reasoning || 'Unable to determine complexity'
+    };
+  } catch (error) {
+    if (logger?.debug) {
+      logger.debug({ error: String(error) }, 'Flight complexity detection failed');
+    }
+    return {
+      isDirect: false,
+      confidence: 0.3,
+      reasoning: 'Analysis failed, defaulting to complex planning'
+    };
+  }
+}
+
 export async function routeIntent(input: { message: string; threadId?: string; logger?: { log: pino.Logger } }): Promise<RouterResultT> {
   if (typeof input.logger?.log?.info === 'function') {
     input.logger.log.debug({ message: input.message }, 'router_start');
@@ -30,6 +82,82 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // Use LLM for content classification first (kept for early overrides like system/policy/search)
   const contentClassification = await classifyContent(input.message, input.logger?.log);
   
+  // Handle flight content classification with complexity detection BEFORE deep research
+  if (contentClassification && contentClassification.content_type === 'flight') {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ 
+        contentType: contentClassification?.content_type,
+        message: input.message.substring(0, 100)
+      }, '✈️ FLIGHTS: Content classified as flight, analyzing complexity');
+    }
+    
+    // Determine if this is a direct flight search or complex travel planning
+    const isDirectFlightSearch = await isDirectFlightQuery(input.message, input.logger?.log);
+    
+    if (isDirectFlightSearch.isDirect && isDirectFlightSearch.confidence > 0.7) {
+      // Direct flight search → Route to Amadeus API
+      const flightSlots = await extractSlots(input.message, {}, input.logger?.log);
+      
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          isDirect: true,
+          confidence: isDirectFlightSearch.confidence,
+          slots: flightSlots
+        }, '✈️ FLIGHTS: Direct flight search detected, routing to Amadeus API');
+      }
+      
+      return RouterResult.parse({
+        intent: 'flights',
+        needExternal: true,
+        slots: flightSlots,
+        confidence: 0.9
+      });
+    } else if (!isDirectFlightSearch.isDirect && isDirectFlightSearch.confidence > 0.7) {
+      // Complex travel planning → Route to web search/deep research
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          isDirect: false,
+          confidence: isDirectFlightSearch.confidence,
+          reasoning: isDirectFlightSearch.reasoning
+        }, '✈️ FLIGHTS: Complex travel planning detected, routing to web search');
+      }
+      
+      return RouterResult.parse({
+        intent: 'web_search',
+        needExternal: true,
+        slots: { search_query: input.message },
+        confidence: 0.9
+      });
+    } else {
+      // Ambiguous → Ask for clarification with specific options
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          confidence: isDirectFlightSearch.confidence,
+          reasoning: isDirectFlightSearch.reasoning
+        }, '✈️ FLIGHTS: Ambiguous flight query, asking for clarification');
+      }
+      
+      if (input.threadId) {
+        updateThreadSlots(input.threadId, {
+          awaiting_flight_clarification: 'true',
+          pending_flight_query: input.message,
+          clarification_reasoning: isDirectFlightSearch.reasoning,
+        }, []);
+      }
+      
+      return RouterResult.parse({
+        intent: 'system',
+        needExternal: false,
+        slots: {
+          flight_clarification_needed: 'true',
+          ambiguity_reason: isDirectFlightSearch.reasoning,
+          clarification_options: 'direct_search_or_web_research',
+        },
+        confidence: 0.9,
+      });
+    }
+  }
+  
   // Debug environment variables
   if (typeof input.logger?.log?.debug === 'function') {
     input.logger.log.debug({
@@ -38,7 +166,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     }, '🔧 ROUTER: Environment check');
   }
   
-  // COMPLEXITY CHECK ONLY FOR NON-SIMPLE QUERIES
+  // COMPLEXITY CHECK ONLY FOR NON-FLIGHT QUERIES
   if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
     if (typeof input.logger?.log?.debug === 'function') {
       input.logger.log.debug({ 
@@ -112,6 +240,76 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   
   // Prefer LLM router first for robust NLU and slot extraction
   const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
+  
+  // Handle flight clarification responses
+  if (ctxSlots.awaiting_flight_clarification === 'true' && input.threadId) {
+    const userResponse = input.message.toLowerCase().trim();
+    const pendingQuery = ctxSlots.pending_flight_query || '';
+    
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ 
+        userResponse,
+        pendingQuery: pendingQuery.substring(0, 100)
+      }, '✈️ FLIGHTS: Processing clarification response');
+    }
+    
+    // Clear the clarification state
+    updateThreadSlots(input.threadId, {}, [
+      'awaiting_flight_clarification',
+      'pending_flight_query',
+      'clarification_reasoning',
+      'flight_clarification_needed',
+      'clarification_options'
+    ]);
+    
+    // Route based on user's choice
+    if (userResponse.includes('direct') || userResponse.includes('search') || userResponse.includes('booking')) {
+      // User wants direct flight search
+      const flightSlots = await extractSlots(pendingQuery, ctxSlots, input.logger?.log);
+      
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          choice: 'direct_search',
+          slots: flightSlots
+        }, '✈️ FLIGHTS: User chose direct search, routing to Amadeus API');
+      }
+      
+      return RouterResult.parse({
+        intent: 'flights',
+        needExternal: true,
+        slots: { ...ctxSlots, ...flightSlots },
+        confidence: 0.9
+      });
+    } else if (userResponse.includes('research') || userResponse.includes('planning') || userResponse.includes('advice')) {
+      // User wants travel research
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          choice: 'web_research'
+        }, '✈️ FLIGHTS: User chose travel research, routing to web search');
+      }
+      
+      return RouterResult.parse({
+        intent: 'web_search',
+        needExternal: true,
+        slots: { ...ctxSlots, search_query: pendingQuery },
+        confidence: 0.9
+      });
+    } else {
+      // Ambiguous response, try to process the original query again
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({ 
+          choice: 'ambiguous_retry'
+        }, '✈️ FLIGHTS: Ambiguous clarification response, retrying original query');
+      }
+      
+      // Recursively process the original query
+      return routeIntent({ 
+        message: pendingQuery, 
+        threadId: input.threadId, 
+        logger: input.logger 
+      });
+    }
+  }
   
   // Handle system questions about the AI
   if (contentClassification?.content_type === 'system') {
@@ -375,6 +573,14 @@ export async function routeIntent(input: { message: string; threadId?: string; l
       slots: { ...finalSlots, search_query: input.message }, 
       confidence: 0.8 
     });
+  }
+  
+  // AI-first flight detection
+  if (intentClassification?.intent === 'flights' && (intentClassification.confidence || 0) > 0.6) {
+    if (typeof input.logger?.log?.debug === 'function') {
+      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_flights');
+    }
+    return RouterResult.parse({ intent: 'flights', needExternal: true, slots: finalSlots, confidence: 0.8 });
   }
   
   // AI-first packing detection - use intent classification

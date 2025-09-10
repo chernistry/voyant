@@ -6,16 +6,34 @@ Hard requirements:
 - Round `confidence` to two decimals.
 
 Return strict JSON with:
-- intent: "weather", "packing", "attractions", "destinations", or "unknown"
+- intent: "weather", "packing", "attractions", "destinations", "flights", or "unknown"
 - confidence: 0.00-1.00 score
 - needExternal: boolean (true if external APIs needed)
-- slots: { city?: string, dates?: string, month?: string }
+- slots: { city?: string, dates?: string, month?: string, originCity?: string, destinationCity?: string, departureDate?: string, returnDate?: string, passengers?: number, cabinClass?: string }
+
+CRITICAL: Date formatting depends on intent type:
+
+For FLIGHTS intent:
+For FLIGHTS intent:
+- departureDate/returnDate: MUST be YYYY-MM-DD format (e.g., "2025-09-24")
+- This is required for Amadeus flight API compatibility
+- Convert ALL date inputs to this exact format:
+  * "12-10-2025" → "2025-10-12" (DD-MM-YYYY to YYYY-MM-DD)
+  * "September 24" → "2025-09-24"
+  * "Oct 15 2025" → "2025-10-15"
+- If year missing, assume 2025
+- If date is vague ("next month"), leave departureDate empty, use "dates" field
+
+For ALL OTHER intents (weather, attractions, etc.):
+- dates/month: Keep natural language (e.g., "September", "next week", "March 2025")
+- Do NOT use departureDate/returnDate fields for non-flight queries
 
 Intent definitions:
 - weather: asking about weather conditions, temperature, forecast
 - packing: what to bring, clothes, items for travel
 - attractions: things to do, places to visit, activities
 - destinations: where to go, travel recommendations
+- flights: flight search, booking, schedules, prices, airlines
 - unknown: unclear, unrelated, or insufficient information
 
 Explicit search mapping (Option A alignment):
@@ -32,13 +50,37 @@ Context: {context}
 
 Return strict JSON:
 {
-  "intent": "weather|packing|attractions|destinations|unknown",
+  "intent": "weather|packing|attractions|destinations|flights|unknown",
   "confidence": 0.00-1.00,
   "needExternal": true/false,
-  "slots": { "city": "", "dates": "", "month": "" }
+  "slots": { "city": "", "dates": "", "month": "", "originCity": "", "destinationCity": "", "departureDate": "", "returnDate": "", "passengers": 0, "cabinClass": "" }
 }
 
 Few‑shot examples:
+
+FLIGHTS (use YYYY-MM-DD format):
+Input: "flights from NYC to London on March 15"
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"New York City","destinationCity":"London","departureDate":"2025-03-15","passengers":1}}
+
+Input: "flights from tel aviv to moscow september 24 2025 one way"
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Tel Aviv","destinationCity":"Moscow","departureDate":"2025-09-24","passengers":1}}
+
+Input: "flights from moscow to tel aviv 12-10-2025 one way"
+Output: {"intent":"flights","confidence":0.95,"needExternal":true,"slots":{"originCity":"Moscow","destinationCity":"Tel Aviv","departureDate":"2025-10-12","passengers":1}}
+
+Input: "business class flights from LAX to Paris on December 1st 2025"
+Output: {"intent":"flights","confidence":0.92,"needExternal":true,"slots":{"originCity":"Los Angeles","destinationCity":"Paris","departureDate":"2025-12-01","cabinClass":"business","passengers":1}}
+
+Input: "find me a round trip flight to Tokyo next month"
+Output: {"intent":"flights","confidence":0.90,"needExternal":true,"slots":{"destinationCity":"Tokyo","dates":"next month","passengers":1}}
+
+NON-FLIGHTS (use natural language):
+Input: "weather in London in March"
+Output: {"intent":"weather","confidence":0.95,"needExternal":true,"slots":{"city":"London","month":"March"}}
+
+Input: "what to pack for Tokyo in December 2025"
+Output: {"intent":"packing","confidence":0.92,"needExternal":false,"slots":{"city":"Tokyo","dates":"December 2025"}}
+
 Input: "weather in NYC in June"
 Output: {"intent":"weather","confidence":0.90,"needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"}}
 

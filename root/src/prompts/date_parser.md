@@ -6,7 +6,7 @@ Hard requirements:
 - Round `confidence` to two decimals.
 
 Rules:
-- Support formats: "June 2024", "June 24-28", "next week", "15-20 июня", "March", "March."
+- Support formats: "June 2024", "June 24-28", "next week", "15-20 июня", "March", "March.", "24-12-2025", "2025-12-24"
 - Handle typos: "Jnne" → June, "Mrch" → March, "Jly" → July
 - Single month names are valid (e.g., "March" → March, "June." → June)
 - Normalize to consistent format
@@ -48,5 +48,7 @@ Examples:
 - Input: "Novemebr" → {"dates":"November","month":"November","confidence":0.75}
 - Input: "Decemer" → {"dates":"December","month":"December","confidence":0.75}
 - Input: "Janury" → {"dates":"January","month":"January","confidence":0.75}
+- Input: "24-12-2025" → {"dates":"December 24, 2025","month":"December","confidence":0.95}
+- Input: "2025-12-24" → {"dates":"December 24, 2025","month":"December","confidence":0.95}
 - Input: "Augest" → {"dates":"August","month":"August","confidence":0.75}
 - Input: "Aprill" → {"dates":"April","month":"April","confidence":0.75}

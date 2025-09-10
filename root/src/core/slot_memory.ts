@@ -6,7 +6,7 @@ import os from 'os';
 type SlotState = {
   slots: Record<string, string>;
   expectedMissing: string[];
-  lastIntent?: 'weather'|'destinations'|'packing'|'attractions'|'policy'|'unknown'|'web_search'|'system';
+  lastIntent?: 'weather'|'destinations'|'packing'|'attractions'|'policy'|'flights'|'unknown'|'web_search'|'system';
   lastFacts?: Fact[];
   lastDecisions?: string[];
   lastReply?: string;
@@ -105,12 +105,12 @@ export function clearThreadSlots(threadId: string): void {
   slotStore.delete(threadId);
 }
 
-export function setLastIntent(threadId: string, intent: 'weather'|'destinations'|'packing'|'attractions'|'policy'|'unknown'|'web_search'|'system'): void {
+export function setLastIntent(threadId: string, intent: 'weather'|'destinations'|'packing'|'attractions'|'policy'|'flights'|'unknown'|'web_search'|'system'): void {
   const prev = slotStore.get(threadId) ?? { slots: {}, expectedMissing: [] };
   slotStore.set(threadId, { ...prev, lastIntent: intent });
 }
 
-export function getLastIntent(threadId: string): 'weather'|'destinations'|'packing'|'attractions'|'policy'|'unknown'|'web_search'|'system'|undefined {
+export function getLastIntent(threadId: string): 'weather'|'destinations'|'packing'|'attractions'|'policy'|'flights'|'unknown'|'web_search'|'system'|undefined {
   return slotStore.get(threadId)?.lastIntent;
 }
 
