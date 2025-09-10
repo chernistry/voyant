@@ -25,3 +25,15 @@ Examples:
 - "Looking for a place to eat in Rome" → restaurant
 - "When is the next flight to London?" → flight
 - "What are the top attractions in Madrid?" → none
+- "What's the average cost of dining in Tokyo?" → budget
+- "Can you find a good steakhouse in Buenos Aires?" → restaurant
+- "Are there any direct flights from Sydney to Toronto?" → flight
+- "What are the must-see sights in Barcelona?" → none
+- "How much should I budget for a week in Italy?" → budget
+- "Where can I find authentic pasta in Rome?" → restaurant
+- "What are the cheapest flights to New Zealand?" → flight
+- "What are some popular beaches in Hawaii?" → none
+- "What's the price range for hotels in Paris?" → budget
+- "Recommend a good seafood restaurant in Boston" → restaurant
+- "Do you have information on flights to Iceland?" → flight
+- "What are the best museums in Amsterdam?" → none

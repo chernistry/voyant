@@ -37,5 +37,10 @@ Edge Cases:
 - Travel API responses: When facts include POI/attraction data from OpenTripMap, Brave Search, or other travel APIs, and the response appropriately cites the source → verdict="pass".
 - Family-friendly content: If the user mentioned kids/children/family but the response doesn't include family-specific suggestions when appropriate → verdict="warn".
 - Ambiguous claims: When claims could be interpreted multiple ways and facts only support one interpretation → verdict="warn".
+- Overly specific claims: When the response includes details not present in the facts → verdict="fail".
+- Missing citations: When facts are used but not cited properly → verdict="warn".
+- Incorrect source attribution: When a source is cited but the facts come from a different source → verdict="fail".
+- Incomplete information: When the response addresses only part of the user's query → verdict="warn".
+- Formatting issues: When the response violates formatting guidelines → verdict="warn".
 
 

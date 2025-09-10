@@ -27,6 +27,10 @@
 - For attractions, highlight child-friendly activities
 - For packing, suggest family-specific items (snacks, entertainment, stroller-friendly clothing)
 - For destinations, mention family-friendly features
+- For weather, note if conditions are suitable for children's activities
+- For dining, mention family-friendly restaurants or kid menus
+- For transportation, note family-friendly options (stroller access, etc.)
+- Always consider safety and convenience for families with children
 
 **Examples:**
 - Weather facts: "• Current weather in Paris: High 22°C, Low 15°C (Open-Meteo)"
@@ -34,6 +38,9 @@
 - Invalid city: "• Please verify the city name or try a nearby major city."
 - Family packing: "• Extra snacks and entertainment for kids • Stroller‑friendly shoes"
 - Family attractions: "• Interactive museums with hands-on exhibits • Child-friendly parks and playgrounds"
+- Family weather: "• Current weather in London: High 18°C, Low 12°C - perfect for outdoor family activities (Open-Meteo)"
+- Family destinations: "• London: Many child-friendly museums and parks • Paris: Disneyland Paris and interactive exhibits"
+- Family dining: "• Family-friendly restaurants with kids menus available • Child-friendly cafes with high chairs"
 
 IMPORTANT: Output only the answer (bullets or short paragraph). Never include
 "Final Answer:", "Input:", or template scaffolding. Never name cities not in FACTS.

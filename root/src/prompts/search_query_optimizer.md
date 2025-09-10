@@ -25,6 +25,14 @@ Examples:
 - "What are visa requirements for Germans in Israel?" → "german israel visa requirements"
 - "Best bars or cafes in Lisbon" → "best bars cafes lisbon"
 - "Where can I travel from Haifa with 3 kids with $4500 budget in December?" → "family destinations from haifa december under 4500 usd"
+- "Budget-friendly vacation spots in Europe for couples" → "budget vacation spots europe couples"
+- "Family-friendly activities in Orlando with teenagers" → "family activities orlando teenagers"
+- "Luxury hotels in Dubai for business travelers" → "luxury hotels dubai business travelers"
+- "Backpacking destinations in Southeast Asia for solo travelers under $2000" → "backpacking destinations southeast asia solo travelers under 2000 usd"
+- "Romantic getaways in Italy for honeymooners" → "romantic getaways italy honeymooners"
+- "Adventure travel destinations in South America for groups" → "adventure travel destinations south america groups"
+- "All-inclusive resorts in Mexico for families with toddlers" → "all-inclusive resorts mexico families toddlers"
+- "Cultural experiences in India for students on a budget" → "cultural experiences india students budget"
 
 Edge Cases:
 - Ambiguous queries: Focus on the core intent and include available context

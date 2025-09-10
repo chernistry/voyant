@@ -26,4 +26,11 @@ Examples:
 - With complete information: {"summary": "Japan: Capital Tokyo, Japanese yen (JPY), Japanese language"}
 - With partial information: {"summary": "France: Capital Paris, French language"}
 - No relevant data: {"summary": ""}
+- With currency only: {"summary": "Thailand: Thai baht (THB) currency"}
+- With language only: {"summary": "Germany: German language"}
+- With capital only: {"summary": "Australia: Capital Canberra"}
+- With currency and capital: {"summary": "Canada: Capital Ottawa, Canadian dollar (CAD)"}
+- With language and capital: {"summary": "Italy: Capital Rome, Italian language"}
+- Limited information: {"summary": "Brazil: Portuguese language, real (BRL) currency"}
+- Sparse information: {"summary": "Greece: Capital Athens"}
 

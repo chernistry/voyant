@@ -26,4 +26,14 @@ Examples:
 - With temperature data: {"summary": "Current weather in Paris: 22°C with sunny conditions"}
 - Without specific data: {"summary": "Weather in Tokyo: Generally mild with occasional rain"}
 - No relevant data: {"summary": ""}
+- With high/low data: {"summary": "Weather in London: High 18°C, Low 12°C with partly cloudy conditions"}
+- With precipitation: {"summary": "Weather in Seattle: Rainy conditions with temperatures around 15°C"}
+- With seasonal information: {"summary": "Weather in Sydney: Winter season with mild temperatures"}
+- Mixed conditions: {"summary": "Weather in New York: Variable conditions with temperatures between 20-25°C"}
+- Forecast information: {"summary": "Weather in Rome: Expected high of 28°C with sunny conditions"}
+- With high/low data: {"summary": "Weather in London: High 18°C, Low 12°C with partly cloudy conditions"}
+- With precipitation data: {"summary": "Weather in Seattle: Rainy conditions with 15°C temperatures"}
+- With seasonal data: {"summary": "Weather in Sydney: Winter conditions, cool with occasional showers"}
+- Mixed conditions: {"summary": "Weather in Denver: Variable conditions with highs around 20°C"}
+- Extreme weather: {"summary": "Weather in Phoenix: Extremely hot conditions, high temperatures around 40°C"}
 

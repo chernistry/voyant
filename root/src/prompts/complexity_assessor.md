@@ -44,6 +44,24 @@ Output: {"isComplex": false, "confidence": 0.6, "reasoning": "simple destination
 Input: "Family of four looking for a beach vacation in July with a $3000 budget" (complex)
 Output: {"isComplex": true, "confidence": 0.85, "reasoning": "multiple constraints: group + location + time + budget"}
 
+Input: "What are some good restaurants in Paris?" (simple)
+Output: {"isComplex": false, "confidence": 0.75, "reasoning": "simple query: location only"}
+
+Input: "I'm looking for a place to stay in Tokyo for 5 nights" (moderate)
+Output: {"isComplex": false, "confidence": 0.65, "reasoning": "accommodation query: location + duration"}
+
+Input: "We need flights from LA to Miami for a family of 6 with 2 toddlers" (moderate)
+Output: {"isComplex": false, "confidence": 0.7, "reasoning": "transport query: location + group"}
+
+Input: "Planning a 10-day European tour for 2 people with a $4000 budget visiting 4 cities" (complex)
+Output: {"isComplex": true, "confidence": 0.9, "reasoning": "multiple constraints: duration + group + budget + location"}
+
+Input: "Need a hotel in NYC for next weekend" (simple)
+Output: {"isComplex": false, "confidence": 0.55, "reasoning": "accommodation query: location + time"}
+
+Input: "Looking for an accessible hotel in London for a week in August with a budget of £1500" (complex)
+Output: {"isComplex": true, "confidence": 0.85, "reasoning": "multiple constraints: accommodation + location + time + budget + accessibility"}
+
 Message: {message}
 
 Return JSON only.

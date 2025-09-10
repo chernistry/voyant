@@ -35,3 +35,8 @@ Edge Cases:
 - Incomplete results: Acknowledge limitations and ask for clarification
 - Contradictory information: Note discrepancies and cite sources
 - Sparse information: Focus on the most reliable facts only
+- No relevant results: Clearly state that no relevant information was found
+- Partially relevant results: Extract what is useful and note limitations
+- Mixed quality results: Prioritize high-quality sources and note discrepancies
+- Outdated information: Note when information may be outdated and cite sources
+- Overly technical results: Simplify complex information while preserving accuracy

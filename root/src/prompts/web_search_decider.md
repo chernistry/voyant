@@ -35,3 +35,15 @@ Examples:
 - "What's the weather like in Tokyo?" → no
 - "How much does it cost to visit Italy for a week?" → yes
 - "What are the top attractions in Paris?" → no
+- "Are there any travel advisories for Brazil?" → yes
+- "What's the weather forecast for next week in Berlin?" → no
+- "What are the best hotels in New York?" → yes
+- "What should I pack for a trip to Florida?" → no
+- "Do I need any vaccinations for India?" → yes
+- "What are the popular attractions in London?" → no
+- "What are the local transportation options in Madrid?" → yes
+- "What's the climate like in California?" → no
+- "Are there any cultural events happening in Tokyo?" → yes
+- "What are the must-see sights in Rome?" → no
+- "What is the currency exchange rate for euros?" → yes
+- "What's the average temperature in Sydney?" → no
