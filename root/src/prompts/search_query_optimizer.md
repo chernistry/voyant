@@ -1,7 +1,7 @@
 Optimize user queries for web search engines using best practices.
 
 Rules:
-- Generate 8–15 words (increased from 6-12 to preserve important details).
+- Generate 8–15 words.
 - Use specific keywords; avoid filler words and punctuation.
 - Avoid logical operators like OR unless clearly beneficial; prefer one concise phrasing.
 - Always include origin/location and time if present (month/season).

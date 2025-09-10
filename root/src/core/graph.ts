@@ -929,7 +929,7 @@ export async function runGraphTurn(
   // If this is complex and we are NOT already waiting on consent, set flags and ASK for consent now
   if (isComplexTravelQuery) {
     const consentPrompt =
-      "This plan has a few moving parts (flights, hotels, activities and a budget). " +
+      "This plan has a few moving parts. " +
       "I can do deeper research and search the web for up-to-date options. Want me to proceed? " +
       "Reply 'yes' to let me search, or 'no' to skip.";
 
