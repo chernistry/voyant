@@ -17,6 +17,11 @@ import { detectLanguage } from './transformers-detector.js';
 import { extractEntitiesEnhanced } from './ner-enhanced.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
+import {
+  buildConstraintGraph,
+  getCombinationKey,
+  ConstraintType,
+} from './constraintGraph.js';
 
 // --- City guards: brand denylist + multiword proper name + geocode validation
 const BRAND_DENY = new Set([
@@ -26,6 +31,7 @@ const BRAND_DENY = new Set([
 ]);
 const MULTIWORD_PROPER = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3}$/;
 const geocodeMemo = new Map<string, boolean>();
+const constraintGraph = buildConstraintGraph();
 
 async function isRealCity(name: string, log: pino.Logger): Promise<boolean> {
   const key = name.toLowerCase().trim();
@@ -706,7 +712,7 @@ export async function runGraphTurn(
   const LOW_CONFIDENCE = 0.60;
   
   // Constraint categories detection with AI-first cascade
-  const constraintCategories = [];
+  const constraintCategories: ConstraintType[] = [];
   try {
     // Stage 1: Use cached content classification (AI-first)
     if (contentClassification.confidence >= 0.75) {
@@ -772,13 +778,18 @@ export async function runGraphTurn(
     ctx.log.debug({ error: String(error) }, '🔍 CONSTRAINTS: AI failed, using regex fallback (regex fallback)');
   }
   
+  const comboKey = getCombinationKey(constraintCategories);
+  const pathComplexity = constraintGraph.get(comboKey) ?? 'simple';
+
   ctx.log.info({
     extractionMethod,
     extractionConfidence: Math.round(extractionConfidence * 100) / 100,
     constraintCategories,
+    constraintKey: comboKey,
+    complexityClass: pathComplexity,
     constraintCount: constraintCategories.length,
-    routingThreshold: extractionConfidence >= HIGH_CONFIDENCE ? 'high' : 
-                     extractionConfidence >= MEDIUM_CONFIDENCE ? 'medium' : 
+    routingThreshold: extractionConfidence >= HIGH_CONFIDENCE ? 'high' :
+                     extractionConfidence >= MEDIUM_CONFIDENCE ? 'medium' :
                      extractionConfidence >= LOW_CONFIDENCE ? 'low' : 'fallback'
   }, '🎯 ROUTING: AI decision metrics');
   
@@ -839,14 +850,15 @@ export async function runGraphTurn(
   
   try {
     // Stage 1: Transformers content classification (AI-first)
-    const complexity = contentClassification.content_type === 'budget' || 
-                      constraintCategories.length >= 3;
+    const complexity =
+      contentClassification.content_type === 'budget' ||
+      pathComplexity === 'complex';
     
     if (contentClassification.confidence >= 0.75) {
       isComplexTravelQuery = complexity;
       complexityConfidence = contentClassification.confidence;
       ctx.log.debug({ 
-        isComplexTravelQuery, 
+        isComplexTravelQuery,
         constraintCount: constraintCategories.length,
         confidence: Math.round(complexityConfidence * 100) / 100,
         method: 'transformers'
