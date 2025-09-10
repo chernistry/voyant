@@ -26,7 +26,22 @@ type PromptName =
   | 'search_extract_country'
   | 'search_extract_attractions'
   | 'complexity_assessor'
-  | 'iata_code_generator';
+  | 'iata_code_generator'
+  | 'flight_complexity_detector'
+  | 'policy_summarizer'
+  | 'policy_classifier'
+  | 'search_result_extractor'
+  | 'search_query_optimizer_llm'
+  | 'preference_extractor'
+  | 'attractions_kid_friendly'
+  | 'city_name_extractor'
+  | 'origin_destination_extractor'
+  | 'attractions_summarizer'
+  | 'country_disambiguator'
+  | 'crawlee_page_summary'
+  | 'crawlee_overall_summary'
+  | 'destinations_recommender'
+  | 'llm_test_evaluator';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -103,6 +118,51 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.complexity_assessor = await loadFileSafe(
     path.join(base, 'complexity_assessor.md'),
+  );
+  PROMPTS.flight_complexity_detector = await loadFileSafe(
+    path.join(base, 'flight_complexity_detector.md'),
+  );
+  PROMPTS.policy_summarizer = await loadFileSafe(
+    path.join(base, 'policy_summarizer.md'),
+  );
+  PROMPTS.policy_classifier = await loadFileSafe(
+    path.join(base, 'policy_classifier.md'),
+  );
+  PROMPTS.search_result_extractor = await loadFileSafe(
+    path.join(base, 'search_result_extractor.md'),
+  );
+  PROMPTS.search_query_optimizer_llm = await loadFileSafe(
+    path.join(base, 'search_query_optimizer_llm.md'),
+  );
+  PROMPTS.preference_extractor = await loadFileSafe(
+    path.join(base, 'preference_extractor.md'),
+  );
+  PROMPTS.attractions_kid_friendly = await loadFileSafe(
+    path.join(base, 'attractions_kid_friendly.md'),
+  );
+  PROMPTS.city_name_extractor = await loadFileSafe(
+    path.join(base, 'city_name_extractor.md'),
+  );
+  PROMPTS.origin_destination_extractor = await loadFileSafe(
+    path.join(base, 'origin_destination_extractor.md'),
+  );
+  PROMPTS.attractions_summarizer = await loadFileSafe(
+    path.join(base, 'attractions_summarizer.md'),
+  );
+  PROMPTS.country_disambiguator = await loadFileSafe(
+    path.join(base, 'country_disambiguator.md'),
+  );
+  PROMPTS.crawlee_page_summary = await loadFileSafe(
+    path.join(base, 'crawlee_page_summary.md'),
+  );
+  PROMPTS.crawlee_overall_summary = await loadFileSafe(
+    path.join(base, 'crawlee_overall_summary.md'),
+  );
+  PROMPTS.destinations_recommender = await loadFileSafe(
+    path.join(base, 'destinations_recommender.md'),
+  );
+  PROMPTS.llm_test_evaluator = await loadFileSafe(
+    path.join(base, 'llm_test_evaluator.md'),
   );
   loaded = true;
 }

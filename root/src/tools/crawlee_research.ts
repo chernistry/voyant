@@ -1,4 +1,5 @@
 import { callLLM } from '../core/llm.js';
+import { getPrompt } from '../core/prompts.js';
 
 type CrawlResult = {
   url: string;
@@ -238,11 +239,10 @@ function extractMainContent($: any): string {
 }
 
 async function summarizePage(content: string, query: string): Promise<string> {
-  const prompt = `Summarize this webpage content in 2-3 sentences, focusing on information relevant to: "${query}"
-
-Content: ${content.slice(0, 1500)}
-
-Summary:`;
+  const tpl = await getPrompt('crawlee_page_summary');
+  const prompt = tpl
+    .replace('{query}', query)
+    .replace('{content}', content.slice(0, 1500));
 
   try {
     const response = await callLLM(prompt);
@@ -257,12 +257,10 @@ async function createOverallSummary(results: CrawlResult[], query: string): Prom
   
   const summaries = results.map((r, i) => `[${i + 1}] ${r.title}: ${r.summary}`).join('\n');
   
-  const prompt = `Create a comprehensive 2-3 paragraph summary based on these webpage summaries for the query: "${query}"
-
-Summaries:
-${summaries}
-
-Comprehensive Summary:`;
+  const tpl = await getPrompt('crawlee_overall_summary');
+  const prompt = tpl
+    .replace('{query}', query)
+    .replace('{summaries}', summaries);
 
   try {
     const response = await callLLM(prompt);

@@ -124,14 +124,11 @@ export async function parseCity(
     const uniqueCities = [...new Set(potentialCities)];
     
     if (uniqueCities.length > 0) {
-      const prompt = `Extract the most likely city name from this text. Return JSON with city and confidence (0-1).
-
-Text: "${text}"
-Context: ${context ? JSON.stringify(context) : '{}'}
-
-Potential city candidates: ${JSON.stringify(uniqueCities)}
-
-Return only valid JSON with "city" and "confidence" fields.`;
+      const tpl = await getPrompt('city_name_extractor');
+      const prompt = tpl
+        .replace('{text}', text)
+        .replace('{context}', context ? JSON.stringify(context) : '{}')
+        .replace('{candidates}', JSON.stringify(uniqueCities));
 
       const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
       const json = JSON.parse(raw);
@@ -533,16 +530,10 @@ export async function parseOriginDestination(
 
   // LLM fallback
   try {
-    const prompt = `Extract origin and destination cities from this text. Return JSON with originCity and destinationCity fields (null if not found) and confidence (0-1).
-
-Text: "${text}"
-Context: ${context ? JSON.stringify(context) : '{}'}
-
-Look for patterns like:
-- "from X" or "leaving X" = origin
-- "to Y" or "in Y" = destination
-
-Return only valid JSON.`;
+    const tpl = await getPrompt('origin_destination_extractor');
+    const prompt = tpl
+      .replace('{text}', text)
+      .replace('{context}', context ? JSON.stringify(context) : '{}');
 
     const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
     const json = JSON.parse(raw);

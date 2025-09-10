@@ -3,6 +3,7 @@ import { VectaraClient } from '../tools/vectara.js';
 import { VECTARA } from '../config/vectara.js';
 import { callLLM } from './llm.js';
 import { extractEntities } from './ner.js';
+import { getPrompt } from './prompts.js';
 
 export type PolicyAnswer = { 
   answer: string; 
@@ -68,21 +69,10 @@ export class PolicyAgent {
       .map((c, i) => `[${i + 1}] ${c.title || 'Policy Document'}\n${c.snippet}`)
       .join('\n\n');
 
-    const prompt = `Based on the following policy documents, provide a clear and concise answer to the user's question.
-
-Question: ${question}
-
-Policy Documents:
-${context}
-
-Instructions:
-- Answer directly and concisely
-- Use information only from the provided documents
-- If the documents don't contain relevant information, say so
-- Include specific details like timeframes, fees, or requirements when available
-- Keep the response professional and helpful
-
-Answer:`;
+    const tpl = await getPrompt('policy_summarizer');
+    const prompt = tpl
+      .replace('{question}', question)
+      .replace('{context}', context);
 
     try {
       const response = await callLLM(prompt, { log });
@@ -175,16 +165,8 @@ Answer:`;
   }
 
   private async classifyCorpusWithLLM(question: string, log?: pino.Logger): Promise<'airlines' | 'hotels' | 'visas' | null> {
-    const prompt = `Classify this travel policy question into one of three categories:
-
-Question: "${question}"
-
-Categories:
-- airlines: Flight policies, baggage, airline-specific rules, boarding, seats, miles
-- hotels: Hotel policies, room bookings, check-in/out, hotel-specific rules  
-- visas: Visa requirements, passport rules, immigration, entry requirements
-
-Respond with only: airlines, hotels, or visas`;
+    const tpl = await getPrompt('policy_classifier');
+    const prompt = tpl.replace('{question}', question);
 
     try {
       const response = await callLLM(prompt, { log });

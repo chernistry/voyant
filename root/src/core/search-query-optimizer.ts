@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { classifyContent, classifyIntent } from './transformers-classifier.js';
 import { extractEntitiesEnhanced } from './ner-enhanced.js';
 import { callLLM } from './llm.js';
+import { getPrompt } from './prompts.js';
 import type pino from 'pino';
 
 export const SearchQueryOptimization = z.object({
@@ -119,19 +120,10 @@ async function tryLLMOptimization(
   log?: pino.Logger
 ): Promise<SearchQueryOptimizationT | null> {
   try {
-    const prompt = `Optimize this search query for better web search results. Return JSON:
-
-Original query: "${query}"
-Context: ${JSON.stringify(context)}
-
-Analyze the query intent and optimize it for web search engines. Add relevant keywords, improve specificity, and structure for better results.
-
-{
-  "optimizedQuery": "enhanced search query with relevant keywords",
-  "queryType": "weather|attractions|destinations|country|general",
-  "confidence": 0.0-1.0,
-  "reasoning": "brief explanation of optimization"
-}`;
+    const tpl = await getPrompt('search_query_optimizer_llm');
+    const prompt = tpl
+      .replace('{query}', query)
+      .replace('{context}', JSON.stringify(context));
 
     const response = await callLLM(prompt, { responseFormat: 'json', log });
     const parsed = JSON.parse(response);

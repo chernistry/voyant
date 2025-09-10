@@ -7,6 +7,7 @@ import {
 } from './search.js';
 import { extractEntities } from '../core/ner.js';
 import { callLLM } from '../core/llm.js';
+import { getPrompt } from '../core/prompts.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
 
@@ -96,22 +97,8 @@ async function llmDisambiguateLocation(target: string): Promise<{
   confidence: number;
 }> {
   try {
-    const prompt = `Analyze this location name and determine if it refers to a country or city/region:
-
-Location: "${target}"
-
-Consider context clues like:
-- "Georgia travel" → country (not US state)
-- "Paris vacation" → city
-- "UK visa" → country
-- "New York attractions" → city
-
-Respond with JSON:
-{
-  "isCountry": boolean,
-  "resolvedName": "standardized name",
-  "confidence": 0.0-1.0
-}`;
+    const tpl = await getPrompt('country_disambiguator');
+    const prompt = tpl.replace('{target}', target);
 
     const response = await callLLM(prompt, { timeoutMs: 5000 });
     const parsed = JSON.parse(response.trim());

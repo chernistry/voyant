@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { classifyContent } from './transformers-classifier.js';
 import { extractEntitiesEnhanced } from './ner-enhanced.js';
 import { callLLM } from './llm.js';
+import { getPrompt } from './prompts.js';
 import type pino from 'pino';
 
 interface SearchResult {
@@ -136,19 +137,15 @@ async function tryLLMExtraction(
 ): Promise<ExtractionResultT | null> {
   try {
     const topResults = results.slice(0, 3);
-    const prompt = `Extract relevant information from these search results for: "${query}"
-
-Search Results:
-${topResults.map((r, i) => `${i + 1}. ${r.title}\n${r.description}`).join('\n\n')}
-
-Extract the most relevant information for a ${extractionType} query. Return JSON:
-
-{
-  "summary": "concise summary of relevant information",
-  "confidence": 0.0-1.0,
-  "entities": [{"text": "entity", "type": "type", "value": "normalized_value"}],
-  "relevanceScore": 0.0-1.0
-}`;
+    const tpl = await getPrompt('search_result_extractor');
+    const prompt = tpl
+      .replace('{query}', query)
+      .replace('{results}',
+        topResults
+          .map((r, i) => `${i + 1}. ${r.title}\n${r.description}`)
+          .join('\n\n'),
+      )
+      .replace('{extractionType}', extractionType);
 
     const response = await callLLM(prompt, { responseFormat: 'json', log });
     const parsed = JSON.parse(response);

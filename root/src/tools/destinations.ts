@@ -1,6 +1,7 @@
 import { getCountryFacts } from './country.js';
 import { extractTravelPreferences } from '../core/preference-extractor.js';
 import { callLLM } from '../core/llm.js';
+import { getPrompt } from '../core/prompts.js';
 import type pino from 'pino';
 
 export interface DestinationFact {
@@ -34,26 +35,10 @@ export async function recommendDestinations(
   try {
     const preferences = await extractTravelPreferences(slots.travelerProfile || '', log);
 
-    const prompt = `
-      Based on the following travel preferences, recommend 3-4 destinations.
-      Preferences: ${JSON.stringify(preferences)}
-      User query context: ${JSON.stringify(slots)}
-
-      For each destination, provide a brief, compelling reason why it matches the preferences.
-      Return the recommendations in a JSON array with the following structure:
-      [
-        {
-          "city": "City Name",
-          "country": "Country Name",
-          "description": "Why this destination is a good fit.",
-          "tags": {
-            "climate": "e.g., warm, cold, temperate",
-            "budget": "e.g., low, mid, high",
-            "family_friendly": true/false
-          }
-        }
-      ]
-    `;
+    const tpl = await getPrompt('destinations_recommender');
+    const prompt = tpl
+      .replace('{preferences}', JSON.stringify(preferences))
+      .replace('{slots}', JSON.stringify(slots));
 
     const rawResponse = await callLLM(prompt, { responseFormat: 'json', log });
     const recommendations = JSON.parse(rawResponse);

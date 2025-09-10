@@ -1,5 +1,6 @@
 import { classifyContent } from './transformers-classifier.js';
 import type pino from 'pino';
+import { getPrompt } from './prompts.js';
 
 export interface AttractionClassification {
   isKidFriendly: boolean;
@@ -81,16 +82,9 @@ async function classifyAttraction(
     
     // Step 2: Fallback to LLM if NLP confidence is low
     const { callLLM } = await import('./llm.js');
-    
-    const prompt = `Is this attraction suitable for families with children? Respond with JSON:
-"${text}"
 
-{
-  "isKidFriendly": true/false,
-  "categories": ["family", "educational", "cultural", "nature", "entertainment"],
-  "confidence": 0.0-1.0,
-  "reasoning": "brief explanation"
-}`;
+    const tpl = await getPrompt('attractions_kid_friendly');
+    const prompt = tpl.replace('{text}', text);
 
     const response = await callLLM(prompt, { responseFormat: 'json', log });
     const parsed = JSON.parse(response);

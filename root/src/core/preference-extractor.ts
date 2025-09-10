@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { classifyContent, classifyIntent } from './transformers-classifier.js';
 import { extractEntities } from './ner.js';
+import { getPrompt } from './prompts.js';
 import type pino from 'pino';
 
 export const TravelPreferences = z.object({
@@ -127,18 +128,9 @@ async function tryLLMExtraction(text: string, log?: pino.Logger): Promise<Travel
   try {
     // Use actual LLM for preference extraction
     const { callLLM } = await import('./llm.js');
-    
-    const prompt = `Analyze this travel request and extract preferences in JSON format:
-"${text}"
 
-Return JSON with these fields (use null if not clear):
-{
-  "travelStyle": "family|romantic|adventure|cultural|business|budget|luxury",
-  "budgetLevel": "low|mid|high", 
-  "activityType": "museums|nature|nightlife|shopping|food|history",
-  "groupType": "solo|couple|family|friends|business",
-  "confidence": 0.0-1.0
-}`;
+    const tpl = await getPrompt('preference_extractor');
+    const prompt = tpl.replace('{text}', text);
 
     const response = await callLLM(prompt, { responseFormat: 'json', log });
     const parsed = JSON.parse(response);

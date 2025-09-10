@@ -7,6 +7,7 @@ import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { searchPOIs, getPOIDetail } from './opentripmap.js';
 import { classifyAttractions, type AttractionItem } from '../core/transformers-attractions-classifier.js';
 import { callLLM } from '../core/llm.js';
+import { getPrompt } from '../core/prompts.js';
 
 type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };
 
@@ -197,16 +198,16 @@ async function summarizeAttractions(
       ? 'Focus on family-friendly and child-appropriate attractions.'
       : 'Include all types of attractions for general travelers.';
 
-    const prompt = `Summarize these attractions in ${city} for travelers. ${profileContext}
-
-Attractions:
-${attractionData.map(a => `- ${a.name}: ${a.description.slice(0, 200)}`).join('\n')}
-
-Create a natural, engaging summary that highlights the key attractions. Be concise but informative. Return JSON:
-
-{
-  "summary": "Natural paragraph describing the attractions with their key features"
-}`;
+    const tpl = await getPrompt('attractions_summarizer');
+    const prompt = tpl
+      .replace('{city}', city)
+      .replace('{profileContext}', profileContext)
+      .replace(
+        '{attractions}',
+        attractionData
+          .map(a => `- ${a.name}: ${a.description.slice(0, 200)}`)
+          .join('\n'),
+      );
 
     const response = await callLLM(prompt, { responseFormat: 'json' });
     const parsed = JSON.parse(response);
