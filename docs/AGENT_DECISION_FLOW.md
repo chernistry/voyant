@@ -11,13 +11,13 @@ flowchart TD
     D --> E["runGraphTurn(message, threadId)"]
 
     %% Transformers-first NLP preprocessing (graph.ts)
-    E --> NLP1["correctSpelling() (transformers)"]
-    NLP1 --> NLP2["classifyContent() (transformers)"]
-    NLP2 --> NLP3["detectLanguage() (langdetect)"]
-    NLP3 --> NLP4["extractEntitiesEnhanced() (NER)"]
+    E --> NLP1["classifyContent() (transformers)"]
+    NLP1 --> NLP2["detectLanguage() (langdetect)"]
+    NLP2 --> NLP3["extractEntitiesEnhanced() (NER)"]
+    NLP3 --> NLP4["classifyIntent() (transformers)"]
     
     %% Early content filtering
-    NLP2 --> CF1{"Unrelated content?"}
+    NLP1 --> CF1{"Unrelated content?"}
     CF1 -->|Yes| CF2["Reply: I focus on travel planning"]
     CF1 -->|No| CF3{"System question?"}
     CF3 -->|Yes| CF4["Reply: I'm an AI travel assistant"]
@@ -28,49 +28,45 @@ flowchart TD
     CF7 -->|No| CF9["Check destination conflicts"]
 
     %% Language warning
-    NLP3 --> LW1{"Non-English or mixed?"}
+    NLP2 --> LW1{"Non-English or mixed?"}
     LW1 -->|Yes| LW2["Set language warning"]
     LW1 -->|No| LW3["No warning"]
 
     %% Consent gates before routing
-    CF8 --> G{"Awaiting web search consent?"}
+    CF8 --> G{"Awaiting any consent?"}
     CF9 --> G
-    G -->|Yes| G1["detectConsent() (LLM): yes/no/unclear"]
-    G1 -->|yes| H1["optimizeSearchQuery()"]
+    G -->|Yes| G1{"Consent type?"}
+    G1 -->|Web search| G2["detectConsent() (LLM): yes/no/unclear"]
+    G2 -->|yes| H1["optimizeSearchQuery()"]
     H1 --> H2["performWebSearchNode()"]
     H2 --> H2a["summarizeSearchResults → reply + citations ['Brave Search']"]
-    G1 -->|no| H3["Reply: No problem..."]
-    G -->|No| G4{"Awaiting deep research consent?"}
-    G4 -->|Yes| G5["detectConsent() (LLM): yes/no/unclear"]
-    G5 -->|yes| G6["performDeepResearchNode()"]
-    G6 --> G7["Return deep research reply + citations"]
-    G5 -->|no| G8["Fallback: route pending query via router"]
-    G4 -->|No| I["routeIntentNode()"]
+    G2 -->|no| H3["Reply: No problem..."]
+    G1 -->|Deep research| G4["detectConsent() (LLM): yes/no/unclear"]
+    G4 -->|yes| G5["performDeepResearchNode()"]
+    G5 --> G6["Return deep research reply + citations"]
+    G4 -->|no| G7["Fallback: route pending query via router"]
+    G -->|No| I["routeIntentNode()"]
 
     %% Transformers-first routing cascade (router.ts)
-    I --> RT1["classifyContent() (LLM for system/policy/search)"]
+    I --> RT1["classifyContent() (transformers)"]
     RT1 --> RT2{"DEEP_RESEARCH_ENABLED?"}
     RT2 -->|Yes| RT3["detectComplexQueryFast()"]
-    RT3 --> RT4{"Simple weather/packing?"}
-    RT4 -->|Yes| RT5["Mark as simple (not complex)"]
-    RT4 -->|No| RT6["Check entity count + constraints"]
-    RT6 --> RT7{"Complex (≥4 entities or ≥3 constraints)?"}
-    RT7 -->|Yes| RT8["Set awaiting_deep_research_consent"]
-    RT7 -->|No| RT9["Continue to routing cascade"]
+    RT3 --> RT4{"Complex query?"}
+    RT4 -->|Yes| RT8["Set awaiting_deep_research_consent"]
+    RT4 -->|No| RT9["Continue to routing cascade"]
     RT2 -->|No| RT9
-    RT5 --> RT9
     RT8 --> RT10["Ask for deep research consent"]
     RT10 --> E
 
     %% NLP Routing Cascade: Transformers → LLM → Rules
     RT9 --> RC1["🔄 ROUTING CASCADE"]
-    RC1 --> RC2["Step 1: tryRouteViaTransformers()"]
+    RC1 --> RC2["Step 1: routeViaTransformersFirst()"]
     RC2 --> RC3["extractEntitiesEnhanced() (NER + patterns)"]
     RC3 --> RC4["classifyIntent() (transformers)"]
     RC4 --> RC5["classifyIntentFromTransformers()"]
     RC5 --> RC6{"Confidence > 0.7?"}
     RC6 -->|Yes| RC7["✅ Transformers success"]
-    RC6 -->|No| RC8["Step 2: routeWithLLM()"]
+    RC6 -->|No| RC8["Step 2: classifyIntent() + routeWithLLM()"]
     RC8 --> RC9["LLM intent classification + slot extraction"]
     RC9 --> RC10{"LLM confidence > 0.5?"}
     RC10 -->|Yes| RC11["✅ LLM success"]
@@ -167,35 +163,41 @@ flowchart TD
 %% Key Changes in Transformers-First Architecture:
 %% 
 %% 1. NLP PREPROCESSING (graph.ts):
-%%    - correctSpelling() replaces hardcoded typo dictionary
-%%    - classifyContent() (transformers) replaces regex patterns
-%%    - detectLanguage() (langdetect) replaces script regex
-%%    - extractEntitiesEnhanced() adds MONEY/TIME/DURATION entities
+%%    - classifyContent() (transformers) for content classification
+%%    - detectLanguage() (langdetect) for language detection
+%%    - extractEntitiesEnhanced() for enhanced entity extraction with MONEY/TIME/DURATION entities
+%%    - classifyIntent() (transformers) for intent classification
 %%
 %% 2. ROUTING CASCADE (router.ts):
-%%    - Transformers → LLM → Rules fallback (was LLM → Rules)
+%%    - Transformers → LLM → Rules fallback with timeout via TRANSFORMERS_ROUTER_TIMEOUT_MS
 %%    - Enhanced NER with confidence scoring and deduplication
-%%    - Pattern-based classification with Russian language support
-%%    - Timeout configurable via TRANSFORMERS_ROUTER_TIMEOUT_MS (default 3000ms)
+%%    - Pattern-based classification with multilingual support
+%%    - Intent classification using Transformers.js models
 %%
 %% 3. COMPLEXITY DETECTION:
-%%    - Simple weather/packing queries bypass deep research
-%%    - Entity count + constraint analysis for complex queries
-%%    - Budget/family/multi-location triggers deep research consent
+%%    - Transformers-based complexity detection with constraint analysis
+%%    - Entity count + constraint categories for complex queries
+%%    - Confidence scoring for complexity assessment
+%%    - DEEP_RESEARCH_ENABLED flag to enable/disable complexity detection
 %%
 %% 4. SLOT EXTRACTION CASCADE:
 %%    - NER → LLM → Rules for city/date/entity extraction
-%%    - Enhanced entity types: LOCATION, DATE, MONEY, DURATION
-%%    - Confidence-based fallback between methods
+%%    - Enhanced entity types: LOCATION, DATE, MONEY, DURATION, PERSON, ORGANIZATION
+%%    - Confidence-based fallback between methods with deduplication
+%%    - Pattern-based detection for MONEY and DURATION entities
 %%
 %% 5. PERFORMANCE OPTIMIZATIONS:
 %%    - Early content filtering reduces LLM calls
 %%    - Transformers-first reduces latency by 20-40%
 %%    - Cached model loading for repeated requests
+%%    - Per-turn memoization for NER/CLS/LLM results
+%%    - Timeout-based routing cascade with Transformers.js
 %%
 %% Environment Variables:
 %% - TRANSFORMERS_ROUTER_TIMEOUT_MS: Transformers timeout (default: 3000ms)
 %% - DEEP_RESEARCH_ENABLED: Enable complexity detection (true/false)
 %% - TRANSFORMERS_NER_MODEL: NER model override
 %% - NER_MODE: local|remote|auto (default: auto)
+%% - CLASSIFICATION_INTENT_MODEL_LOCAL: Local intent classification model
+%% - CLASSIFICATION_INTENT_MODEL_REMOTE_API: Remote API intent classification model
 %% - RESILIENCE: Circuit breakers and rate limiters are used for all external API calls.
