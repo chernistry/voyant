@@ -16,6 +16,7 @@ import './transformers-env.js';
 
 import 'dotenv/config';
 import type pino from 'pino';
+import { transformersEnabled } from '../config/transformers.js';
 
 export type NerSpan = { entity_group: string; score: number; text: string };
 
@@ -259,6 +260,13 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 
 export async function extractEntities(text: string, log?: pino.Logger, opts?: { timeoutMs?: number }): Promise<NerSpan[]> {
   if (!text || typeof text !== 'string') {
+    return [];
+  }
+
+  if (!transformersEnabled()) {
+    if (log?.debug) {
+      log.debug('🔌 NER: Transformers disabled');
+    }
     return [];
   }
 

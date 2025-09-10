@@ -27,6 +27,7 @@ describe('NER Facade', () => {
     delete process.env.NODE_ENV;
     delete process.env.JEST_WORKER_ID;
     delete process.env.LOG_LEVEL;
+    delete process.env.TRANSFORMERS_CASCADE_ENABLED;
   });
 
   describe('mode selection', () => {
@@ -91,6 +92,16 @@ describe('NER Facade', () => {
       expect(result).toEqual([
         { entity_group: 'PER', score: 0.7, text: 'John' }
       ]);
+    });
+  });
+
+  describe('transformers cascade toggle', () => {
+    it('returns empty array when disabled', async () => {
+      process.env.TRANSFORMERS_CASCADE_ENABLED = 'false';
+      const { pipeline } = require('@huggingface/transformers');
+      const result = await extractEntities('Visit Paris', mockLogger);
+      expect(result).toEqual([]);
+      expect(pipeline).not.toHaveBeenCalled();
     });
   });
 

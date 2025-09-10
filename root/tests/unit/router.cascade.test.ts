@@ -3,6 +3,7 @@ import { RouterResult } from '../../src/schemas/router.js';
 import * as RouterModule from '../../src/core/router.js';
 import * as LlmModule from '../../src/core/llm.js';
 import * as RouterLLM from '../../src/core/router.llm.js';
+import * as Parsers from '../../src/core/parsers.js';
 
 const log = pino({ level: 'silent' });
 
@@ -95,5 +96,24 @@ describe('Router cascade: AI-First Approach with Confidence Scoring', () => {
     const res = await RouterModule.routeIntent({ message: 'asdf qwer zxcv ???', logger: { log } });
     expect(res.intent).toBe('unknown');
     expect(res.confidence).toBeLessThanOrEqual(0.4);
+  });
+
+  test('skips transformers when cascade disabled', async () => {
+    process.env.TRANSFORMERS_CASCADE_ENABLED = 'false';
+    const tSpy = jest.spyOn(RouterModule, 'routeViaTransformersFirst');
+    jest.spyOn(LlmModule, 'classifyContent').mockResolvedValue(undefined as any);
+    jest.spyOn(LlmModule, 'classifyIntent').mockResolvedValue({
+      intent: 'weather',
+      confidence: 0.9,
+      needExternal: false,
+    } as any);
+    jest.spyOn(Parsers, 'extractSlots').mockResolvedValue({});
+    const res = await RouterModule.routeIntent({
+      message: 'Weather in Paris?',
+      logger: { log },
+    });
+    expect(tSpy).not.toHaveBeenCalled();
+    expect(res.intent).toBe('weather');
+    delete process.env.TRANSFORMERS_CASCADE_ENABLED;
   });
 });

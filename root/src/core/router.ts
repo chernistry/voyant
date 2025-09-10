@@ -8,6 +8,7 @@ import { routeWithLLM } from './router.llm.js';
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
 import type pino from 'pino';
+import { transformersEnabled } from '../config/transformers.js';
 
 // No winkNLP; use regex + transformers signals
 
@@ -214,28 +215,34 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   }
 
   // STEP 1: Try Transformers.js NLP first (actual execution with short timeout)
-  if (typeof input.logger?.log?.debug === 'function') {
-    input.logger.log.debug({ step: 1, method: 'transformers' }, '🤖 ROUTING_CASCADE: Attempting Transformers.js NLP');
-  }
-
-  const transformersFast = await routeViaTransformersFirst(
-    input.message,
-    input.threadId,
-    input.logger,
-  );
-  if (transformersFast) {
-    // Short-circuit on high confidence from Transformers path
+  if (transformersEnabled()) {
     if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({
-        step: 1,
-        method: 'transformers',
-        submethod: 'transformers_fast',
-        success: true,
-        intent: transformersFast.intent,
-        confidence: transformersFast.confidence,
-      }, '✅ ROUTING_CASCADE: Transformers path succeeded');
+      input.logger.log.debug({ step: 1, method: 'transformers' },
+        '🤖 ROUTING_CASCADE: Attempting Transformers.js NLP');
     }
-    return RouterResult.parse(transformersFast);
+
+    const transformersFast = await routeViaTransformersFirst(
+      input.message,
+      input.threadId,
+      input.logger,
+    );
+    if (transformersFast) {
+      // Short-circuit on high confidence from Transformers path
+      if (typeof input.logger?.log?.debug === 'function') {
+        input.logger.log.debug({
+          step: 1,
+          method: 'transformers',
+          submethod: 'transformers_fast',
+          success: true,
+          intent: transformersFast.intent,
+          confidence: transformersFast.confidence,
+        }, '✅ ROUTING_CASCADE: Transformers path succeeded');
+      }
+      return RouterResult.parse(transformersFast);
+    }
+  } else if (typeof input.logger?.log?.debug === 'function') {
+    input.logger.log.debug({ step: 1 },
+      '🤖 ROUTING_CASCADE: Transformers disabled');
   }
   
   // Prefer LLM router first for robust NLU and slot extraction

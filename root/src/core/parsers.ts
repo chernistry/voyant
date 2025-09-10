@@ -3,6 +3,7 @@ import { callLLM } from './llm.js';
 import { getPrompt } from './prompts.js';
 import { extractEntities } from './ner.js';
 import type pino from 'pino';
+import { transformersEnabled } from '../config/transformers.js';
 
 // Confidence thresholds (tunable)
 const CITY_NLP_MIN = 0.65;
@@ -82,13 +83,19 @@ export async function parseCity(
 
   // Transformers.js NER - get candidate entities
   let locs: any[] = [];
-  try {
-    const { extractEntities } = await import('./ner.js');
-    const spans = await extractEntities(text, logger as pino.Logger);
-    // Prefer LOC spans and ORG spans that might be locations; simple filters to avoid months and placeholders
-    locs = (spans || []).filter(s => /LOC|MISC|ORG/i.test(s.entity_group || ''));
-  } catch (error) {
-    if (logger?.debug) logger.debug({ error: String(error) }, 'city_ner_failed');
+  if (transformersEnabled()) {
+    try {
+      const { extractEntities } = await import('./ner.js');
+      const spans = await extractEntities(text, logger as pino.Logger);
+      // Prefer LOC spans and ORG spans that might be locations
+      locs = (spans || []).filter(
+        s => /LOC|MISC|ORG/i.test(s.entity_group || '')
+      );
+    } catch (error) {
+      if (logger?.debug) {
+        logger.debug({ error: String(error) }, 'city_ner_failed');
+      }
+    }
   }
   
   // AI-first approach: Use LLM to determine the best city name from candidates
@@ -331,33 +338,41 @@ export async function parseDate(
   }
 
   // Transformers.js NER for DATE/TIME entities (preferred)
-  try {
-    const { extractEntities } = await import('./ner.js');
-    const spans: Array<{ entity_group: string; text: string }> = await extractEntities(text, logger);
-    const dateLike = (spans || []).filter(s => /DATE|TIME/i.test(String(s.entity_group || '')));
-    const picked = dateLike[0];
-    if (picked && typeof picked.text === 'string' && picked.text.trim().length > 0) {
-      // Normalize via LLM date parser to keep logic consistent
-      const snippet = picked.text.trim();
-      const promptTemplate = await getPrompt('date_parser');
-      const prompt = promptTemplate
-        .replace('{text}', snippet)
-        .replace('{context}', context ? JSON.stringify(context) : '{}');
-
-      const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
-      const json = JSON.parse(raw);
-      const result = DateParseResult.parse(json);
-      if (result.confidence >= 0.5 && result.dates) {
-        return {
-          success: true,
-          data: result,
-          confidence: result.confidence,
-          normalized: result.dates,
-        };
+  let picked: { entity_group: string; text: string } | undefined;
+  if (transformersEnabled()) {
+    try {
+      const { extractEntities } = await import('./ner.js');
+      const spans: Array<{ entity_group: string; text: string }> =
+        await extractEntities(text, logger);
+      const dateLike = (spans || []).filter(s =>
+        /DATE|TIME/i.test(String(s.entity_group || ''))
+      );
+      picked = dateLike[0];
+    } catch (error) {
+      if (logger?.debug) {
+        logger.debug({ error: String(error) }, 'date_ner_failed');
       }
     }
-  } catch {
-    // ignore and continue to LLM fallback
+  }
+  if (picked && typeof picked.text === 'string' && picked.text.trim().length > 0) {
+    // Normalize via LLM date parser to keep logic consistent
+    const snippet = picked.text.trim();
+    const promptTemplate = await getPrompt('date_parser');
+    const prompt = promptTemplate
+      .replace('{text}', snippet)
+      .replace('{context}', context ? JSON.stringify(context) : '{}');
+
+    const raw = await callLLM(prompt, { responseFormat: 'json', log: logger });
+    const json = JSON.parse(raw);
+    const result = DateParseResult.parse(json);
+    if (result.confidence >= 0.5 && result.dates) {
+      return {
+        success: true,
+        data: result,
+        confidence: result.confidence,
+        normalized: result.dates,
+      };
+    }
   }
 
   // LLM fallback
@@ -413,20 +428,21 @@ export async function parseOriginDestination(
   logger?: any,
 ): Promise<ParseResponse<z.infer<typeof OriginDestinationParseResult>>> {
   // Transformers.js NER first
-  try {
-    const { extractEntities } = await import('./ner.js');
-    const spans = await extractEntities(text, logger as pino.Logger);
-    
-    // Extract LOC/GPE/ORG entities in order of appearance (ORG might be locations in ONNX model)
-    const locations = (spans || [])
-      .filter(s => /LOC|GPE|MISC|ORG/i.test(s.entity_group || ''))
-      .filter(s => {
-        const t = (s.text || '').trim();
-        const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
-        const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
-        return looksProper && !isTemporal && t.length > 1;
-      })
-      .map(s => ({ text: s.text?.trim(), index: text.indexOf(s.text || '') }));
+  if (transformersEnabled()) {
+    try {
+      const { extractEntities } = await import('./ner.js');
+      const spans = await extractEntities(text, logger as pino.Logger);
+
+      // Extract LOC/GPE/ORG entities in order of appearance
+      const locations = (spans || [])
+        .filter(s => /LOC|GPE|MISC|ORG/i.test(s.entity_group || ''))
+        .filter(s => {
+          const t = (s.text || '').trim();
+          const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(t);
+          const isTemporal = MONTH_WORDS.includes(t.toLowerCase());
+          return looksProper && !isTemporal && t.length > 1;
+        })
+        .map(s => ({ text: s.text?.trim(), index: text.indexOf(s.text || '') }));
 
     if (locations.length > 0) {
       let originCity: string | undefined;
@@ -509,7 +525,10 @@ export async function parseOriginDestination(
       }
     }
   } catch (error) {
-    if (logger?.debug) logger.debug({ error: String(error) }, 'od_transformers_failed');
+    if (logger?.debug) {
+      logger.debug({ error: String(error) }, 'od_transformers_failed');
+    }
+  }
   }
 
   // LLM fallback
@@ -652,30 +671,33 @@ export async function extractSlots(text: string, context?: Record<string, any>, 
   const slots: Record<string, string> = {};
   
   // Enhanced NER-first location extraction
-  try {
-    const entities = await extractEntities(text, logger);
-    const locationEntities = entities.filter(e => 
-      ['LOC', 'LOCATION', 'GPE', 'ORG', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG'].includes(e.entity_group.toUpperCase()) && e.score > 0.5
-    );
-    
-    if (locationEntities.length > 0) {
-      // Use highest confidence location as primary city
-      const primaryLocation = locationEntities.reduce((best, current) => 
-        current.score > best.score ? current : best
+  if (transformersEnabled()) {
+    try {
+      const entities = await extractEntities(text, logger);
+      const locationEntities = entities.filter(e =>
+        ['LOC', 'LOCATION', 'GPE', 'ORG', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG']
+          .includes(e.entity_group.toUpperCase()) && e.score > 0.5
       );
-      slots.city = primaryLocation.text;
-      
-      if (logger?.debug) {
-        logger.debug({ 
-          extractedLocation: primaryLocation.text, 
-          confidence: primaryLocation.score,
-          allLocations: locationEntities.map(e => e.text)
-        }, '📍 Location extracted via NER');
+
+      if (locationEntities.length > 0) {
+        // Use highest confidence location as primary city
+        const primaryLocation = locationEntities.reduce(
+          (best, current) => (current.score > best.score ? current : best)
+        );
+        slots.city = primaryLocation.text;
+
+        if (logger?.debug) {
+          logger.debug({
+            extractedLocation: primaryLocation.text,
+            confidence: primaryLocation.score,
+            allLocations: locationEntities.map(e => e.text)
+          }, '📍 Location extracted via NER');
+        }
       }
-    }
-  } catch (error) {
-    if (logger?.debug) {
-      logger.debug({ error: String(error) }, '❌ NER location extraction failed');
+    } catch (error) {
+      if (logger?.debug) {
+        logger.debug({ error: String(error) }, '❌ NER location extraction failed');
+      }
     }
   }
   
