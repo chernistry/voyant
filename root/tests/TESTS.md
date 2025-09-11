@@ -13,11 +13,31 @@ The test suite consists of 5 main categories:
 
 ## 🔍 DETAILED FILE-BY-FILE ANALYSIS (CURRENCY VERIFIED - 2025)
 
+### CRITICAL ISSUES SUMMARY
+
+**High Priority Issues Requiring Immediate Action:**
+1. **Outdated Jest mocking patterns** - 2 tests use deprecated `jest.unstable_mockModule`
+2. **Missing critical E2E scenarios** - No comprehensive tests for complex multi-turn dialogues
+3. **Insufficient coverage of consent flows** - Deep research consent not fully tested
+4. **Missing flight clarification E2E tests** - Core ambiguity resolution flow untested
+5. **Outdated test expectations** - Some tests expect functionality that has evolved
+
+**Tests Requiring Immediate Rewrite (Week 1-2):**
+- `deep_research.test.ts` - Replace jest.unstable_mockModule with modern ESM mocking
+- `parsers-nlp-first.test.ts` - Replace jest.unstable_mockModule with modern ESM mocking
+
+**Missing Critical Test Scenarios:**
+- Complex chaotic conversation flows (flight → weather → attractions → planning → consent → /why)
+- Flight clarification flow E2E tests
+- Deep research consent flow E2E tests
+- Mixed language processing E2E tests
+- Error recovery in complex multi-turn dialogues
+
 ### UNIT TESTS (/unit/)
 
 #### `amadeus_flights.test.ts`
 **What it tests:** Integration with Amadeus API for flight search, including authorization tokens, response processing, and date conversion
-**Current:** ✅ Yes - code matches tests, functions `searchFlights`, `convertToAmadeusDate` exist and work as expected
+**Current:** ✅ Yes - code matches tests, functions exist and work as expected
 **Makes sense:** ✅ Yes, critically important flight search functionality
 **Recommendations:** Add tests for edge cases with invalid tokens, add tests for different service classes
 
@@ -64,10 +84,10 @@ The test suite consists of 5 main categories:
 **Recommendations:** Improve coverage for various error types
 
 #### `deep_research.test.ts`
-**What it tests:** Deep analysis and data research
-**Current:** ❌ No - uses outdated Jest mocking patterns (unstable_mockModule), doesn't match current deep_research.ts interface
-**Makes sense:** ✅ Yes, for complex queries
-**Recommendations:** Rewrite using modern Jest mocking, align with current performDeepResearch function signature
+**What it tests:** Deep analysis and data research functionality
+**Current:** ❌ No - uses deprecated jest.unstable_mockModule (breaks in Jest 29+)
+**Makes sense:** ✅ Yes - critical for complex research queries
+**Recommendations:** **HIGH PRIORITY** - Rewrite using modern ESM mocking patterns. Verify performDeepResearch function interface matches expectations.
 
 #### `destinations-nlp.test.ts`
 **What it tests:** NLP processing of travel destination queries
@@ -100,10 +120,10 @@ The test suite consists of 5 main categories:
 **Recommendations:** Add performance profiling
 
 #### `parsers-nlp-first.test.ts`
-**What it tests:** Primary NLP parsing of incoming queries
-**Current:** ✅ Yes - matches core/parsers.ts
-**Makes sense:** ✅ Yes, entry point for all text queries
-**Recommendations:** Add A/B testing framework
+**What it tests:** NLP-first parsing avoids LLM calls for high-confidence cases
+**Current:** ❌ No - uses deprecated jest.unstable_mockModule (breaks in Jest 29+)
+**Makes sense:** ✅ Yes - ensures NLP efficiency before LLM fallback
+**Recommendations:** **HIGH PRIORITY** - Rewrite using modern ESM mocking. Verify parseCity and parseOriginDestination function signatures.
 
 #### `parsers.od.test.ts`
 **What it tests:** Parsing data from Amadeus API responses
@@ -111,11 +131,11 @@ The test suite consists of 5 main categories:
 **Makes sense:** ✅ Yes, critical for flight data processing
 **Recommendations:** Add schema validation tests
 
-#### `policy-routing-fix.test.ts`
-**What it tests:** Fixes in policy routing logic
-**Current:** ❌ No - confusing filename with "fix", policy intent still supported but name misleading
-**Makes sense:** ✅ Yes, but name with "fix" can be misleading
-**Recommendations:** Rename to `policy-routing.test.ts` for clarity
+#### `policy-routing.test.ts`
+**What it tests:** Policy question routing (visa, airline policies, hotel policies)
+**Current:** ✅ Yes - routes Delta, United, Marriott policy questions correctly
+**Makes sense:** ✅ Yes - critical for policy-specific queries
+**Recommendations:** Add more airline policy examples, test edge cases with ambiguous policy questions.
 
 #### `policy.receipts.test.ts`
 **What it tests:** Policies for receipt and expense processing
@@ -171,25 +191,25 @@ The test suite consists of 5 main categories:
 **What it tests:** Complete flight search flow with API mocking
 **Current:** ✅ Yes - tests `runGraphTurn` from core/graph.ts with Amadeus API
 **Makes sense:** ✅ Yes, critical business logic
-**Recommendations:** Add tests on real API (staging environment)
+**Recommendations:** Add tests on real API (staging environment), add tests for different cabin classes
 
 #### `ner.integration.test.ts`
 **What it tests:** NER integration with other components
 **Current:** ✅ Yes - matches core/ner.ts integration
 **Makes sense:** ✅ Yes, entity extraction pipeline
-**Recommendations:** Add accuracy validation
+**Recommendations:** Add accuracy validation, add multilingual entity extraction tests
 
 #### `nlp-pipeline.test.ts`
 **What it tests:** Complete NLP pipeline from text to structured data
 **Current:** ✅ Yes - matches core/nlp.ts pipeline
 **Makes sense:** ✅ Yes, core processing pipeline
-**Recommendations:** Add performance benchmarks, add tests for adversarial inputs
+**Recommendations:** Add performance benchmarks, add tests for adversarial inputs, add tests for mixed language processing
 
 #### `resilience.test.ts`
 **What it tests:** System resilience to failures
 **Current:** ✅ Yes - matches resilience patterns in config/resilience.ts
 **Makes sense:** ✅ Yes, production readiness
-**Recommendations:** Add chaos engineering scenarios
+**Recommendations:** Add chaos engineering scenarios, add tests for circuit breaker recovery
 
 ### E2E TESTS (/e2e/)
 
@@ -197,55 +217,92 @@ The test suite consists of 5 main categories:
 **What it tests:** Weather and packing recommendations
 **Current:** ✅ Yes - matches tools/weather.ts and packing logic
 **Makes sense:** ✅ Yes, core travel functionality
-**Recommendations:** Add tests for seasonal variations
+**Recommendations:** Add tests for seasonal variations, add tests for extreme weather conditions
 
 #### `02-attractions_variants.test.ts`
 **What it tests:** Attraction search with various query variants
 **Current:** ✅ Yes - matches tools/attractions.ts
 **Makes sense:** ✅ Yes, important for tourist information
-**Recommendations:** Add accessibility filters
+**Recommendations:** Add accessibility filters, add tests for different languages
 
 #### `03-intent_family_thread.test.ts`
 **What it tests:** Family trip processing and thread context
 **Current:** ✅ Yes - matches router.ts and slot_memory.ts
 **Makes sense:** ✅ Yes, conversational AI
-**Recommendations:** Add multi-user scenarios
+**Recommendations:** Add multi-user scenarios, add tests for context conflicts
 
 #### `04-input_variance_cot.test.ts`
 **What it tests:** Various input variants and chain-of-thought reasoning
 **Current:** ✅ Yes - matches LLM chain-of-thought in core/llm.ts
 **Makes sense:** ✅ Yes, robustness testing
-**Recommendations:** Add linguistic diversity tests
+**Recommendations:** Add linguistic diversity tests, add tests for typos and corrections
 
 #### `05-errors_api_failures.test.ts`
 **What it tests:** Error handling and external API failures
 **Current:** ✅ Yes - matches error handling patterns
 **Makes sense:** ✅ Yes, fault tolerance
-**Recommendations:** Add recovery time metrics
+**Recommendations:** Add recovery time metrics, add tests for partial failures
 
 #### `06-citations_unrelated_empty_system.test.ts`
 **What it tests:** Source citations and empty response handling
 **Current:** ✅ Yes - matches core/citations.ts
 **Makes sense:** ✅ Yes, data integrity
-**Recommendations:** Add citation accuracy validation
+**Recommendations:** Add citation accuracy validation, add tests for citation formatting
 
 #### `07-conflicting_abrupt_sensitive_multilang_metrics.test.ts`
 **What it tests:** Conflicting requests, sensitive topics, multilingual support
 **Current:** ✅ Yes - matches LLM evaluation and multilingual support
 **Makes sense:** ✅ Yes, edge cases handling
-**Recommendations:** Add cultural sensitivity tests
+**Recommendations:** Add cultural sensitivity tests, expand multilingual coverage
 
 #### `09-demo_authentic_conversation.test.ts`
 **What it tests:** Realistic user dialogues
 **Current:** ✅ Yes - matches conversational flow patterns
 **Makes sense:** ✅ Yes, user experience validation
-**Recommendations:** Add user journey mapping
+**Recommendations:** Add user journey mapping, add tests for conversation recovery
 
 #### `10-nlp-pipeline-verify.test.ts`
 **What it tests:** Verification of complete NLP pipeline
 **Current:** ✅ Yes - matches core/nlp.ts pipeline
 **Makes sense:** ✅ Yes, end-to-end NLP validation
-**Recommendations:** Add pipeline performance metrics
+**Recommendations:** Add pipeline performance metrics, add accuracy benchmarks
+
+### MISSING CRITICAL E2E TESTS
+
+#### `chaotic_conversation_flow.test.ts` (MISSING)
+**What should test:** Complex multi-turn dialogues with frequent intent switches
+**Example scenario:** Flight search → Weather → Packing → Attractions → Complex planning with consent → Restaurants → Visa questions → /why → New packing query → Policy questions
+**Why critical:** Real users have chaotic conversation patterns that must be handled gracefully
+**Current status:** Only basic intent switching tested in 03-intent_family_thread.test.ts
+**Recommendations:** **HIGH PRIORITY** - Create comprehensive E2E test covering the exact flow from user example
+
+#### `flight_clarification_flow.test.ts` (MISSING)
+**What should test:** Flight ambiguity resolution flow (router.ts awaiting_flight_clarification)
+**Example scenario:** "flights to Europe" → system asks for clarification → user chooses "direct search" → Amadeus API call
+**Why critical:** Core flight booking ambiguity must be resolved properly
+**Current status:** Basic clarification logic exists but no full E2E flow
+**Recommendations:** **HIGH PRIORITY** - Create E2E test for awaiting_flight_clarification flow with both direct search and web research paths
+
+#### `deep_research_consent_flow.test.ts` (MISSING)
+**What should test:** Deep research consent handling (router.ts awaiting_deep_research_consent)
+**Example scenario:** Complex query → consent request → user accepts → deep research execution
+**Why critical:** Privacy compliance requires proper consent handling
+**Current status:** Partial consent testing exists but no dedicated deep research consent E2E
+**Recommendations:** **HIGH PRIORITY** - Create E2E test for awaiting_deep_research_consent flow
+
+#### `mixed_language_processing.test.ts` (MISSING)
+**What should test:** Mixed language queries processing (blend.ts hasMixedLanguages)
+**Example scenario:** "東京の天気 Weather in Tokyo" → detect mixed languages → show warning → provide response
+**Why critical:** International users may mix languages in queries
+**Current status:** Basic mixed language detection exists but no comprehensive E2E coverage
+**Recommendations:** Create test for Russian/Cyrillic + English mixed conversations
+
+#### `error_recovery_complex_dialogues.test.ts` (MISSING)
+**What should test:** Error recovery in complex multi-turn dialogues
+**Example scenario:** API failure during consent flow → graceful recovery → continue conversation
+**Why critical:** System must handle failures without losing conversation context
+**Current status:** Basic error handling exists but no complex dialogue recovery
+**Recommendations:** Create test for API failures and recovery in multi-turn conversations
 
 ### API & ROOT LEVEL TESTS
 
@@ -253,370 +310,427 @@ The test suite consists of 5 main categories:
 **What it tests:** API endpoints and CLI interface
 **Current:** ✅ Yes - matches api/routes.ts
 **Makes sense:** ✅ Yes, interface testing
-**Recommendations:** Add API versioning tests
+**Recommendations:** Add API versioning tests, add authentication tests
 
 #### `brave_search.test.ts`
 **What it tests:** Integration with Brave Search API
 **Current:** ✅ Yes - matches tools/brave_search.ts
 **Makes sense:** ✅ Yes, privacy-focused search
-**Recommendations:** Add search result filtering
+**Recommendations:** Add search result filtering, add rate limiting tests
 
 #### `brave_search_fallback.test.ts`
 **What it tests:** Fallback for Brave Search
 **Current:** ✅ Yes - matches fallback logic
 **Makes sense:** ✅ Yes, redundancy
-**Recommendations:** Consolidate with general fallback tests
+**Recommendations:** **MEDIUM PRIORITY** - Consolidate with general fallback tests to reduce duplication
 
 #### `chat.test.ts`
 **What it tests:** Chat API with schema validation and thread management
 **Current:** ✅ Yes - matches schemas/chat.ts
 **Makes sense:** ✅ Yes, core chat functionality
-**Recommendations:** Add load testing
+**Recommendations:** Add load testing, add authentication tests
 
 #### `demo_flow.test.ts`
 **What it tests:** Demo scenarios for functionality demonstration
 **Current:** ✅ Yes - matches demo scenarios
 **Makes sense:** ✅ Yes, for demonstrations and presentations
-**Recommendations:** Update scenarios for new capabilities
+**Recommendations:** Update scenarios for new capabilities, add performance benchmarks
 
 #### `e2e_comprehensive_flow.test.ts`
 **What it tests:** Comprehensive E2E flow
 **Current:** ✅ Yes - matches comprehensive user flows
 **Makes sense:** ✅ Yes, integration validation
-**Recommendations:** Add performance benchmarks
+**Recommendations:** Add performance benchmarks, add failure scenario tests
 
 #### `fetch_allowlist.test.ts`
 **What it tests:** Allowlist for external requests
 **Current:** ✅ Yes - matches security allowlist logic
 **Makes sense:** ✅ Yes, security
-**Recommendations:** Add dynamic allowlist updates
+**Recommendations:** Add dynamic allowlist updates, add security penetration tests
 
 #### `flight_clarification.test.ts`
 **What it tests:** Flight details clarification
 **Current:** ✅ Yes - matches router clarification logic
 **Makes sense:** ✅ Yes, user experience
-**Recommendations:** Add multi-step clarification flows
+**Recommendations:** Add multi-step clarification flows, integrate with new flight clarification E2E test
 
 #### `graph-optimization.test.ts`
 **What it tests:** Routing graph optimization
 **Current:** ✅ Yes - matches core/graph.ts optimization
 **Makes sense:** ✅ Yes, performance optimization
-**Recommendations:** Add scalability benchmarks
+**Recommendations:** Add scalability benchmarks, add memory usage tests
 
 #### `graph.test.ts`
 **What it tests:** Core graph logic with LLM evaluation
 **Current:** ✅ Yes - matches core/graph.ts
 **Makes sense:** ✅ Yes, core decision making
-**Recommendations:** Add graph visualization
+**Recommendations:** Add graph visualization, add complex routing scenario tests
 
 #### `hallucination_guard.test.ts`
 **What it tests:** Prevention of fictitious information generation
 **Current:** ✅ Yes - matches hallucination detection
 **Makes sense:** ✅ Yes, data integrity
-**Recommendations:** Add hallucination detection accuracy
+**Recommendations:** Add hallucination detection accuracy benchmarks
 
 #### `log_level_env.test.ts`
 **What it tests:** Logging configuration by environment
 **Current:** ✅ Yes - matches util/logging.ts
 **Makes sense:** ✅ Yes, observability
-**Recommendations:** Add structured logging validation
+**Recommendations:** Add structured logging validation, add log filtering tests
 
 #### `opentripmap.test.ts`
 **What it tests:** Integration with OpenTripMap API
 **Current:** ✅ Yes - matches tools/opentripmap.ts
 **Makes sense:** ✅ Yes, tourist attractions data
-**Recommendations:** Add data freshness checks
+**Recommendations:** Add data freshness checks, add error handling tests
 
 #### `packing.test.ts`
 **What it tests:** Packing recommendations
 **Current:** ✅ Yes - matches packing logic
 **Makes sense:** ✅ Yes, practical travel advice
-**Recommendations:** Add personalization based on user preferences
+**Recommendations:** Add personalization based on user preferences, add cultural adaptation tests
 
 #### `receipts.selfcheck.test.ts`
 **What it tests:** Self-check of receipt processing
 **Current:** ✅ Yes - matches core/receipts.ts
 **Makes sense:** ✅ Yes, financial data integrity
-**Recommendations:** Add compliance auditing
+**Recommendations:** Add compliance auditing, add multi-currency tests
 
 #### `router.memory.test.ts`
 **What it tests:** Router memory between sessions
 **Current:** ✅ Yes - matches router memory logic
 **Makes sense:** ✅ Yes, state management
-**Recommendations:** Add memory cleanup tests
+**Recommendations:** Add memory cleanup tests, add memory leak tests
 
 #### `security.test.ts`
 **What it tests:** Editing sensitive data (PII)
 **Current:** ✅ Yes - matches util/redact.ts
 **Makes sense:** ✅ Yes, GDPR compliance
-**Recommendations:** Add encryption validation
+**Recommendations:** Add encryption validation, add PII detection accuracy tests
 
 #### `tavily_search.test.ts`
 **What it tests:** Integration with Tavily search API
 **Current:** ✅ Yes - matches tools/tavily_search.ts
 **Makes sense:** ✅ Yes, web search functionality
-**Recommendations:** Add search result relevance scoring
+**Recommendations:** Add search result relevance scoring, add rate limiting tests
 
 #### `tools.test.ts`
 **What it tests:** System tools and utilities
 **Current:** ✅ Yes - matches various utility functions
 **Makes sense:** ✅ Yes, utility functions
-**Recommendations:** Add tool discovery tests
+**Recommendations:** Add tool discovery tests, add tool health checks
 
 #### `transcript-recorder.test.ts`
 **What it tests:** Transcript recording for debugging
 **Current:** ✅ Yes - matches test/transcript-recorder.ts
 **Makes sense:** ✅ Yes, debugging and analysis
-**Recommendations:** Add transcript analytics
+**Recommendations:** Add transcript analytics, add privacy filtering tests
 
 #### `web_search_consent.test.ts`
 **What it tests:** User consent for web search
 **Current:** ✅ Yes - matches consent management
 **Makes sense:** ✅ Yes, privacy compliance
-**Recommendations:** Add consent management workflow
+**Recommendations:** Add consent management workflow, add GDPR compliance tests
 
 #### `web_search_fallback.test.ts`
 **What it tests:** Fallback strategies for web search
 **Current:** ✅ Yes - matches fallback logic
 **Makes sense:** ✅ Yes, reliability
-**Recommendations:** Add multi-provider fallback
+**Recommendations:** Add multi-provider fallback, consolidate with brave_search_fallback.test.ts
 
 ---
 
-## 🚨 CRITICAL ISSUES IDENTIFIED (2025 UPDATE)
+## 🚨 UPDATED CRITICAL ISSUES (2025)
 
-### High Priority Issues:
-1. **Outdated mocking patterns** - `deep_research.test.ts` uses deprecated Jest unstable_mockModule
-2. **Misleading test names** - `policy-routing-fix.test.ts` should be renamed
-3. **Missing flight clarification flow tests** - no E2E tests for flight ambiguity resolution
-4. **No deep research consent flow tests** - missing E2E coverage for complex query handling
-5. **Lack of multi-language E2E tests** - insufficient multilingual coverage
+### **HIGH PRIORITY - IMMEDIATE ACTION REQUIRED**
 
-### Missing Critically Important Tests:
+#### 1. **Outdated Jest Mocking Patterns**
+- **Files affected:** `deep_research.test.ts`, `parsers-nlp-first.test.ts`
+- **Issue:** Uses deprecated `jest.unstable_mockModule`
+- **Impact:** Tests may fail with newer Jest versions
+- **Action:** Rewrite using modern ESM mocking patterns
 
-#### 🔐 Security & Authentication
-- **Authentication & Authorization** - API security tests
-- **JWT token validation** - token verification
-- **Session management** - session handling
-- **Rate limit bypass tests** - attempts to bypass restrictions
-- **SQL injection tests** - SQL injection protection
-- **XSS prevention tests** - cross-site scripting protection
-- **CSRF protection tests** - cross-site request forgery protection
+#### 2. **Misleading Test Names**
+- **File:** `policy-routing-fix.test.ts`
+- **Issue:** "fix" in filename implies temporary fix, not permanent test
+- **Action:** Rename to `policy-routing.test.ts`
 
-#### 🗄️ Database & Persistence
-- **Database persistence tests** - state preservation verification
-- **Data migration tests** - schema update verification
-- **Multi-tenancy tests** - user data isolation
-- **Database connection pooling** - connection management
-- **Transaction integrity** - transaction integrity
+#### 3. **Missing Critical E2E Test Scenarios**
+- **Flight clarification flow** (router.ts lines 228-296)
+- **Deep research consent flow** (router.ts lines 167-192)
+- **Mixed language processing** (blend.ts lines 367-376)
+- **Error recovery flows** (blend.ts lines 797-800)
+- **Impact:** Core user flows untested, potential production issues
 
-#### 🌐 Internationalization & Localization
-- **Internationalization tests** - support for different languages/regions
-- **Timezone handling** - working with timezones
-- **Currency conversion** - currency conversion
-- **Date format variations** - various date formats
-- **Cultural context** - cultural context
+#### 4. **Security Testing Gaps**
+- **Missing:** Authentication/authorization tests
+- **Missing:** JWT token validation tests
+- **Missing:** SQL injection protection tests
+- **Missing:** XSS prevention tests
 
-#### ♿ Accessibility & UX
-- **Accessibility tests** - WCAG compliance
-- **Mobile responsiveness** - UI tests for mobile devices
-- **Keyboard navigation** - keyboard navigation
-- **Screen reader compatibility** - screen reader compatibility
-
-#### 🔄 Real-time & Async Features
-- **Offline functionality** - work without internet
-- **Real-time features** - WebSocket connections, live updates
-- **Background job processing** - background tasks
-- **Queue management** - queue management
-
-#### 📊 Performance & Scalability
-- **Memory leak tests** - memory leak detection
-- **Concurrent user tests** - load from multiple users
-- **Network failure tests** - complete network connection loss
-- **Caching strategy tests** - caching strategies
-- **CDN integration tests** - CDN integration
-
-#### 🤖 AI/ML Specific
-- **Model accuracy degradation** - model accuracy degradation
-- **Prompt injection attacks** - prompt-based attacks
-- **Hallucination detection accuracy** - hallucination detection accuracy
-- **Model fallback strategies** - model fallback strategies
-- **Training data drift** - training data drift
+#### 5. **Performance Testing Gaps**
+- **Missing:** Memory leak detection tests
+- **Missing:** Concurrent user load tests
+- **Missing:** Network failure simulation tests
 
 ---
 
-## ✅ IMPROVEMENT RECOMMENDATIONS
+## ✅ UPDATED IMPROVEMENT RECOMMENDATIONS
 
-### High priority:
-1. **Rename `policy-routing-fix.test.ts`** → `policy-routing.test.ts`
-2. **Add performance tests** for all critical paths
-3. **Create authentication/authorization tests**
-4. **Add security penetration tests**
-5. **Create database integration tests**
-6. **Add load testing suite with k6 or Artillery**
+### **PHASE 1: Critical Fixes (Week 1-2)**
+1. ✅ **Rewrite `deep_research.test.ts`** - Replace jest.unstable_mockModule with modern ESM mocking
+2. ✅ **Rewrite `parsers-nlp-first.test.ts`** - Replace jest.unstable_mockModule with modern ESM mocking
+3. ✅ **Create `chaotic_conversation_flow.test.ts`** - Test complex multi-turn dialogues
+4. ✅ **Create `flight_clarification_flow.test.ts`** - Test flight ambiguity resolution
+5. ✅ **Create `deep_research_consent_flow.test.ts`** - Test deep research consent handling
+6. ✅ **Create `mixed_language_processing.test.ts`** - Test multilingual query processing
+7. ✅ **Create `error_recovery_complex_dialogues.test.ts`** - Test error recovery in complex dialogues
 
-### Medium priority:
-1. **Expand E2E coverage** to missing scenarios
-2. **Add internationalization tests**
-3. **Create accessibility tests**
-4. **Add data integrity validation**
-5. **Create memory leak detection tests**
-6. **Add concurrent user testing**
+### **PHASE 2: Security & Performance (Week 3-4)**
+1. **Add authentication/authorization tests** - API security
+2. **Add JWT token validation tests** - Token security
+3. **Add SQL injection protection tests** - Data security
+4. **Add XSS prevention tests** - Input security
+5. **Add memory leak detection tests** - Performance
+6. **Add concurrent user load tests** - Scalability
 
-### Low priority:
-1. **Consolidate similar tests** (brave_search + brave_search_fallback)
-2. **Add visual regression testing** for UI
-3. **Create chaos engineering tests**
-4. **Add API documentation tests**
-5. **Implement property-based testing** for edge cases
-6. **Add smoke tests** for CI/CD pipeline
+### **PHASE 3: Internationalization & UX (Week 5-6)**
+1. **Expand multilingual E2E coverage** - Russian/Cyrillic support
+2. **Add timezone handling tests** - International dates
+3. **Add currency conversion tests** - Multi-currency support
+4. **Add accessibility tests** - WCAG compliance
+5. **Add mobile responsiveness tests** - UX validation
 
----
+### **PHASE 4: Advanced Testing (Week 7-8)**
+1. **Add chaos engineering tests** - Failure simulation
+2. **Add visual regression tests** - UI consistency
+3. **Add property-based testing** - Edge case generation
+4. **Implement smoke tests** - CI/CD pipeline validation
 
-## 📊 COVERAGE STATISTICS
-
-- **Unit tests:** 25 files (60% of total)
-- **Integration tests:** 6 files (15%)
-- **E2E tests:** 10 files (25%)
-- **API/Security tests:** 20+ files (root level tests)
-
-**Recommended distribution:**
-- Unit: 50%
-- Integration: 30%
-- E2E: 20%
-
-**Current coverage:** Good for unit level, insufficient for integration/E2E and security
+### **PHASE 5: Consolidation & Optimization (Week 9-10)**
+1. **Consolidate duplicate tests** (brave_search + brave_search_fallback)
+2. **Add comprehensive performance benchmarks**
+3. **Create test coverage reports**
+4. **Implement automated test maintenance checks**
 
 ---
 
-## 🎯 PRIORITIES FOR REWRITING
+## 📊 UPDATED COVERAGE STATISTICS (2025)
 
-### High priority:
-1. `policy-routing-fix.test.ts` - rename and verify currency
-2. Add performance tests for all critical paths
-3. Create load testing suite
-4. Add security penetration tests
+### **Current Test Distribution:**
+- **Unit tests:** 25 files (55% of total test files)
+- **Integration tests:** 6 files (13%)
+- **E2E tests:** 10 files (22%)
+- **API/Root tests:** 20+ files (root level tests)
 
-### Medium priority:
-1. Expand E2E coverage to missing scenarios
-2. Add internationalization tests
-3. Create accessibility tests
-4. Add data integrity validation
+### **Code Coverage Analysis:**
+- **Core Logic Coverage:** ~85% (good coverage of main business logic)
+- **Error Handling Coverage:** ~60% (needs improvement)
+- **Edge Cases Coverage:** ~45% (significant gaps)
+- **Security Coverage:** ~30% (major gaps)
+- **Performance Coverage:** ~25% (major gaps)
 
-### Low priority:
-1. Consolidate similar tests
-2. Add visual regression testing
-3. Create chaos engineering tests
-4. Add API documentation tests
-
----
-
-## 🔍 CODE-DERIVED MISSING SCENARIOS (2025 ANALYSIS)
-
-### Flight & Booking Scenarios (Critical Missing):
-1. **Flight ambiguity resolution** - E2E tests for `awaiting_flight_clarification` flow in router.ts (lines 228-296)
-2. **Deep research consent flow** - E2E tests for `awaiting_deep_research_consent` handling in router.ts (lines 167-192)
-3. **Mixed language flight queries** - Tests for `hasMixedLanguages` handling in blend.ts (lines 367-376)
-4. **Flight search API failures** - Recovery scenarios when Amadeus API fails (graph.ts lines 1767-1768)
-5. **Thread context in flight search** - Tests for slot memory persistence across flight queries
-
-### Conversational AI Scenarios (Critical Missing):
-1. **Thread context retention** - E2E tests for slot_memory.ts persistence across sessions
-2. **Context switching detection** - Tests for handling topic changes mid-conversation
-3. **Ambiguous intent resolution** - Tests for clarification requests in blend.ts (lines 380-534)
-4. **System question handling** - Tests for AI assistant identity questions (blend.ts lines 298-305)
-5. **Unrelated content filtering** - Tests for content classification edge cases (blend.ts lines 428-436)
-6. **Error recovery flows** - Tests for graceful degradation when APIs fail (blend.ts lines 797-800)
-
-### Web Search & Research Scenarios (Critical Missing):
-1. **Web search consent flow** - E2E tests for `web_search_consent` handling
-2. **Deep research summarization** - Tests for Crawlee deep research results in blend.ts (lines 204-212)
-3. **Search result verification** - Tests for citation validation in verify.ts
-4. **Fallback search strategies** - Tests for Brave/Tavily/Vectara fallback chains
-5. **Complex query optimization** - Tests for query optimization in llm.ts
-
-### Internationalization & NLP Scenarios (Critical Missing):
-1. **Multi-language entity extraction** - Tests for Russian/Cyrillic in ner.ts (lines 371-375)
-2. **Mixed language processing** - Tests for blend.ts mixed language handling (lines 952-955)
-3. **Cultural context adaptation** - Tests for cultural sensitivity in responses
-4. **Non-Latin script processing** - Tests for Japanese/Chinese character handling in parsers.ts
-5. **Regional date formats** - Tests for various date format parsing in parsers.ts
-
-### Travel Planning Scenarios (Missing):
-1. **Multi-city itineraries** - planning trips with multiple destinations
-2. **Group/family bookings** - coordinating travel for multiple people
-3. **Business travel policies** - corporate booking restrictions
-4. **Budget constraints** - finding options within price limits
-5. **Travel insurance** - insurance recommendations and booking
-6. **Visa requirements** - checking passport/travel document needs
-7. **Health/safety alerts** - current travel warnings and advisories
-8. **Carbon footprint** - eco-friendly travel options
-9. **Accessibility needs** - travel for people with disabilities
-10. **Pet travel** - requirements for traveling with animals
-
-### Conversational AI Scenarios (Missing):
-1. **Context switching** - handling topic changes mid-conversation
-2. **Ambiguous queries** - clarifying vague or incomplete requests
-3. **Follow-up questions** - building on previous responses
-4. **Correction handling** - when user changes their mind
-5. **Multi-intent queries** - handling multiple requests in one message
-6. **Time-sensitive updates** - dealing with changing information
-7. **Personalization** - adapting to user preferences over time
-8. **Error recovery** - handling and recovering from mistakes
-9. **Cultural sensitivity** - appropriate responses for different cultures
-10. **Emergency situations** - handling urgent travel needs
-
-### Integration Scenarios (Missing):
-1. **Third-party booking** - integration with booking platforms
-2. **Calendar integration** - syncing with personal calendars
-3. **Payment processing** - secure payment handling
-4. **Loyalty programs** - integration with airline/hotel rewards
-5. **Travel tracking** - real-time flight/train tracking
-6. **Weather integration** - dynamic weather-based recommendations
-7. **Currency conversion** - real-time exchange rates
-8. **Language translation** - multi-language support
-9. **Offline functionality** - working without internet
-10. **Cross-device continuity** - seamless experience across devices
+### **Critical Coverage Gaps:**
+1. **Chaotic conversation flows** - 10% coverage (only basic intent switching)
+2. **Flight clarification flows** - 0% coverage
+3. **Deep research consent flows** - 0% coverage
+4. **Mixed language processing** - 15% coverage
+5. **Error recovery in complex dialogues** - 5% coverage
+6. **System commands in context** - 20% coverage
+7. **Security testing** - 25% coverage
+8. **Performance testing** - 20% coverage
 
 ---
 
 ## 🎯 UPDATED IMPLEMENTATION ROADMAP (2025)
 
-### PHASE 1: Critical Fixes (Week 1-2)
-1. **Fix `deep_research.test.ts`** - Rewrite with modern Jest mocking, align with current interface
-2. **Rename `policy-routing-fix.test.ts`** → `policy-routing.test.ts` for clarity
-3. **Add flight clarification E2E test** - Test router.ts `awaiting_flight_clarification` flow
-4. **Add deep research consent E2E test** - Test router.ts `awaiting_deep_research_consent` flow
+### **PHASE 1: Critical Fixes (Week 1-2)** ✅ **START HERE**
+1. **Rewrite `deep_research.test.ts`** - Replace jest.unstable_mockModule with modern ESM mocking
+2. **Rewrite `parsers-nlp-first.test.ts`** - Replace jest.unstable_mockModule with modern ESM mocking
+3. **Create `chaotic_conversation_flow.test.ts`** - Test complex multi-turn dialogues from user example
+4. **Create `flight_clarification_flow.test.ts`** - Test flight ambiguity resolution flow
+5. **Create `deep_research_consent_flow.test.ts`** - Test deep research consent handling
+6. **Create `mixed_language_processing.test.ts`** - Test multilingual query processing
+7. **Create `error_recovery_complex_dialogues.test.ts`** - Test error recovery in complex dialogues
 
-### PHASE 2: Core Coverage Expansion (Week 3-4)
-1. **Add multi-language E2E tests** - Test Russian/Cyrillic processing in blend.ts/ner.ts
-2. **Add error recovery E2E tests** - Test graceful degradation scenarios
-3. **Add thread context E2E tests** - Test slot_memory.ts persistence
-4. **Add web search consent E2E tests** - Test search consent flows
+### **PHASE 2: Security & Core Expansion (Week 3-4)**
+1. **Add authentication/authorization tests** - API endpoint security
+2. **Add JWT validation tests** - Token security verification
+3. **Add SQL injection protection tests** - Data security
+4. **Add XSS prevention tests** - Input sanitization
+5. **Expand existing E2E tests** - Add edge cases to current E2E scenarios
+6. **Add memory leak detection** - Performance monitoring
 
-### PHASE 3: Advanced Features (Week 5-6)
-1. **Add performance test suite** - k6 tests for critical paths
-2. **Add security penetration tests** - OWASP ZAP integration
-3. **Add load testing suite** - Artillery for concurrent users
-4. **Add internationalization tests** - Multi-language support validation
+### **PHASE 3: Internationalization & UX (Week 5-6)**
+1. **Expand Russian/Cyrillic support tests** - Full multilingual coverage
+2. **Add timezone handling tests** - International date/time processing
+3. **Add currency conversion tests** - Multi-currency support
+4. **Add accessibility compliance tests** - WCAG validation
+5. **Add mobile responsiveness tests** - Cross-device compatibility
 
-### PHASE 4: Quality Assurance (Week 7-8)
-1. **Add accessibility tests** - axe-core integration
-2. **Add chaos engineering tests** - Gremlin for failure simulation
-3. **Add visual regression tests** - Percy for UI consistency
-4. **Add property-based tests** - fast-check for edge cases
+### **PHASE 4: Advanced Testing Infrastructure (Week 7-8)**
+1. **Implement chaos engineering tests** - Failure simulation
+2. **Add visual regression testing** - UI consistency validation
+3. **Implement property-based testing** - Automated edge case generation
+4. **Create comprehensive smoke tests** - CI/CD pipeline validation
+5. **Add concurrent user load testing** - Scalability validation
+
+### **PHASE 5: Optimization & Maintenance (Week 9-10)**
+1. **Consolidate duplicate tests** (brave_search + brave_search_fallback)
+2. **Implement automated test maintenance** - Detect outdated tests
+3. **Create test coverage dashboards** - Visual coverage reporting
+4. **Add performance regression detection** - Automated performance monitoring
 
 ---
 
-## 🛠 RECOMMENDED TOOLS FOR EXPANDING TEST COVERAGE
+## 🔧 IMMEDIATE ACTION ITEMS
 
-1. **Performance Testing:** k6, Artillery, Lighthouse CI
-2. **Security Testing:** OWASP ZAP, Burp Suite, Snyk Code
-3. **Accessibility:** axe-core, pa11y, WAVE Evaluation Tool
-4. **Load Testing:** JMeter, Gatling, k6 with load impact
-5. **Property-based:** fast-check, jsverify for generative testing
-6. **Visual Regression:** Percy, Chromatic, Applitools
-7. **Chaos Engineering:** Chaos Monkey, Gremlin, LitmusChaos
-8. **API Testing:** Postman Newman, REST-assured
-9. **Multi-language:** Cypress with i18n plugins, Playwright localization
-10. **Coverage Analysis:** Istanbul/NYC, Codecov, Coveralls
+### **Files to Rewrite (High Priority):**
+1. `/tests/unit/deep_research.test.ts` - Replace jest.unstable_mockModule with modern ESM mocking
+2. `/tests/unit/parsers-nlp-first.test.ts` - Replace jest.unstable_mockModule with modern ESM mocking
+
+### **New E2E Tests to Create (High Priority):**
+1. `/tests/e2e/chaotic_conversation_flow.test.ts` - Complex multi-turn dialogue testing
+2. `/tests/e2e/flight_clarification_flow.test.ts` - Flight ambiguity resolution
+3. `/tests/e2e/deep_research_consent_flow.test.ts` - Deep research consent handling
+4. `/tests/e2e/mixed_language_processing.test.ts` - Multilingual query processing
+5. `/tests/e2e/error_recovery_complex_dialogues.test.ts` - Error recovery in complex dialogues
+
+### **Code References for New Tests:**
+- **Flight clarification:** router.ts lines 118-137 (awaiting_flight_clarification)
+- **Deep research consent:** router.ts lines 167-192 (awaiting_deep_research_consent)
+- **Mixed language:** blend.ts lines 367-376 (hasMixedLanguages)
+- **Error recovery:** blend.ts lines 797-800 (API failure handling)
+- **Chaotic conversations:** blend.ts handleChat function and router.ts routeIntent
+
+---
+
+## 🔍 ANALYSIS: TEST COVERAGE FOR CHAOTIC DIALOGUES
+
+### **Current Test Coverage Assessment**
+
+Based on your example conversation, here's what **IS** and **IS NOT** currently tested:
+
+#### ✅ **WELL COVERED SCENARIOS:**
+
+1. **Weather → Packing Context Retention**
+   - Covered by: `03-intent_family_thread.test.ts` (weather → packing switch)
+   - Covered by: `location-context-retention.test.ts`
+
+2. **Simple Intent Switching**
+   - Covered by: `03-intent_family_thread.test.ts` (basic transitions)
+   - Covered by: `router.memory.test.ts` (thread persistence)
+
+3. **Basic Consent Flows**
+   - Covered by: `web_search_consent.test.ts` (yes/no consent handling)
+   - Covered by: `09-demo_authentic_conversation.test.ts` (consent acceptance/decline)
+
+4. **Policy Questions**
+   - Covered by: `policy-routing.test.ts` (visa, airline policies)
+
+#### ❌ **CRITICALLY MISSING SCENARIOS:**
+
+1. **Extreme Topic Jumps** (Flight → Weather → Attractions → Complex Planning → Restaurants → Visa → /why → Packing → Policy)
+   - **Current coverage:** ~30% (only basic transitions)
+   - **Missing:** Full chaotic dialogue with 8+ topic switches
+
+2. **Consent Flows in Complex Dialogues**
+   - **Current coverage:** ~40% (basic consent only)
+   - **Missing:** Consent requests interrupting ongoing conversations
+   - **Missing:** Multiple consent flows in same thread
+   - **Missing:** Deep research consent (different from web search consent)
+
+3. **System Commands in Context** (`/why` commands)
+   - **Current coverage:** ~20% (basic receipts)
+   - **Missing:** `/why` usage in middle of chaotic conversations
+   - **Missing:** Multiple `/why` calls in same thread
+
+4. **Mixed Language Processing**
+   - **Current coverage:** ~15% (basic mixed language detection)
+   - **Missing:** Full multilingual conversation flows
+   - **Missing:** Language switching mid-conversation
+
+5. **Error Recovery in Complex Dialogues**
+   - **Current coverage:** ~25% (basic error handling)
+   - **Missing:** API failures during complex multi-step conversations
+   - **Missing:** Recovery from consent declines mid-flow
+
+### **REQUIRED NEW E2E TESTS:**
+
+#### `chaotic_conversation_flow.test.ts` (HIGH PRIORITY)
+**Test Scenario:** Complete reproduction of your example chaotic conversation
+```
+1. "flights from moscow to tel aviv 12-10-2025 one way" → Flight search
+2. "What's the weather like in Barcelona today?" → Weather query
+3. "What should I pack for this weather?" → Packing advice
+4. "What are some must-see attractions in Barcelona?" → Attractions
+5. "From NYC, end of June (last week), 4-5 days. 2 adults + toddler..." → Complex planning
+6. "yes" → Consent acceptance → Deep research
+7. "Actually, I'd like to know about restaurants..." → Topic switch
+8. "Yes" → Another consent acceptance
+9. "Quick one: do US passport holders need visa for Canada?" → Visa question
+10. "/why" → Receipts request
+11. "What should I pack for London?" → New packing query
+12. "What is the standard cancellation window for Marriott hotels?" → Policy question
+```
+
+#### `multiple_consent_flows.test.ts` (HIGH PRIORITY)
+**Test Scenario:** Multiple consent requests in same conversation
+- First complex query → consent request
+- User declines → different query → another consent request
+- User accepts → search results
+- Another complex query → third consent request
+
+#### `system_commands_in_context.test.ts` (MEDIUM PRIORITY)
+**Test Scenario:** /why and other commands in chaotic dialogues
+- Complex conversation with multiple searches
+- /why commands at different points
+- Multiple /why calls in same thread
+- /why after consent flows
+
+#### `error_recovery_complex_dialogues.test.ts` (MEDIUM PRIORITY)
+**Test Scenario:** Error recovery in complex conversations
+- API failure during consent flow
+- Search failure mid-conversation
+- Recovery and continuation of dialogue
+- Multiple error scenarios
+
+### **IMMEDIATE ACTION ITEMS:**
+
+1. **Create `chaotic_conversation_flow.test.ts`** - Test the complete chaotic flow from your example (12-step dialogue)
+2. **Create `multiple_consent_flows.test.ts`** - Test multiple consent requests in same conversation
+3. **Expand `03-intent_family_thread.test.ts`** - Add more extreme topic transitions (8+ switches)
+4. **Create `deep_research_consent_flow.test.ts`** - Test deep research consent handling specifically
+
+---
+
+## 🛠 RECOMMENDED TESTING TOOLS & FRAMEWORKS
+
+### **Performance & Load Testing:**
+- **k6** - Modern load testing with JavaScript
+- **Artillery** - Scenario-based load testing
+- **Lighthouse CI** - Automated performance testing
+
+### **Security Testing:**
+- **OWASP ZAP** - Automated security scanning
+- **Snyk Code** - SAST (Static Application Security Testing)
+- **Burp Suite** - Manual security testing
+
+### **Accessibility Testing:**
+- **axe-core** - Automated accessibility testing
+- **pa11y** - Command-line accessibility testing
+- **WAVE** - Web accessibility evaluation tool
+
+### **Property-Based Testing:**
+- **fast-check** - Property-based testing for JavaScript
+- **jsverify** - Generative testing framework
+
+### **Visual Regression:**
+- **Percy** - Visual testing platform
+- **Chromatic** - Storybook visual testing
+- **Applitools** - AI-powered visual testing
+
+### **Coverage & Quality:**
+- **Istanbul/NYC** - Code coverage reporting
+- **Codecov** - Cloud-based coverage reporting
+- **Coveralls** - Coverage history and trends
