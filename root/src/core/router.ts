@@ -1,263 +1,70 @@
 import { RouterResult, RouterResultT } from '../schemas/router.js';
 import { getPrompt } from './prompts.js';
-import { z } from 'zod';
-import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
+import { callLLM, optimizeSearchQuery, classifyContent, classifyIntent } from './llm.js';
 import { extractEntities } from './ner.js';
-import { parseDate, parseOriginDestination } from './parsers.js';
-
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
-import type pino from 'pino';
 import { transformersEnabled } from '../config/transformers.js';
+import { RE, isDirectFlightHeuristic, cheapComplexity } from './router.optimizers.js';
+import type pino from 'pino';
 
-// No winkNLP; use regex + transformers signals
-
-// AI-first flight query complexity detection
-async function isDirectFlightQuery(message: string, logger?: any): Promise<{
-  isDirect: boolean;
-  confidence: number;
-  reasoning: string;
-}> {
-  try {
-    const tpl = await getPrompt('flight_complexity_detector');
-    const prompt = tpl.replace('{message}', message);
-    const response = await callLLM(prompt, { responseFormat: 'json', log: logger });
-    const parsed = JSON.parse(response);
-    
-    return {
-      isDirect: parsed.isDirect || false,
-      confidence: parsed.confidence || 0.5,
-      reasoning: parsed.reasoning || 'Unable to determine complexity'
-    };
-  } catch (error) {
-    if (logger?.debug) {
-      logger.debug({ error: String(error) }, 'Flight complexity detection failed');
-    }
-    return {
-      isDirect: false,
-      confidence: 0.3,
-      reasoning: 'Analysis failed, defaulting to complex planning'
-    };
-  }
+// Helper function to clear consent state for unrelated queries
+function clearConsentState(threadId?: string) {
+  if (!threadId) return;
+  updateThreadSlots(threadId, {
+    awaiting_deep_research_consent: '',
+    pending_deep_research_query: '',
+    awaiting_web_search_consent: '',
+    pending_web_search_query: '',
+    awaiting_search_consent: '',
+    pending_search_query: ''
+  }, []);
 }
 
-export async function routeIntent(input: { message: string; threadId?: string; logger?: { log: pino.Logger } }): Promise<RouterResultT> {
-  if (typeof input.logger?.log?.info === 'function') {
-    input.logger.log.debug({ message: input.message }, 'router_start');
+export async function routeIntent({ message, threadId, logger }: {
+  message: string; 
+  threadId?: string; 
+  logger?: {log: pino.Logger}
+}): Promise<RouterResultT> {
+  logger?.log?.debug({ message }, 'router_start');
+  const m = message.trim();
+
+  // 0) Guards (no LLM) - clear consent state for unrelated queries
+  if (!m) return RouterResult.parse({ intent:'unknown', needExternal:false, slots:{}, confidence:0.1 });
+  
+  if (RE.sys.test(m)) {
+    clearConsentState(threadId);
+    return RouterResult.parse({ intent:'system', needExternal:false, slots:{}, confidence:0.9 });
+  }
+  
+  if (RE.policy.test(m)) {
+    clearConsentState(threadId);
+    return RouterResult.parse({ intent:'policy', needExternal:true, slots:{}, confidence:0.9 });
+  }
+  
+  if (RE.explicitSearch.test(m)) {
+    clearConsentState(threadId);
+    const q = await optimizeSearchQuery(m, threadId ? getThreadSlots(threadId) : {}, 'web_search', logger?.log);
+    return RouterResult.parse({ intent:'web_search', needExternal:true, slots:{ search_query:q }, confidence:0.9 });
   }
 
-  // Handle edge cases before processing
-  const trimmedMessage = input.message.trim();
-  if (trimmedMessage.length === 0) {
-    return RouterResult.parse({
-      intent: 'unknown',
-      needExternal: false,
-      slots: {},
-      confidence: 0.1
-    });
-  }
-
-  // Use LLM for content classification first (kept for early overrides like system/policy/search)
-  const contentClassification = await classifyContent(input.message, input.logger?.log);
-  
-  // Handle flight content classification with complexity detection BEFORE deep research
-  if (contentClassification && contentClassification.content_type === 'flight') {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        contentType: contentClassification?.content_type,
-        message: input.message.substring(0, 100)
-      }, '✈️ FLIGHTS: Content classified as flight, analyzing complexity');
-    }
-    
-    // Determine if this is a direct flight search or complex travel planning
-    const isDirectFlightSearch = await isDirectFlightQuery(input.message, input.logger?.log);
-    
-    if (isDirectFlightSearch.isDirect && isDirectFlightSearch.confidence > 0.7) {
-      // Direct flight search → Route to Amadeus API
-      const flightSlots = await extractSlots(input.message, {}, input.logger?.log);
-      
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          isDirect: true,
-          confidence: isDirectFlightSearch.confidence,
-          slots: flightSlots
-        }, '✈️ FLIGHTS: Direct flight search detected, routing to Amadeus API');
-      }
-      
-      return RouterResult.parse({
-        intent: 'flights',
-        needExternal: true,
-        slots: flightSlots,
-        confidence: 0.9
-      });
-    } else if (!isDirectFlightSearch.isDirect && isDirectFlightSearch.confidence > 0.7) {
-      // Complex travel planning → Route to web search/deep research
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          isDirect: false,
-          confidence: isDirectFlightSearch.confidence,
-          reasoning: isDirectFlightSearch.reasoning
-        }, '✈️ FLIGHTS: Complex travel planning detected, routing to web search');
-      }
-      
-      return RouterResult.parse({
-        intent: 'web_search',
-        needExternal: true,
-        slots: { search_query: input.message },
-        confidence: 0.9
-      });
-    } else {
-      // Ambiguous → Ask for clarification with specific options
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          confidence: isDirectFlightSearch.confidence,
-          reasoning: isDirectFlightSearch.reasoning
-        }, '✈️ FLIGHTS: Ambiguous flight query, asking for clarification');
-      }
-      
-      if (input.threadId) {
-        updateThreadSlots(input.threadId, {
-          awaiting_flight_clarification: 'true',
-          pending_flight_query: input.message,
-          clarification_reasoning: isDirectFlightSearch.reasoning,
-        }, []);
-      }
-      
-      return RouterResult.parse({
-        intent: 'system',
-        needExternal: false,
-        slots: {
-          flight_clarification_needed: 'true',
-          ambiguity_reason: isDirectFlightSearch.reasoning,
-          clarification_options: 'direct_search_or_web_research',
-        },
-        confidence: 0.9,
-      });
-    }
-  }
-  
-  // Debug environment variables
-  if (typeof input.logger?.log?.debug === 'function') {
-    input.logger.log.debug({
-      DEEP_RESEARCH_ENABLED: process.env.DEEP_RESEARCH_ENABLED,
-      shouldCheckComplexity: process.env.DEEP_RESEARCH_ENABLED === 'true'
-    }, '🔧 ROUTER: Environment check');
-  }
-  
-  // COMPLEXITY CHECK ONLY FOR NON-FLIGHT QUERIES
-  if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        deepResearchEnabled: true,
-        message: input.message.substring(0, 100)
-      }, '🔍 COMPLEXITY: Deep research enabled, checking complexity');
-    }
-    
-    const complexity = await detectComplexQueryFast(input.message, input.logger?.log);
-    
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        isComplex: complexity.isComplex,
-        confidence: complexity.confidence,
-        reasoning: complexity.reasoning
-      }, '🔍 COMPLEXITY: Detection result');
-    }
-    
-    if (complexity.isComplex && complexity.confidence >= 0.7) {
-      if (input.threadId) {
-        updateThreadSlots(input.threadId, {
-          awaiting_deep_research_consent: 'true',
-          pending_deep_research_query: input.message,
-          complexity_reasoning: complexity.reasoning,
-        }, []);
-      }
-      
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          intent: 'system',
-          reason: 'deep_research_consent_needed'
-        }, '✅ COMPLEXITY: Triggering deep research consent');
-      }
-      
-      return RouterResult.parse({
-        intent: 'system',
-        needExternal: false,
-        slots: {
-          deep_research_consent_needed: 'true',
-          complexity_score: complexity.confidence.toFixed(2),
-        },
-        confidence: 0.9,
-      });
-    }
-  }
-
-  // STEP 1: Try Transformers.js NLP first (actual execution with short timeout)
-  if (transformersEnabled()) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ step: 1, method: 'transformers' },
-        '🤖 ROUTING_CASCADE: Attempting Transformers.js NLP');
-    }
-
-    const transformersFast = await routeViaTransformersFirst(
-      input.message,
-      input.threadId,
-      input.logger,
-    );
-    if (transformersFast) {
-      // Short-circuit on high confidence from Transformers path
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({
-          step: 1,
-          method: 'transformers',
-          submethod: 'transformers_fast',
-          success: true,
-          intent: transformersFast.intent,
-          confidence: transformersFast.confidence,
-        }, '✅ ROUTING_CASCADE: Transformers path succeeded');
-      }
-      return RouterResult.parse(transformersFast);
-    }
-  } else if (typeof input.logger?.log?.debug === 'function') {
-    input.logger.log.debug({ step: 1 },
-      '🤖 ROUTING_CASCADE: Transformers disabled');
-  }
-  
-  // Prefer LLM router first for robust NLU and slot extraction
-  const ctxSlots = input.threadId ? getThreadSlots(input.threadId) : {};
-  
-  // Handle flight clarification responses
-  if (ctxSlots.awaiting_flight_clarification === 'true' && input.threadId) {
-    const userResponse = input.message.toLowerCase().trim();
+  // Handle flight clarification responses (no recursion)
+  const ctxSlots = threadId ? getThreadSlots(threadId) : {};
+  if (ctxSlots.awaiting_flight_clarification === 'true' && threadId) {
+    const userResponse = m.toLowerCase();
     const pendingQuery = ctxSlots.pending_flight_query || '';
     
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        userResponse,
-        pendingQuery: pendingQuery.substring(0, 100)
-      }, '✈️ FLIGHTS: Processing clarification response');
-    }
-    
     // Clear the clarification state
-    updateThreadSlots(input.threadId, {}, [
+    updateThreadSlots(threadId, {}, [
       'awaiting_flight_clarification',
       'pending_flight_query',
-      'clarification_reasoning',
-      'flight_clarification_needed',
-      'clarification_options'
+      'clarification_reasoning'
     ]);
     
-    // Route based on user's choice
+    // Route based on user's choice (no recursion)
     if (userResponse.includes('direct') || userResponse.includes('search') || userResponse.includes('booking')) {
-      // User wants direct flight search
-      const flightSlots = await extractSlots(pendingQuery, ctxSlots, input.logger?.log);
-      
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          choice: 'direct_search',
-          slots: flightSlots
-        }, '✈️ FLIGHTS: User chose direct search, routing to Amadeus API');
-      }
-      
+      const flightSlots = await extractSlots(pendingQuery, ctxSlots, logger?.log);
+      logger?.log?.debug({ choice: 'direct_search', slots: flightSlots }, 'flight_clarification_resolved');
       return RouterResult.parse({
         intent: 'flights',
         needExternal: true,
@@ -265,13 +72,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
         confidence: 0.9
       });
     } else if (userResponse.includes('research') || userResponse.includes('planning') || userResponse.includes('advice')) {
-      // User wants travel research
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          choice: 'web_research'
-        }, '✈️ FLIGHTS: User chose travel research, routing to web search');
-      }
-      
+      logger?.log?.debug({ choice: 'web_research' }, 'flight_clarification_resolved');
       return RouterResult.parse({
         intent: 'web_search',
         needExternal: true,
@@ -279,330 +80,67 @@ export async function routeIntent(input: { message: string; threadId?: string; l
         confidence: 0.9
       });
     } else {
-      // Ambiguous response, try to process the original query again
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          choice: 'ambiguous_retry'
-        }, '✈️ FLIGHTS: Ambiguous clarification response, retrying original query');
-      }
-      
-      // Recursively process the original query
-      return routeIntent({ 
-        message: pendingQuery, 
-        threadId: input.threadId, 
-        logger: input.logger 
-      });
+      // Process current message instead of recursion
+      logger?.log?.debug({ choice: 'process_current' }, 'flight_clarification_ambiguous');
     }
   }
-  
-  // Handle system questions about the AI
-  if (contentClassification?.content_type === 'system') {
-    return RouterResult.parse({
-      intent: 'system',
-      needExternal: false,
-      slots: {},
-      confidence: 0.9
-    });
-  }
-  
-  // Handle visa questions early (before Transformers can misclassify as destinations)
-  if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(input.message)) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        message: input.message.substring(0, 100),
-        reason: 'visa_keyword_detected'
-      }, '🏛️ POLICY: Early visa detection, routing to RAG system');
+
+  // 1) Flight fast-path (no LLM)
+  if (RE.flights.test(m)) {
+    const { isDirect } = isDirectFlightHeuristic(m);
+    if (isDirect) {
+      const slots = await extractSlots(m, ctxSlots, logger?.log);
+      logger?.log?.debug({ isDirect:true, slots }, '✈️ FLIGHTS: direct (heuristic)');
+      return RouterResult.parse({ intent:'flights', needExternal:true, slots, confidence:0.9 });
     }
-    return RouterResult.parse({
-      intent: 'policy',
-      needExternal: true,
-      slots: ctxSlots,
-      confidence: 0.9
-    });
-  }
-  
-  // Handle policy questions before explicit search (with safety check)
-  if (contentClassification?.content_type === 'policy') {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ 
-        contentType: contentClassification?.content_type,
-        message: input.message.substring(0, 100)
-      }, '🏛️ POLICY: Routing to RAG system');
-    }
-    return RouterResult.parse({
-      intent: 'policy',
-      needExternal: true,
-      slots: ctxSlots,
-      confidence: 0.9
-    });
-  }
-  
-  // Handle explicit search commands early (but not for policy questions)
-  if (contentClassification?.is_explicit_search && (contentClassification as any).content_type !== 'policy') {
-    // Use original message as search query
-    const searchQuery = input.message.trim();
-    
-    // Optimize the search query
-    const optimizedQuery = await optimizeSearchQuery(
-      searchQuery, 
-      ctxSlots, 
-      'web_search', 
-      input.logger?.log
-    );
-    
-    return RouterResult.parse({
-      intent: 'web_search',
-      needExternal: true,
-      slots: { search_query: optimizedQuery },
-      confidence: 0.9
-    });
   }
 
-  // Skip extremely long words (likely spam)
-  if (input.message.length > 200) {
-    return RouterResult.parse({
-      intent: 'unknown',
-      needExternal: false,
-      slots: {},
-      confidence: 0.2
-    });
-  }
-
-  // Use LLM content classification for unrelated content detection
-  const isUnrelated = contentClassification?.content_type === 'unrelated' || 
-                     contentClassification?.content_type === 'gibberish';
-
-  // Extract slots early for LLM override logic (use thread context for better parsing)
-  const extractedSlots = await extractSlots(input.message, ctxSlots, input.logger?.log);
-  let finalSlots = { ...ctxSlots, ...extractedSlots };
-
-  // If we have prior city context and extracted slots don't have city, preserve prior
-  if (ctxSlots.city && !extractedSlots.city) {
-    finalSlots.city = ctxSlots.city;
-  }
-  if (ctxSlots.originCity && !extractedSlots.originCity) {
-    finalSlots.originCity = ctxSlots.originCity;
-  }
-
-  // Try LLM-based intent classification first
-  const llmIntentResult = await classifyIntent(input.message, ctxSlots, input.logger?.log);
-  if (llmIntentResult && llmIntentResult.confidence > 0.5) {
-    if (typeof input.logger?.log?.info === 'function') {
-      input.logger.log.debug({ 
-        step: 2,
-        method: 'llm',
-        intent: llmIntentResult.intent, 
-        confidence: llmIntentResult.confidence, 
-        source: 'llm_intent_classification',
-        success: true
-      }, '✅ ROUTING_CASCADE: LLM intent classification succeeded');
-    }
-
-    // AI-first: Trust LLM classification, no hardcoded overrides
-
-    // Override LLM result if we detected unrelated content
-    if (isUnrelated && llmIntentResult.intent === 'unknown') {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ 
-          originalIntent: llmIntentResult.intent, 
-          originalConfidence: llmIntentResult.confidence 
-        }, 'overriding_llm_with_unrelated');
-      }
+  // 2) Deep-research consent? (no LLM)
+  if (process.env.DEEP_RESEARCH_ENABLED === 'true') {
+    const cx = cheapComplexity(m);
+    if (cx.complex) {
+      threadId && updateThreadSlots(threadId, {
+        awaiting_deep_research_consent:'true',
+        pending_deep_research_query:m,
+        complexity_reasoning:cx.reason
+      }, []);
+      logger?.log?.debug({ reason:cx.reason }, 'complexity_consent_gate');
       return RouterResult.parse({
-        intent: 'unknown',
-        needExternal: false,
-        slots: finalSlots,
-        confidence: 0.3
+        intent:'system', needExternal:false,
+        slots:{ deep_research_consent_needed:'true', complexity_score:'0.80' },
+        confidence:0.9
       });
     }
-
-    return RouterResult.parse({ 
-      intent: llmIntentResult.intent, 
-      needExternal: llmIntentResult.needExternal, 
-      slots: finalSlots, 
-      confidence: llmIntentResult.confidence 
-    });
   }
 
-
-  
-  const viaLLM: RouterResultT | undefined = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
-  if (viaLLM && viaLLM.confidence > 0.5) {
-    if (typeof input.logger?.log?.info === 'function') {
-      input.logger.log.debug({ 
-        step: 2,
-        method: 'llm',
-        submethod: 'basic_llm',
-        intent: viaLLM.intent, 
-        confidence: viaLLM.confidence, 
-        source: 'llm',
-        success: true
-      }, '✅ ROUTING_CASCADE: Basic LLM succeeded');
+  // 3) Transformers-first (no LLM inside)
+  let tfm: RouterResultT | undefined = undefined;
+  if (transformersEnabled()) tfm = await routeViaTransformersFirst(m, threadId, logger);
+  if (tfm) {
+    // Intent-gated slot refine (single pass)
+    if (tfm.intent === 'flights') {
+      const refined = await extractSlots(m, ctxSlots, logger?.log);
+      return RouterResult.parse({ ...tfm, slots: { ...tfm.slots, ...refined } });
     }
-    // Override LLM result if we detected unrelated content via heuristics
-    if (isUnrelated) {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: viaLLM.intent, originalConfidence: viaLLM.confidence }, 'overriding_llm_with_unrelated');
-      }
-      return RouterResult.parse({
-        intent: 'unknown',
-        needExternal: false,
-        slots: finalSlots,
-        confidence: 0.3
-      });
-    }
-    return viaLLM;
-  }
-  
-  // Fall back to heuristics for low confidence or failed LLM routing
-  // If we have LLM results with good slots but low confidence, preserve the slots
-  if (viaLLM?.slots) {
-    finalSlots = { ...extractedSlots, ...viaLLM.slots };
+    return RouterResult.parse(tfm);
   }
 
-  // STEP 3: Final fallback to rule-based heuristics
-  if (typeof input.logger?.log?.debug === 'function') {
-    input.logger.log.debug({ step: 3, method: 'rules' }, '🤖 ROUTING_CASCADE: Falling back to rule-based heuristics');
-  }
+  // 4) Single LLM call (router_llm) → intent + slots at once
+  const prompt = (await getPrompt('router_llm')).replace('{message}', m).replace('{instructions}','');
+  const raw = await callLLM(prompt, { responseFormat:'json', log:logger?.log });
+  const json = JSON.parse(raw);
+  const llm = RouterResult.parse(json);
 
-  const base = { needExternal: false, slots: finalSlots, confidence: 0.7 as const };
-
-  if (typeof input.logger?.log?.info === 'function') {
-    input.logger.log.debug({ message: input.message.toLowerCase(), isUnrelated }, 'heuristic_check');
-  }
-
-  if (isUnrelated) {
-    if (typeof input.logger?.log?.info === 'function') {
-      input.logger.log.debug({ message: input.message.toLowerCase() }, 'heuristic_intent_unrelated_block_executed');
-    }
-    return RouterResult.parse({
-      intent: 'unknown',
-      needExternal: false,
-      slots: finalSlots,
-      confidence: 0.3
-    });
-  }
-
-  // Fallback heuristic patterns (simplified)
-  const m = input.message.toLowerCase();
-  
-  // AI-first policy detection - use LLM classification
-  const policyClassification = await classifyContent(input.message, input.logger?.log);
-  if (policyClassification?.content_type === 'policy' || 
-      (policyClassification && input.message.toLowerCase().includes('policy'))) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'ai_intent_policy');
-    }
-    return RouterResult.parse({ 
-      intent: 'policy', 
-      needExternal: true, 
-      slots: finalSlots, 
-      confidence: 0.85 
-    });
+  // 5) Post-LLM heuristics (cheap)
+  if (llm.intent === 'flights' && !RE.dateish.test(m)) {
+    logger?.log?.debug({ reason:'missing_date' }, 'flights_missing_date');
   }
   
-  // AI-first event detection - use intent classification
-  const intentClassification = await classifyIntent(input.message, {}, input.logger?.log);
-  if (intentClassification?.intent === 'web_search' && (intentClassification.confidence || 0) > 0.6) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_web_search_events');
-    }
-    return RouterResult.parse({ 
-      intent: 'web_search', 
-      needExternal: true, 
-      slots: { ...finalSlots, search_query: input.message }, 
-      confidence: 0.8 
-    });
-  }
-  
-  // AI-first flight detection
-  if (intentClassification?.intent === 'flights' && (intentClassification.confidence || 0) > 0.6) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_flights');
-    }
-    return RouterResult.parse({ intent: 'flights', needExternal: true, slots: finalSlots, confidence: 0.8 });
-  }
-  
-  // AI-first packing detection - use intent classification
-  if (intentClassification?.intent === 'packing' && (intentClassification.confidence || 0) > 0.6) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_packing');
-    }
-    return RouterResult.parse({ intent: 'packing', ...base });
-  }
-  
-  // AI-first attractions detection
-  if (intentClassification?.intent === 'attractions' && (intentClassification.confidence || 0) > 0.6) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_attractions');
-    }
-    return RouterResult.parse({ intent: 'attractions', ...base });
-  }
-  
-  // AI-first weather detection
-  if (intentClassification?.intent === 'weather' && (intentClassification.confidence || 0) > 0.6) {
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_weather');
-    }
-    return RouterResult.parse({ intent: 'weather', ...base });
-  }
-  
-  // AI-first destinations detection
-  if (intentClassification?.intent === 'destinations' && (intentClassification.confidence || 0) > 0.6) {
-    // Check if message has origin preposition to avoid treating origin as destination
-    const hasOriginPreposition = /from/.test(input.message);
-    if (hasOriginPreposition && finalSlots.originCity) {
-      // Ensure we use originCity for destinations intent, not as destination
-      finalSlots.city = finalSlots.originCity;
-    }
-    if (typeof input.logger?.log?.debug === 'function') {
-      input.logger.log.debug({ slots: finalSlots, hasOriginPreposition }, 'heuristic_intent_destinations');
-    }
-    return RouterResult.parse({ intent: 'destinations', ...base });
-  }
-  
-  // If we have a low-confidence LLM result, use it; otherwise unknown
-  if (viaLLM && viaLLM.intent) {
-    // Override LLM result if we detected unrelated content via heuristics
-    if (isUnrelated) {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: viaLLM.intent, originalConfidence: viaLLM.confidence }, 'overriding_llm_with_unrelated');
-      }
-      return RouterResult.parse({
-        intent: 'unknown',
-        needExternal: false,
-        slots: finalSlots,
-        confidence: 0.3
-      });
-    }
-    return viaLLM;
-  }
-  if (viaLLM) {
-    // Override LLM result if we detected unrelated content via heuristics
-    if (isUnrelated) {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: viaLLM.intent, originalConfidence: viaLLM.confidence }, 'overriding_llm_with_unrelated');
-      }
-      return RouterResult.parse({
-        intent: 'unknown',
-        needExternal: false,
-        slots: finalSlots,
-        confidence: 0.3
-      });
-    }
-    return viaLLM;
-  }
-
-  if (typeof input.logger?.log?.debug === 'function') {
-    input.logger.log.debug({ slots: finalSlots }, 'heuristic_intent_unknown');
-  }
-  const result = RouterResult.parse({ intent: 'unknown', ...base, confidence: 0.4 });
-  if (typeof input.logger?.log?.info === 'function') {
-    input.logger.log.debug({ intent: result.intent, confidence: result.confidence }, 'router_final_result');
-  }
-  return result;
+  logger?.log?.debug({ intent: llm.intent, confidence: llm.confidence }, 'router_final_result');
+  return llm;
 }
 
+// Make classifyIntentFromTransformers LLM-free
 async function classifyIntentFromTransformers(
   message: string, 
   intentResult: any,
@@ -611,254 +149,27 @@ async function classifyIntentFromTransformers(
   log?: pino.Logger
 ): Promise<{ intent: string; needExternal: boolean; confidence: number } | undefined> {
   
-  if (log?.debug) {
-    log.debug({
-      message: message.substring(0, 50),
-      intentResult,
-      entityResult: {
-        totalEntities: entityResult.entities.length,
-        locations: entityResult.locations.length,
-        locationTexts: entityResult.locations.map((l: any) => l.text)
-      },
-      slots
-    }, '🔍 TRANSFORMERS: Detailed classification input');
-  }
-  
-  // Enhanced pattern matching with Russian support - check attractions FIRST
-  const m = message.toLowerCase();
-  
-  // Attractions with enhanced location detection (prioritize over destinations)
-  // AI-first: Use intent classification first
-  const attractionsIntent = await classifyIntent(message, {}, log);
-  if (attractionsIntent?.intent === 'attractions' && (attractionsIntent.confidence || 0) > 0.6) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
-    const confidence = hasLocation ? 0.9 : 0.7;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'attractions', 
-        hasLocation, 
-        confidence 
-      }, '🎯 TRANSFORMERS: Attractions intent detected');
-    }
-    return { intent: 'attractions', needExternal: false, confidence };
-  }
-  // Micro rules for attractions
-  if (/attraction|museum|activities/.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
-    const confidence = hasLocation ? 0.9 : 0.7;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'attractions_regex_fallback', 
-        hasLocation, 
-        confidence 
-      }, '🎯 TRANSFORMERS: Attractions intent detected (regex fallback)');
-    }
-    return { intent: 'attractions', needExternal: false, confidence };
-  }
-  
-  // Use transformers intent classification as primary signal (after attractions check)
-  if (intentResult.confidence > 0.8) {
-    
-    const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
-    
-    if (log?.debug) {
-      log.debug({ 
-        intent: intentResult.intent,
-        confidence: intentResult.confidence,
-        needExternal,
-        reason: 'transformers_high_confidence'
-      }, '🎯 TRANSFORMERS: High confidence intent classification');
-    }
-    
-    return { 
-      intent: intentResult.intent, 
-      needExternal, 
-      confidence: intentResult.confidence 
-    };
-  }
-  
-  // Weather patterns - enhanced with Russian
-  // AI-first: Use intent classification first
-  const weatherIntent = await classifyIntent(message, {}, log);
-  if (weatherIntent?.intent === 'weather' && (weatherIntent.confidence || 0) > 0.6) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
-    const confidence = hasLocation ? 0.95 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'weather_ai_first', 
-        hasLocation, 
-        locations: entityResult.locations.length,
-        confidence,
-        reason: 'ai_classification_with_russian_support'
-      }, '🎯 TRANSFORMERS: Weather intent detected');
-    }
-    return { intent: 'weather', needExternal: true, confidence };
-  }
-  // Micro rules for weather
-  if (/weather|temperature/.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
-    const confidence = hasLocation ? 0.95 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'weather_regex_fallback', 
-        hasLocation, 
-        locations: entityResult.locations.length,
-        confidence,
-        reason: 'enhanced_pattern_matching_with_russian',
-        russianPattern: /погода/i.test(m)
-      }, '🎯 TRANSFORMERS: Weather intent detected (regex fallback)');
-    }
-    return { intent: 'weather', needExternal: true, confidence };
-  }
-  
-  // Packing advice with duration context
-  // AI-first: Use intent classification first
-  const packingIntent = await classifyIntent(message, {}, log);
-  if (packingIntent?.intent === 'packing' && (packingIntent.confidence || 0) > 0.6) {
-    const hasDuration = entityResult.durations.length > 0;
-    const confidence = hasDuration ? 0.9 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'packing', 
-        hasDuration,
-        confidence 
-      }, '🎯 TRANSFORMERS: Packing intent detected');
-    }
-    return { intent: 'packing', needExternal: false, confidence };
-  }
-  // Fallback to regex for critical patterns
-  if (intentResult.intent === 'packing' && intentResult.confidence > 0.6) {
-    const hasDuration = entityResult.durations.length > 0;
-    const confidence = hasDuration ? 0.9 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'packing_regex_fallback', 
-        hasDuration,
-        confidence 
-      }, '🎯 TRANSFORMERS: Packing intent detected (regex fallback)');
-    }
-    return { intent: 'packing', needExternal: false, confidence };
-  }
-  
-  // Destinations with enhanced pattern matching
-  // AI-first: Use intent classification first
-  const destinationsIntent = await classifyIntent(message, {}, log);
-  if (destinationsIntent?.intent === 'destinations' && (destinationsIntent.confidence || 0) > 0.6) {
-    const confidence = 0.85;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'destinations', 
-        confidence 
-      }, '🎯 TRANSFORMERS: Destinations intent detected');
-    }
-    return { intent: 'destinations', needExternal: true, confidence };
-  }
-  // Micro rules for destinations
-  if (/destination|where/.test(m)) {
-    const confidence = 0.85;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'destinations_regex_fallback', 
-        confidence 
-      }, '🎯 TRANSFORMERS: Destinations intent detected (regex fallback)');
-    }
-    return { intent: 'destinations', needExternal: true, confidence };
-  }
-  
-  return undefined;
+  const intent = intentResult.intent;
+  let confidence = intentResult.confidence ?? 0.7;
+  const hasLoc = !!slots.city || (entityResult.locations?.length > 0);
+  const needExternal = (intent === 'weather' || intent === 'destinations') ? true
+                     : (intent === 'attractions' ? hasLoc : intent === 'flights');
+
+  // Small regex bumps
+  if (intent === 'weather' && RE.weather.test(message)) confidence = Math.max(confidence, 0.85);
+
+  return { intent, needExternal, confidence };
 }
 
-function determineExternalNeed(intent: string, entityResult: any, slots: any): boolean {
-  switch (intent) {
-    case 'weather':
-    case 'destinations':
-      return true;
-    case 'attractions':
-      // Need external data if we have a specific location
-      return entityResult.locations.length > 0 || !!slots.city;
-    case 'packing':
-      // Usually don't need external data for packing advice
-      return false;
-    default:
-      return false;
-  }
-}
-
-async function tryRouteViaTransformers(message: string, threadId?: string, log?: pino.Logger): Promise<RouterResultT | undefined> {
-  try {
-    // Use enhanced NER for better entity extraction
-    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
-    const entityResult = await extractEntitiesEnhanced(message, log);
-    
-    // Use transformers-based intent classification
-    const { classifyIntent } = await import('./transformers-classifier.js');
-    const intentResult = await classifyIntent(message, log);
-    
-    if (log?.debug) {
-      log.debug({ 
-        entities: entityResult.entities.length,
-        locations: entityResult.locations.length,
-        intent: intentResult.intent,
-        confidence: intentResult.confidence
-      }, '🔍 TRANSFORMERS: Enhanced processing complete');
-    }
-
-    // Get thread context for slot merging
-    const ctxSlots = threadId ? getThreadSlots(threadId) : {};
-    
-    // Extract slots using our parsers (which now use Transformers internally)
-    const extractedSlots = await extractSlots(message, ctxSlots, log);
-    
-    // Enhanced intent classification based on transformers results
-    const intent = await classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
-    
-    if (intent && intent.confidence > 0.7) {
-      return RouterResult.parse({
-        intent: intent.intent,
-        needExternal: intent.needExternal,
-        slots: { ...ctxSlots, ...extractedSlots },
-        confidence: intent.confidence
-      });
-    }
-    
-    return undefined;
-  } catch (error) {
-    if (log?.debug) {
-      log.debug({ error: String(error) }, '❌ TRANSFORMERS: Failed to route via Transformers');
-    }
-    return undefined;
-  }
-}
-
-/**
- * Transformers-first fast routing with a strict timeout. Returns undefined on timeout
- * or low confidence so the cascade can proceed to LLM and rules.
- */
-export async function routeViaTransformersFirst(
+async function routeViaTransformersFirst(
   message: string,
   threadId?: string,
   logger?: { log: pino.Logger },
 ): Promise<RouterResultT | undefined> {
   const log = logger?.log;
-  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '3000')); // Increased from 2000ms
+  const timeoutMs = Math.max(100, Number(process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS ?? '3000'));
   
-  if (log?.debug) {
-    log.debug({
-      timeoutMs,
-      envValue: process.env.TRANSFORMERS_ROUTER_TIMEOUT_MS,
-      message: message.substring(0, 50)
-    }, '⏱️ TRANSFORMERS: Timeout configuration');
-  }
   let timedOut = false;
-
   const timer = new Promise<undefined>((resolve) => {
     setTimeout(() => {
       timedOut = true;
@@ -873,377 +184,50 @@ export async function routeViaTransformersFirst(
   ]);
   const durationMs = Date.now() - started;
 
-  if (!result) {
-    if (log?.debug) {
-      log.debug({
-        step: 1,
-        method: 'transformers',
-        success: false,
-        reason: timedOut ? 'timeout' : 'low_confidence_or_no_match',
-        durationMs,
-      }, '⚠️ ROUTING_CASCADE: Transformers path skipped');
-    }
+  if (!result || timedOut) {
+    log?.debug({ success: false, reason: timedOut ? 'timeout' : 'low_confidence', durationMs }, 'transformers_skipped');
     return undefined;
   }
 
   if (result.confidence >= 0.7) {
-    // Success path already logs at caller; include submethod for completeness
-    if (log?.debug) {
-      log.debug({
-        step: 1,
-        method: 'transformers',
-        submethod: 'transformers_fast',
-        success: true,
-        durationMs,
-        intent: result.intent,
-        confidence: result.confidence,
-      }, '✅ ROUTING_CASCADE: Transformers path accepted');
-    }
+    log?.debug({ success: true, durationMs, intent: result.intent, confidence: result.confidence }, 'transformers_accepted');
     return RouterResult.parse(result);
   }
 
-  if (log?.debug) {
-    log.debug({
-      step: 1,
-      method: 'transformers',
-      success: false,
-      reason: 'below_threshold',
-      confidence: result.confidence,
-      durationMs,
-    }, '⚠️ ROUTING_CASCADE: Transformers result below threshold');
-  }
   return undefined;
 }
 
-async function tryRouteViaLLM(message: string, logger?: { log: pino.Logger }): Promise<RouterResultT | undefined> {
-  const promptTemplate = await getPrompt('router_llm');
-  const prompt = promptTemplate
-    .replace('{instructions}', '')
-    .replace('{message}', message);
-  
-  const raw = await callLLM(prompt, { responseFormat: 'json', log: logger?.log });
-  const json = extractJsonObject(raw);
-  if (!json) return undefined;
-  const schema: z.ZodType<RouterResultT> = RouterResult as unknown as z.ZodType<RouterResultT>;
+async function tryRouteViaTransformers(message: string, threadId?: string, log?: pino.Logger): Promise<RouterResultT | undefined> {
   try {
-    return schema.parse(json);
-  } catch {
-    return undefined;
-  }
-}
+    // Use enhanced NER for better entity extraction
+    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
+    const entityResult = await extractEntitiesEnhanced(message, log);
+    
+    // Use transformers-based intent classification
+    const { classifyIntent } = await import('./transformers-classifier.js');
+    const intentResult = await classifyIntent(message, log);
 
-function extractJsonObject(text: string): unknown | undefined {
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) return undefined;
-  try {
-    return JSON.parse(m[0]);
-  } catch {
-    return undefined;
-  }
-}
-
-async function detectComplexQueryFast(message: string, log?: any): Promise<{ isComplex: boolean; confidence: number; reasoning: string }> {
-  const m = message || '';
-  
-  try {
-    // Get AI classification for complexity detection
-    const intentClassification = await classifyIntent(message, {}, log);
+    // Get thread context for slot merging
+    const ctxSlots = threadId ? getThreadSlots(threadId) : {};
     
-    // Extract entities using Transformers.js
-    const entities = await extractEntities(m, log);
+    // Extract slots using our parsers
+    const extractedSlots = await extractSlots(message, ctxSlots, log);
     
-    // Count constraint indicators
-    const constraints = new Set<string>();
+    // Enhanced intent classification based on transformers results (NO LLM)
+    const intent = await classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
     
-    // Entity-based constraints - use AI classification for entity types
-    if (entities && entities.length > 0) {
-      for (const entity of entities) {
-        const type = entity.entity_group?.toUpperCase() || '';
-        // Use AI classification for entity categorization with fallback to regex
-        const entityClassification = await classifyContent(entity.text, log);
-        if (entityClassification?.confidence && entityClassification.confidence > 0.7) {
-          entityClassification.categories?.forEach(cat => constraints.add(cat));
-        } else {
-          // Minimal fallback
-          if (/LOC|GPE|PLACE/.test(type)) constraints.add('location');
-          if (/PER|PERSON/.test(type)) constraints.add('person');
-          if (/DATE|TIME/.test(type)) constraints.add('time');
-          if (/MONEY|CURRENCY/.test(type)) constraints.add('budget');
-        }
-      }
-    }
-    
-    // AI-first constraint detection
-    const constraintClassification = await classifyContent(m, log);
-    if (constraintClassification?.categories && constraintClassification.categories.length > 0) {
-      constraintClassification.categories.forEach(cat => constraints.add(cat));
-    }
-
-    // Minimal fallback for critical patterns only if AI didn't detect anything
-    if (constraints.size === 0) {
-      const lower = m.toLowerCase();
-      if (/[£$€]|\$\d+/.test(m)) constraints.add('budget');
-      if (/\b(from|to)\b.*\b(from|to)\b/i.test(m)) constraints.add('transport');
-    }
-    
-    // AI-first complexity detection - use constraint count and confidence
-    const constraintCount = constraints.size;
-    const isSimpleQuery = constraintCount <= 1 && (intentClassification?.confidence || 0) > 0.8;
-    
-    // Derive simple query types from AI classification
-    const isSimpleWeather = intentClassification?.intent === 'weather';
-    const isSimplePacking = intentClassification?.intent === 'packing';
-    
-    if (isSimpleQuery) {
-      if (log?.debug) {
-        log.debug({ 
-          message: m.substring(0, 100),
-          reason: 'simple_query_ai_confident',
-          constraints: constraintCount,
-          confidence: intentClassification?.confidence || 0
-        }, '🌤️ COMPLEXITY: Simple query - not complex');
-      }
-      return { 
-        isComplex: false, 
-        confidence: 0.9, 
-        reasoning: isSimpleWeather ? 'simple_weather_query' : 
-                   isSimplePacking ? 'simple_packing_query' : 'simple_attractions_query'
-      };
-    }
-    
-    const entityCount = entities?.length || 0;
-    
-    // Complexity scoring - multiple strategies
-    const strategies = [
-      // Strategy 1: Use AI confidence and constraint count for complexity detection
-      { 
-        isComplex: (intentClassification?.confidence || 0) < 0.6 || constraintCount > 2, 
-        confidence: Math.min(0.7 + (constraintCount > 2 ? (constraintCount - 2) * 0.1 : 0), 0.95),
-        reason: `ai_confidence_low_or_many_constraints: confidence=${intentClassification?.confidence || 0}, constraints=${constraintCount}`
-      },
-      
-      // Strategy 2: High entity count (>4 entities = complex)
-      { 
-        isComplex: entityCount >= 4, 
-        confidence: Math.min(0.7 + (entityCount - 4) * 0.05, 0.95),
-        reason: `high_entity_count: ${entityCount} entities`
-      },
-      
-      // Strategy 2: Multiple constraint types (>=4 = complex)
-      { 
-        isComplex: constraintCount >= 4, 
-        confidence: Math.min(0.7 + (constraintCount - 4) * 0.1, 0.95),
-        reason: `multiple_constraints: ${Array.from(constraints).join(', ')}`
-      },
-      
-      // Strategy 3: Budget + Group + Location (family travel planning)
-      { 
-        isComplex: constraints.has('budget') && constraints.has('group') && constraints.has('location'), 
-        confidence: 0.85,
-        reason: 'family_travel_planning: budget+group+location'
-      },
-      
-      // Strategy 4: Long query with multiple locations
-      { 
-        isComplex: m.length > 50 && entityCount >= 3 && constraints.has('location'), 
-        confidence: 0.8,
-        reason: `detailed_multi_location: ${m.length} chars, ${entityCount} entities`
-      }
-    ];
-    
-    // Find the best matching strategy
-    const complexStrategy = strategies.find(s => s.isComplex);
-    
-    if (complexStrategy) {
-      if (log?.debug) {
-        log.debug({
-          method: 'fast_transformers',
-          entities: entityCount,
-          constraints: Array.from(constraints),
-          strategy: complexStrategy.reason,
-          confidence: complexStrategy.confidence
-        }, '🚀 COMPLEXITY: Fast detection - COMPLEX');
-      }
-      
-      return { 
-        isComplex: true, 
-        confidence: complexStrategy.confidence, 
-        reasoning: complexStrategy.reason 
-      };
-    }
-    
-    if (log?.debug) {
-      log.debug({
-        method: 'fast_transformers',
-        entities: entityCount,
-        constraints: Array.from(constraints),
-        isComplex: false
-      }, '🚀 COMPLEXITY: Fast detection - SIMPLE');
-    }
-    
-    return { isComplex: false, confidence: 0.6, reasoning: `simple: ${entityCount} entities, ${constraintCount} constraints` };
-    
-  } catch (error) {
-    if (log?.debug) {
-      log.debug({ error: String(error) }, '❌ COMPLEXITY: Fast detection failed');
-    }
-    
-    // Initialize constraints set
-    const constraints = new Set<string>();
-    
-    // AI-first constraint detection
-    const constraintClassification = await classifyContent(m, log);
-    if (constraintClassification?.categories) {
-      constraintClassification.categories.forEach(cat => constraints.add(cat));
-    }
-
-    // Minimal fallback for critical patterns only
-    if (constraints.size === 0) {
-      const lower = m.toLowerCase();
-      if (/[£$€]|\$\d+/.test(m)) constraints.add('budget');
-      if (/\b(from|to)\b.*\b(from|to)\b/i.test(m)) constraints.add('transport');
-    }
-    
-    const constraintCount = constraints.size;
-    
-    // AI-first fallback using classifyIntent for complexity detection
-    const intentClassification = await classifyIntent(message, {}, log);
-    
-    // Use AI confidence scoring instead of regex counting
-    const complexityScore = await classifyIntent(message, {}, log);
-    const isComplex = (complexityScore?.confidence || 0) < 0.6 || constraints.size > 2;
-    const confidence = Math.min(0.7 + (constraints.size > 2 ? (constraints.size - 2) * 0.1 : 0), 0.95);
-    
-    if (isComplex) {
-      return { 
-        isComplex: true, 
-        confidence, 
-        reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}` 
-      };
-    }
-    
-    return {
-      isComplex: false,
-      confidence: 0.7,
-      reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}`
-    };
-  }
-}
-
-async function detectComplexQuery(message: string, log?: any): Promise<{ isComplex: boolean; confidence: number; reasoning: string }> {
-  const m = message || '';
-  
-  // Try Transformers.js first for entity-based complexity detection
-  try {
-    const entities = await extractEntities(m, log);
-    
-    if (entities && entities.length > 0) {
-      const categories: string[] = [];
-      const entityTypes = new Set<string>();
-      
-      // Analyze entities for complexity indicators
-      entities.forEach(entity => {
-        const type = entity.entity_group?.toUpperCase() || '';
-        entityTypes.add(type);
-        
-        // Money/budget entities
-        if (/MONEY|CURRENCY/.test(type) || /\$|€|£|\d+/.test(entity.text)) {
-          categories.push('budget');
-        }
-        
-        // Location entities
-        if (/LOC|GPE|PLACE/.test(type)) {
-          categories.push('location');
-        }
-        
-        // Person/group entities
-        if (/PER|PERSON/.test(type) || /\d+/.test(entity.text)) {
-          categories.push('group');
-        }
-        
-        // Date/time entities
-        if (/DATE|TIME/.test(type)) {
-          categories.push('time');
-        }
+    if (intent && intent.confidence > 0.7) {
+      return RouterResult.parse({
+        intent: intent.intent,
+        needExternal: intent.needExternal,
+        slots: { ...ctxSlots, ...extractedSlots },
+        confidence: intent.confidence
       });
-      
-      // Use LLM-based complexity assessment instead of hardcoded rules
-      try {
-        const promptTemplate = await getPrompt('complexity_assessor');
-        const prompt = promptTemplate.replace('{message}', message);
-        const response = await callLLM(prompt, { responseFormat: 'json', log });
-        const result = JSON.parse(response);
-        
-        if (log?.debug) {
-          log.debug({
-            method: 'llm_complexity_assessor_with_entities',
-            entities: entities.length,
-            entityTypes: Array.from(entityTypes),
-            result
-          }, '🔍 COMPLEXITY: LLM assessment with entity context');
-        }
-        
-        return {
-          isComplex: result.isComplex || false,
-          confidence: result.confidence || 0.5,
-          reasoning: result.reasoning || 'llm_assessment_with_entities'
-        };
-      } catch (error) {
-        if (log?.debug) {
-          log.debug({ error: String(error) }, '🔍 COMPLEXITY: LLM assessment failed');
-        }
-      }
-    }
-  }
-  catch (error) {
-    if (log?.debug) {
-      log.debug({ error: String(error) }, '❌ COMPLEXITY: Transformers detection failed');
-    }
-  }
-  
-  // Use LLM-based complexity assessment
-  try {
-    const promptTemplate = await getPrompt('complexity_assessor');
-    const prompt = promptTemplate.replace('{message}', message);
-    const response = await callLLM(prompt, { responseFormat: 'json', log });
-    const result = JSON.parse(response);
-    
-    if (log?.debug) {
-      log.debug({
-        method: 'llm_complexity_assessor',
-        result
-      }, '🔍 COMPLEXITY: LLM assessment');
     }
     
-    return {
-      isComplex: result.isComplex || false,
-      confidence: result.confidence || 0.5,
-      reasoning: result.reasoning || 'llm_assessment'
-    };
+    return undefined;
   } catch (error) {
-    if (log?.debug) {
-      log.debug({ error: String(error) }, '🔍 COMPLEXITY: LLM assessment failed');
-    }
-  
-  // Final LLM fallback with JSON
-  try {
-    const template = await getPrompt('complexity_assessor');
-    const prompt = template.replace('{message}', m);
-    const raw = await callLLM(prompt, { responseFormat: 'json', log });
-    const json = JSON.parse(raw);
-    const schema = z.object({ isComplex: z.boolean(), confidence: z.number().min(0).max(1), reasoning: z.string() });
-    const result = schema.parse(json) as { isComplex: boolean; confidence: number; reasoning: string };
-    
-    if (log?.debug) {
-      log.debug({
-        method: 'llm_fallback',
-        ...result
-      }, '🤖 COMPLEXITY: LLM fallback detection');
-    }
-    
-    return result;
-  } catch {}
-  
-  return { isComplex: false, confidence: 0.4, reasoning: 'insufficient_signal' };
-}
+    log?.debug({ error: String(error) }, 'transformers_failed');
+    return undefined;
+  }
 }

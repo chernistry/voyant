@@ -119,9 +119,11 @@ export async function runGraphTurn(
     }
   }
   
-  // Policy hit → force intent
+  // Policy hit → force intent and clear consent state
   if (checkPolicyHit(message)) {
     C.forced = 'policy';
+    // Clear any pending consent state since this is a new, unrelated query
+    writeConsentState(threadId, { type: '', pending: '' });
     ctx.log.debug({ fastpath: 'policy' }, 'guard_policy_hit');
   }
   
@@ -223,24 +225,31 @@ export async function runGraphTurn(
   }
   
   // === UNIFIED CONSENT HANDLING ===
-  const currentSlots = getThreadSlots(threadId);
-  const currentConsentState = readConsentState(currentSlots);
-  
-  if (currentConsentState.awaiting && currentConsentState.pending) {
-    const consent = await detectConsent(message, ctx);
-    llmCallsThisTurn++;
+  // Skip consent handling if this is handled by guards (policy, system, etc.)
+  const isGuardHandled = C.forced === 'policy' || 
+                        (C.route?.intent === 'system' && C.route?.confidence === 0.9) ||
+                        (C.route?.intent === 'web_search' && C.route?.confidence === 0.9);
+                        
+  if (!isGuardHandled) {
+    const currentSlots = getThreadSlots(threadId);
+    const currentConsentState = readConsentState(currentSlots);
     
-    if (consent !== 'unclear') {
-      writeConsentState(threadId, { type: '', pending: '' }); // Clear
+    if (currentConsentState.awaiting && currentConsentState.pending) {
+      const consent = await detectConsent(message, ctx);
+      llmCallsThisTurn++;
       
-      if (consent === 'yes') {
-        if (currentConsentState.type === 'deep') {
-          return await performDeepResearchNode(currentConsentState.pending, ctx, threadId);
+      if (consent !== 'unclear') {
+        writeConsentState(threadId, { type: '', pending: '' }); // Clear
+        
+        if (consent === 'yes') {
+          if (currentConsentState.type === 'deep') {
+            return await performDeepResearchNode(currentConsentState.pending, ctx, threadId);
+          } else {
+            return await performWebSearchNode(currentConsentState.pending, ctx, threadId);
+          }
         } else {
-          return await performWebSearchNode(currentConsentState.pending, ctx, threadId);
+          return { done: true, reply: 'No problem! Is there something else about travel planning I can help with?' };
         }
-      } else {
-        return { done: true, reply: 'No problem! Is there something else about travel planning I can help with?' };
       }
     }
   }
