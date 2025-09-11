@@ -245,6 +245,11 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     return dateStr;
   }
   
+  // Handle "today" explicitly
+  if (/^today$/i.test(dateStr.trim())) {
+    return new Date().toISOString().split('T')[0] || new Date().getFullYear() + '-01-01';
+  }
+  
   const today = new Date();
   const currentYear = today.getFullYear();
   
@@ -266,6 +271,16 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     const parsed = JSON.parse(response);
     
     if (parsed.confidence > 0.5 && parsed.dates) {
+      // Handle relative dates
+      if (parsed.dates === 'today') {
+        return new Date().toISOString().split('T')[0] || `${currentYear}-01-01`;
+      }
+      if (parsed.dates === 'tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0] || `${currentYear}-01-02`;
+      }
+      
       let date = new Date(parsed.dates);
       if (!isNaN(date.getTime())) {
         // If date is in the past, assume next year

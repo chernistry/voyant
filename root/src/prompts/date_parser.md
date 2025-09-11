@@ -36,6 +36,8 @@ Output JSON only:
 Examples:
 - Input: "June 24-28" → {"dates":"June 24-28","month":"June","confidence":0.95}
 - Input: "next week" → {"dates":"next week","month":"","confidence":0.70}
+- Input: "today" → {"dates":"today","month":"","confidence":0.95}
+- Input: "tomorrow" → {"dates":"tomorrow","month":"","confidence":0.95}
 - Input: "15-20 июня" → {"dates":"15-20 June","month":"June","confidence":0.85}
 - Input: "Jnne 2025" → {"dates":"June 2025","month":"June","confidence":0.80}
 - Input: "this weekend" → {"dates":"this weekend","month":"","confidence":0.65}

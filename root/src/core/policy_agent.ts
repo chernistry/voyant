@@ -8,6 +8,8 @@ import { getPrompt } from './prompts.js';
 export type PolicyAnswer = { 
   answer: string; 
   citations: Array<{ url?: string; title?: string; snippet?: string; score?: number }>; 
+  needsWebSearch?: boolean;
+  assessmentReason?: string;
 };
 
 /**
@@ -59,6 +61,10 @@ export class PolicyAgent {
 
     const answer = res.summary || await this.summarizeWithLLM(question, citations, log);
 
+    // Assess information quality to determine if web search is needed
+    const avgScore = citations.length > 0 ? (citations.reduce((sum, c) => sum + (c.score || 0), 0) / citations.length) : 0;
+    const assessment = await this.assessInformationQuality(question, answer, citations, avgScore, log);
+
     if (log?.debug) {
       const totalCitations = (res.citations.length ? res.citations : res.hits).length;
       const highQualityCount = (res.citations.length ? res.citations : res.hits).filter(c => (c.score ?? 0) > 0.8).length;
@@ -70,11 +76,18 @@ export class PolicyAgent {
         fcsThreshold: 0.8,
         hasSummary: !!res.summary,
         usedLLMSummary: !res.summary && citations.length > 0,
-        avgScore: citations.length > 0 ? (citations.reduce((sum, c) => sum + (c.score || 0), 0) / citations.length).toFixed(3) : 0
+        avgScore: avgScore.toFixed(3),
+        needsWebSearch: assessment.needsWebSearch,
+        assessmentReason: assessment.reason
       }, '✅ PolicyAgent: Retrieved policy answer with FCS filtering');
     }
 
-    return { answer, citations };
+    return { 
+      answer, 
+      citations, 
+      needsWebSearch: assessment.needsWebSearch,
+      assessmentReason: assessment.reason
+    };
   }
 
   private async summarizeWithLLM(
@@ -224,6 +237,50 @@ export class PolicyAgent {
     
     // Default to airlines for remaining policies
     return 'airlines';
+  }
+
+  private async assessInformationQuality(
+    question: string,
+    summary: string,
+    citations: Array<{ title?: string; snippet?: string; score?: number }>,
+    avgScore: number,
+    log?: pino.Logger
+  ): Promise<{ needsWebSearch: boolean; reason: string }> {
+    try {
+      const tpl = await getPrompt('policy_quality_assessor');
+      const citationsText = citations.map((c, i) => 
+        `[${i + 1}] ${c.title || 'Policy Document'} (Score: ${c.score?.toFixed(2) || 'N/A'})\n${c.snippet || 'No snippet'}`
+      ).join('\n\n');
+      
+      const prompt = tpl
+        .replace('{question}', question)
+        .replace('{summary}', summary)
+        .replace('{citations}', citationsText)
+        .replace('{avgScore}', avgScore.toFixed(3));
+
+      const response = await callLLM(prompt, { responseFormat: 'json', log });
+      const assessment = JSON.parse(response.trim());
+      
+      return {
+        needsWebSearch: assessment.recommendWebSearch || assessment.assessment === 'INSUFFICIENT',
+        reason: assessment.reason || 'Quality assessment completed'
+      };
+    } catch (error) {
+      if (log?.warn) {
+        log.warn({ error: String(error) }, 'Quality assessment failed, using fallback logic');
+      }
+      
+      // Fallback logic
+      const hasInsufficientInfo = /I do not have enough information|insufficient information|cannot answer|no information available/i.test(summary);
+      const lowQualityScores = avgScore < 0.5;
+      
+      return {
+        needsWebSearch: hasInsufficientInfo || lowQualityScores,
+        reason: hasInsufficientInfo ? 'Vectara reported insufficient information' : 
+                lowQualityScores ? 'Low quality citations (FCS < 0.5)' : 
+                'Information appears sufficient'
+      };
+    }
   }
 
   private composeFromHits(hits: Array<{ title?: string; snippet?: string }>): string {

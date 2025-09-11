@@ -28,6 +28,7 @@ type PromptName =
   | 'flight_complexity_detector'
   | 'policy_summarizer'
   | 'policy_classifier'
+  | 'policy_quality_assessor'
   | 'search_result_extractor'
   | 'search_query_optimizer_llm'
   | 'preference_extractor'
@@ -40,7 +41,9 @@ type PromptName =
   | 'crawlee_overall_summary'
   | 'destinations_recommender'
   | 'llm_test_evaluator'
-  | 'entity_extraction_retry';
+  | 'entity_extraction_retry'
+  | 'citation_analysis'
+  | 'citation_verification';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -122,6 +125,9 @@ export async function preloadPrompts(): Promise<void> {
   PROMPTS.policy_classifier = await loadFileSafe(
     path.join(base, 'policy_classifier.md'),
   );
+  PROMPTS.policy_quality_assessor = await loadFileSafe(
+    path.join(base, 'policy_quality_assessor.md'),
+  );
   PROMPTS.search_result_extractor = await loadFileSafe(
     path.join(base, 'search_result_extractor.md'),
   );
@@ -160,6 +166,12 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.entity_extraction_retry = await loadFileSafe(
     path.join(base, 'entity_extraction_retry.md'),
+  );
+  PROMPTS.citation_analysis = await loadFileSafe(
+    path.join(base, 'citation_analysis.md'),
+  );
+  PROMPTS.citation_verification = await loadFileSafe(
+    path.join(base, 'citation_verification.md'),
   );
   loaded = true;
 }

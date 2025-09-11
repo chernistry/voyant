@@ -79,6 +79,9 @@ Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Franci
 Input: "Flights to Paris next weekend under $600?"
 Output: {"intent":"flights","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.85,"missingSlots":["month"]}
 
+Input: "flights from telaviv to ny today"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Tel Aviv","city":"New York","dates":"today"},"confidence":0.90,"missingSlots":[]}
+
 Input: "Do I need a visa for Japan?"
 Output: {"intent":"policy","needExternal":true,"slots":{"city":"Japan"},"confidence":0.90,"missingSlots":[]}
 

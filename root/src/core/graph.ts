@@ -109,7 +109,7 @@ export async function runGraphTurn(
       
       if (yesNo === 'yes' && consentState.pending) {
         if (consentState.type === 'deep') {
-          return await performDeepResearchNode(consentState.pending, ctx, threadId);
+          return await performDeepResearchNode(consentState.pending, ctx, threadId, {});
         } else {
           return await performWebSearchNode(consentState.pending, ctx, threadId);
         }
@@ -243,7 +243,7 @@ export async function runGraphTurn(
         
         if (consent === 'yes') {
           if (currentConsentState.type === 'deep') {
-            return await performDeepResearchNode(currentConsentState.pending, ctx, threadId);
+            return await performDeepResearchNode(currentConsentState.pending, ctx, threadId, {});
           } else {
             return await performWebSearchNode(currentConsentState.pending, ctx, threadId);
           }
@@ -566,31 +566,18 @@ async function policyNode(
     const { PolicyAgent } = await import('./policy_agent.js');
     const agent = new PolicyAgent();
     
-    const { answer, citations } = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log);
+    const policyResult = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log);
+    const { answer, citations } = policyResult;
     
-    // Check if no results found
-    const noRelevantInfo = !citations.length || 
-                          citations.every(c => !c.snippet?.trim()) ||
-                          /do not specify|cannot determine|not found|no information|don't contain/i.test(answer);
-    
-    if (noRelevantInfo) {
-      // For visa questions, auto-fallback to web search
-      if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(ctx.msg)) {
-        const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
-        if ('reply' in webResult && webResult.reply) {
-          webResult.reply = `I don't have this information in our internal database, but let me search the web for current details:\n\n${webResult.reply}`;
-        }
-        return webResult;
+    // Use the new quality assessment from PolicyAgent
+    if (policyResult.needsWebSearch) {
+      logger.log?.debug({ reason: policyResult.assessmentReason }, 'policy_quality_insufficient_triggering_web_search');
+      
+      const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
+      if ('reply' in webResult && webResult.reply) {
+        webResult.reply = `I don't have sufficient information in our internal database (${policyResult.assessmentReason}), but let me search the web for current details:\n\n${webResult.reply}`;
       }
-      
-      // For other policy questions, ask for consent
-      writeConsentState(ctx.threadId, { type: 'web_after_rag', pending: ctx.msg });
-      
-      return { 
-        done: true, 
-        reply: `I couldn't find information about this in our internal knowledge base. Would you like me to search the web for current information? Type 'yes' to proceed with web search, or ask me something else.`,
-        citations: ['Internal Knowledge Base (No Results)']
-      };
+      return webResult;
     }
     
     // Format answer with sources
@@ -726,9 +713,12 @@ async function performDeepResearchNode(
   query: string,
   ctx: { log: pino.Logger },
   threadId: string,
+  slots: Record<string, string> = {}
 ): Promise<NodeOut> {
   try {
-    const optimizedQuery = await optimizeSearchQuery(query, {}, 'destinations', ctx.log);
+    const threadSlots = getThreadSlots(threadId);
+    const mergedSlots = { ...threadSlots, ...slots };
+    const optimizedQuery = await optimizeSearchQuery(query, mergedSlots, 'destinations', ctx.log);
     
     const { performDeepResearch } = await import('./deep_research.js');
     const research = await performDeepResearch(optimizedQuery, { threadId }, ctx.log);

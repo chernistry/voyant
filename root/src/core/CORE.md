@@ -22,36 +22,36 @@ This document provides a detailed overview of each module in the `/src/core` dir
 11. [router.llm.ts](#routerllmts) - LLM-based routing with universal parser integration
 12. [clarifier.ts](#clarifierts) - LLM-based clarifying question generation with deterministic fallback
 13. [deep_research.ts](#deep_researchts) - LLM-powered deep research with web crawling and multi-pass synthesis
+14. [blend.planner.ts](#blendplannerts) - LLM-based planning for blend operations and query strategy determination
 
 ### Active Modules (Hybrid - Using Both Transformers and LLM)
 
-14. [blend.ts](#blendts) - Orchestrates blending of external API facts with LLM responses and handles chat interactions
-15. [graph.ts](#graphts) - Core decision graph/state machine with AI-first consent detection and slot management
-16. [nlp.ts](#nlpts) - General NLP utilities with LLM classification and Transformers detection
-17. [parsers.ts](#parsersts) - Universal parsing functions using AI-first approaches with Transformers NER and LLM fallback
-18. [policy_agent.ts](#policy_agentts) - Policy-related query handling with LLM reasoning
-19. [preference-extractor.ts](#preference-extractorts) - Travel preference extraction using AI techniques
-20. [router.ts](#routerts) - Main intent router with cascade of techniques (Transformers → LLM → rules)
-21. [search-query-optimizer.ts](#search-query-optimizerts) - Search query optimization with LLM enhancement and caching
-22. [search-result-extractor.ts](#search-result-extractorts) - Web search result extraction and summarization
+15. [blend.ts](#blendts) - Orchestrates blending of external API facts with LLM responses and handles chat interactions
+16. [graph.ts](#graphts) - Core decision graph/state machine with AI-first consent detection and slot management
+17. [nlp.ts](#nlpts) - General NLP utilities with LLM classification and Transformers detection
+18. [parsers.ts](#parsersts) - Universal parsing functions using AI-first approaches with Transformers NER and LLM fallback
+19. [policy_agent.ts](#policy_agentts) - Policy-related query handling with LLM reasoning
+20. [preference-extractor.ts](#preference-extractorts) - Travel preference extraction using AI techniques
+21. [router.ts](#routerts) - Main intent router with cascade of techniques (Transformers → LLM → rules)
+22. [search-query-optimizer.ts](#search-query-optimizerts) - Search query optimization with LLM enhancement and caching
+23. [search-result-extractor.ts](#search-result-extractorts) - Web search result extraction and summarization
+24. [searchSummarizer.ts](#searchsummarizerts) - Search result summarization with LLM and deterministic fallback
+25. [graph.optimizers.ts](#graphoptimizersts) - Graph processing optimization helpers and G-E-R-A pattern implementation
 
 ### Active Modules (Utility)
 
-23. [circuit-breaker.ts](#circuit-breakerts) - Circuit breaker pattern implementation for external API resilience
-24. [citations.ts](#citationsts) - Citation management and verification to prevent fabricated sources
-25. [memory.ts](#memoryts) - Conversation memory management with message history and thread isolation
-26. [prompts.ts](#promptsts) - Prompt template management with lazy loading and caching
-27. [rate-limiter.ts](#rate-limiterts) - Rate limiting implementation for API and CLI commands
-28. [receipts.ts](#receiptsts) - Fact tracking and receipts for transparency and verification
-29. [slot_memory.ts](#slot_memoryts) - Slot memory for context retention across conversation turns
-30. [verify.ts](#verifyts) - Answer verification using LLM to ensure factual accuracy
+26. [circuit-breaker.ts](#circuit-breakerts) - Circuit breaker pattern implementation for external API resilience
+27. [citations.ts](#citationsts) - Citation management and verification to prevent fabricated sources
+28. [memory.ts](#memoryts) - Conversation memory management with message history and thread isolation
+29. [prompts.ts](#promptsts) - Prompt template management with lazy loading and caching
+30. [rate-limiter.ts](#rate-limiterts) - Rate limiting implementation for API and CLI commands
+31. [receipts.ts](#receiptsts) - Fact tracking and receipts for transparency and verification
+32. [slot_memory.ts](#slot_memoryts) - Slot memory for context retention across conversation turns
+33. [verify.ts](#verifyts) - Answer verification using LLM to ensure factual accuracy
+34. [composers.ts](#composersts) - Deterministic response composition utilities
+35. [constraintGraph.ts](#constraintgraphts) - Constraint graph management for complexity assessment
+36. [router.optimizers.ts](#routeroptimizersts) - Router optimization utilities and heuristics
 
-### Deprecated Modules (In .deprecated directory)
-
-31. [city_cleaner.ts](#city_cleanerts) - Legacy city name cleaning (superseded by parsers.ts with enhanced AI capabilities)
-32. [cot_generation.ts](#cot_generationts) - Legacy chain-of-thought reasoning (functionality moved to blend.ts)
-33. [decision.ts](#decisionts) - Simple decision logic (unused - replaced by graph.ts state machine)
-34. [transformers-nlp.ts](#transformers-nlpts) - Legacy NER implementation (superseded by ner.ts with improved model selection and IPC support)
 
 ## Module Details
 
@@ -126,6 +126,11 @@ This document provides a detailed overview of each module in the `/src/core` dir
 **Where used:** Used by `blend.ts` when deep research is required.
 **Technology:** LLM
 
+#### blend.planner.ts
+**What it does:** Provides LLM-based planning for blend operations, determining query facets, safety checks, and response strategies. Analyzes user messages to decide on web search needs, language handling, missing slots, and response formatting.
+**Where used:** Used by `blend.ts` to plan how to handle user queries and determine what external APIs or web searches are needed.
+**Technology:** LLM
+
 ### Active Modules (Hybrid - Using Both Transformers and LLM)
 
 #### blend.ts
@@ -173,6 +178,16 @@ This document provides a detailed overview of each module in the `/src/core` dir
 **Where used:** Used by `blend.ts` for processing search results.
 **Technology:** Both Transformers and LLM
 
+#### searchSummarizer.ts
+**What it does:** Summarizes web search results using LLM with deterministic fallback for concise, well-formatted responses. Handles HTML sanitization, response truncation, and citation formatting.
+**Where used:** Used by `blend.ts` and `graph.ts` for formatting search results into readable responses.
+**Technology:** Both Transformers and LLM
+
+#### graph.optimizers.ts
+**What it does:** Provides optimization helpers for the graph processing pipeline including guards, cache management, and decision table logic. Implements G-E-R-A pattern (Guard → Extract → Route → Act) with regex patterns and fast-path routing.
+**Where used:** Used by `graph.ts` for efficient request processing and fast-path routing.
+**Technology:** Both Transformers and LLM
+
 ### Active Modules (Utility)
 
 #### circuit-breaker.ts
@@ -215,24 +230,17 @@ This document provides a detailed overview of each module in the `/src/core` dir
 **Where used:** Used by `blend.ts` for response verification.
 **Technology:** Utility
 
-### Deprecated Modules (In .deprecated directory)
-
-#### city_cleaner.ts
-**What it does:** Cleans and normalizes city names using LLM-powered and regex-based approaches.
-**Where used:** Not directly used anywhere (superseded by `parsers.ts`).
-**Technology:** LLM
-
-#### cot_generation.ts
-**What it does:** Implements chain-of-thought reasoning for complex query processing with slot analysis and answer generation.
-**Where used:** Not directly used anywhere (legacy implementation).
-**Technology:** LLM
-
-#### decision.ts
-**What it does:** Contains simple decision logic for determining if weather information is needed based on slots.
-**Where used:** Not directly used anywhere (appears to be a legacy module).
+#### composers.ts
+**What it does:** Provides deterministic response composition utilities for weather, packing, and attractions replies.
+**Where used:** Used by `blend.ts` and `graph.ts` for consistent, formatted response generation.
 **Technology:** Utility
 
-#### transformers-nlp.ts
-**What it does:** Provides NER capabilities using Transformers.js (deprecated in favor of `ner.ts`).
-**Where used:** Not directly used anywhere (deprecated).
-**Technology:** Transformers
+#### constraintGraph.ts
+**What it does:** Builds and manages constraint graphs for assessing query complexity and routing decisions.
+**Where used:** Used by `graph.ts` and `router.ts` for determining processing complexity and optimization strategies.
+**Technology:** Utility
+
+#### router.optimizers.ts
+**What it does:** Provides router optimization utilities including regex patterns, guards, and heuristics for efficient routing decisions.
+**Where used:** Used by `router.ts` for fast-path routing and complexity assessment.
+**Technology:** Utility
