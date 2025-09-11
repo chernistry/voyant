@@ -425,7 +425,8 @@ function fallbackOptimizeQuery(query: string): string {
 
 export async function callLLMBatch(prompts: string[], opts: any): Promise<string[]> {
   if (prompts.length === 0) return [];
-  if (prompts.length === 1) return [await callLLM(prompts[0], opts)];
+  const firstPrompt = prompts[0];
+  if (prompts.length === 1 && firstPrompt) return [await callLLM(firstPrompt, opts)];
   
   // Simple batch: join with delimiters, one roundtrip, split back
   const sep = '\n\n---PROMPT_SPLIT---\n\n';

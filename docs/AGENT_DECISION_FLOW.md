@@ -1,203 +1,146 @@
+```mermaid
 flowchart TD
-    A["User Message"] --> A0{"Empty/emoji/gibberish?"}
-    A0 -->|Yes| A1["Reply: Ask for a clear travel question"]
-    A0 -->|No| B["handleChat()"]
-    B --> C{"Receipts mode? (/why or receipts)"}
-    C -->|Yes| R1["Load last receipts from slot memory"]
-    R1 --> R2["buildReceiptsSkeleton()"]
-    R2 --> R3["verifyAnswer() (LLM JSON)"]
-    R3 --> R4["Return receipts-only reply"]
-    C -->|No| D["pushMessage(threadId)"]
-    D --> E["runGraphTurn(message, threadId)"]
+    A["User Message"] --> B["runGraphTurn(message, threadId)"]
 
-    %% Transformers-first NLP preprocessing (graph.ts)
-    E --> NLP1["classifyContent() (transformers)"]
-    NLP1 --> NLP2["detectLanguage() (langdetect)"]
-    NLP2 --> NLP3["extractEntitiesEnhanced() (NER)"]
-    NLP3 --> NLP4["classifyIntent() (transformers)"]
-    
-    %% Early content filtering
-    NLP1 --> CF1{"Unrelated content?"}
-    CF1 -->|Yes| CF2["Reply: I focus on travel planning"]
-    CF1 -->|No| CF3{"System question?"}
-    CF3 -->|Yes| CF4["Reply: I'm an AI travel assistant"]
-    CF3 -->|No| CF5{"Budget query?"}
-    CF5 -->|Yes| CF6["Reply: Can't help with budget planning"]
-    CF5 -->|No| CF7{"Complex travel query?"}
-    CF7 -->|Yes| CF8["Skip destination conflict detection"]
-    CF7 -->|No| CF9["Check destination conflicts"]
+    %% G-E-R-A Pattern: Guard → Extract → Route → Act
+    %% GUARD STAGE: Fast micro-rules first
+    B --> G1{"Consent flags set?"}
+    G1 -->|Yes| G2["checkYesNoShortcut()"]
+    G2 --> G3{"Shortcut detected?"}
+    G3 -->|Yes| G4["Handle consent (yes/no)"]
+    G3 -->|No| E
+    G1 -->|No| G5["Policy hit?"]
+    G5 -->|Yes| G6["Force policy intent"]
+    G5 -->|No| G7["Web-ish hit?"]
+    G7 -->|Yes| G8["Set web consent; return prompt"]
+    G7 -->|No| G9["Weather fast-path?"]
+    G9 -->|Yes| G10["extractCityLite()"]
+    G10 --> G11{"City found?"}
+    G11 -->|Yes| G12["weatherNode() → return"]
+    G11 -->|No| E
+    G9 -->|No| E
 
-    %% Language warning
-    NLP2 --> LW1{"Non-English or mixed?"}
-    LW1 -->|Yes| LW2["Set language warning"]
-    LW1 -->|No| LW3["No warning"]
+    %% EXTRACT STAGE: Single-pass cached extraction
+    E["Extract Stage"] --> E1["buildTurnCache()"]
+    E1 --> E2["routeIntent() - single call"]
+    E2 --> E3{"Need NER for flights?"}
+    E3 -->|Yes| E4["extractEntitiesEnhanced()"]
+    E3 -->|No| E5["Lightweight extraction"]
+    E5 --> E6{"Need content classification?"}
+    E6 -->|Yes| E7["classifyContent() (transformers)"]
+    E6 -->|No| R
 
-    %% Consent gates before routing
-    CF8 --> G{"Awaiting any consent?"}
-    CF9 --> G
-    G -->|Yes| G1{"Consent type?"}
-    G1 -->|Web search| G2["detectConsent() (LLM): yes/no/unclear"]
-    G2 -->|yes| H1["optimizeSearchQuery()"]
-    H1 --> H2["performWebSearchNode()"]
-    H2 --> H2a["summarizeSearchResults → reply + citations ['Brave Search']"]
-    G2 -->|no| H3["Reply: No problem..."]
-    G1 -->|Deep research| G4["detectConsent() (LLM): yes/no/unclear"]
-    G4 -->|yes| G5["performDeepResearchNode()"]
-    G5 --> G6["Return deep research reply + citations"]
-    G4 -->|no| G7["Fallback: route pending query via router"]
-    G -->|No| I["routeIntentNode()"]
+    %% ROUTE STAGE: Decision table
+    R["Route Stage"] --> R1{"Unrelated content?"}
+    R1 -->|Yes| R2["Return travel focus message"]
+    R1 -->|No| R3["Use cached router result"]
 
-    %% Transformers-first routing cascade (router.ts)
-    I --> RT1["classifyContent() (transformers)"]
-    RT1 --> RT2{"DEEP_RESEARCH_ENABLED?"}
-    RT2 -->|Yes| RT3["detectComplexQueryFast()"]
-    RT3 --> RT4{"Complex query?"}
-    RT4 -->|Yes| RT8["Set awaiting_deep_research_consent"]
-    RT4 -->|No| RT9["Continue to routing cascade"]
-    RT2 -->|No| RT9
-    RT8 --> RT10["Ask for deep research consent"]
-    RT10 --> E
+    %% SLOT PROCESSING
+    R3 --> S1["normalizeSlots()"]
+    S1 --> S2["checkMissingSlots()"]
+    S2 --> S3{"Missing slots?"}
+    S3 -->|Yes| S4["buildClarifyingQuestion() → return"]
+    S3 -->|No| S5["updateThreadSlots(); setLastIntent()"]
 
-    %% NLP Routing Cascade: Transformers → LLM → Rules
-    RT9 --> RC1["🔄 ROUTING CASCADE"]
-    RC1 --> RC2["Step 1: routeViaTransformersFirst()"]
-    RC2 --> RC3["extractEntitiesEnhanced() (NER + patterns)"]
-    RC3 --> RC4["classifyIntent() (transformers)"]
-    RC4 --> RC5["classifyIntentFromTransformers()"]
-    RC5 --> RC6{"Confidence > 0.7?"}
-    RC6 -->|Yes| RC7["✅ Transformers success"]
-    RC6 -->|No| RC8["Step 2: classifyIntent() + routeWithLLM()"]
-    RC8 --> RC9["LLM intent classification + slot extraction"]
-    RC9 --> RC10{"LLM confidence > 0.5?"}
-    RC10 -->|Yes| RC11["✅ LLM success"]
-    RC10 -->|No| RC12["Step 3: Rules fallback"]
-    RC12 --> RC13["Pattern-based classification"]
-
-    %% Slot extraction cascade: NER → LLM → Rules
-    RC7 --> SE1["extractSlots() cascade"]
-    RC11 --> SE1
-    RC13 --> SE1
-    SE1 --> SE2["parseCity() (NER → LLM → rules)"]
-    SE2 --> SE3["parseDate() (NER → LLM → rules)"]
-    SE3 --> SE4["parseOriginDestination() (NER → LLM)"]
-
-    %% Missing slots check
-    SE4 --> K{"Missing required slots?"}
-    K -->|Yes| L1["buildClarifyingQuestion() (LLM → fallback)"]
-    L1 --> L2["Return single targeted question"]
-    K -->|No| M["setLastIntent(); merge slots; updateThreadSlots()"]
-
-    %% Intent switch → blend or tools
-    M --> N{"Intent"}
-    N -->|weather| Q["weatherNode() → blendWithFacts()"]
-    N -->|destinations| R["destinationsNode() → blendWithFacts()"]
-    N -->|packing| S["packingNode() → blendWithFacts()"]
-    N -->|attractions| T["attractionsNode() → blendWithFacts()"]
-    N -->|policy| P["policyNode() → PolicyAgent (RAG)"]
+    %% ACT STAGE: Route to domain nodes
+    S5 --> N{"Intent"}
+    N -->|weather| Q["weatherNode()"]
+    N -->|destinations| RD["destinationsNode()"]
+    N -->|packing| S["packingNode()"]
+    N -->|attractions| T["attractionsNode()"]
+    N -->|policy| P["policyNode()"]
+    N -->|flights| F["flightsNode()"]
     N -->|web_search| U["webSearchNode()"]
     N -->|system| SYS["systemNode()"]
-    N -->|unknown| V["unknownNode() → blendWithFacts()"]
+    N -->|unknown| V["unknownNode()"]
 
-    %% Consent offers inside intents (blend.ts)
-    T --> TA{"restaurant query?"}
-    TA -->|Yes| TAC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
-    TA -->|No| T0["continue"]
-    R --> RB{"explicit flight query?"}
-    RB -->|Yes| RBC["set awaiting_search_consent + pending_search_query; ask consent to web search"]
-    RB -->|No| R0["continue"]
+    %% UNIFIED CONSENT HANDLING
+    B --> C1{"Awaiting consent?"}
+    C1 -->|Yes| C2["detectConsent()"]
+    C2 --> C3{"Consent clear?"}
+    C3 -->|Yes| C4["Handle consent (yes/no)"]
+    C3 -->|No| C5["Continue with normal flow"]
 
-    %% Facts blend and external tools
-    Q --> W1["getWeather (Open‑Meteo → fallback Brave) → facts"]
-    S --> W1
-    R0 --> W1
-    R0 --> W3["getCountryFacts (REST Countries → fallback Brave) → facts"]
-    R0 --> W4["recommendDestinations (catalog + REST Countries) → facts"]
-    T0 --> T2["OpenTripMap → fallback Brave → facts"]
+    %% Domain Node Implementations
+    Q --> Q1["Open-Meteo API → reply + citations"]
+    Q1 --> Z
+    
+    RD --> R1["AI-enhanced destinations tool"]
+    R1 --> R2{"Success?"}
+    R2 -->|Yes| R3OUT["Return destinations + citations"]
+    R2 -->|No| R4["webSearchNode() fallback"]
+    
+    S --> S1["blendWithFacts()"]
+    S1 --> Z
+    
+    T --> T1["OpenTripMap API"]
+    T1 --> T2{"Success?"}
+    T2 -->|Yes| T3["Return attractions + citations"]
+    T2 -->|No| T4["webSearchNode() fallback"]
+    
+    F --> F1["Amadeus API"]
+    F1 --> F2{"Success?"}
+    F2 -->|Yes| F3["Return flights + citations"]
+    F2 -->|No| F4["blendWithFacts() fallback"]
+    
+    P --> P1["PolicyAgent (RAG)"]
+    P1 --> P2{"Results found?"}
+    P2 -->|Yes| P3["Format answer with sources"]
+    P2 -->|No| P4{"Visa question?"}
+    P4 -->|Yes| P5["webSearchNode() fallback"]
+    P4 -->|No| P6["Ask for web search consent"]
+    
+    U --> U1["performWebSearchNode()"]
+    U1 --> U2["searchTravelInfo() → summarize"]
+    U2 --> U3["Return reply + citations"]
+    
+    V --> V1["blendWithFacts()"]
+    V1 --> Z
 
-    %% Policy RAG path (graph.ts → policy_agent.ts → tools/vectara.ts)
-    P --> P1["pickCorpus(question): transformers → LLM → rules"]
-    P1 --> P2["VectaraClient.query(corpus): semantic search + citations"]
-    P2 --> P3{"Summary available?"}
-    P3 -->|Yes| P4["Use Vectara summary"]
-    P3 -->|No| P5["Summarize hits via LLM (callLLM)"]
-    P4 --> P6["formatPolicyAnswer() with numbered Sources"]
-    P5 --> P6
-    P6 --> P7{"Any citations/snippets?"}
-    P7 -->|Yes| P8["Return reply + citations ['Internal Knowledge Base' titles]"]
-    P7 -->|No| P9["Set awaiting_web_search_consent + pending_web_search_query; ask to search web"]
-    P9 --> E
+    %% Compose final answer
+    Z["Compose Final Answer"] --> Z1["Validate citations"]
+    Z1 --> Z2{"Facts collected?"}
+    Z2 -->|Yes| Z3["setLastReceipts()"]
+    Z2 -->|No| Z4["Continue without receipts"]
+    Z3 --> Z5["Append source if missing"]
+    Z4 --> Z5
+    Z5 --> Z6{"Language warning set?"}
+    Z6 -->|Yes| Z7["Prefix language warning"]
+    Z6 -->|No| Z8["Return final reply"]
 
-    %% Web search path (router/web_search intent)
-    U --> X1["searchTravelInfo (Brave)"]
-    X1 --> X2{"Results?"}
-    X2 -->|Yes| X3["search_summarize (LLM): 1–3 paragraphs + Sources list"]
-    X3 --> X4["Return reply + citations ['Brave Search']"]
-    X2 -->|No| X5["Reply: couldn't find relevant info"]
-
-    %% Unknown intent handling (blend.ts)
-    V --> V1{"Explicit search?"}
-    V1 -->|Yes| U
-    V1 -->|No| V2{"Unrelated/System/Edge cases?"}
-    V2 -->|Unrelated| V3["Reply: I'm a travel assistant for travel queries"]
-    V2 -->|System| SYS
-    V2 -->|Emoji/Gibberish/Empty/Very long| V4["Ask for a clearer travel question"]
-    V2 -->|Otherwise| L1
-
-    %% Compose final answer (blend.ts)
-    W1 --> Y["getPrompt(system/cot/blend) → callLLM"]
-    W3 --> Y
-    W4 --> Y
-    T2 --> Y
-    V --> Y
-    Y --> Z1["validateNoCitation()"]
-    Z1 --> Z2{"facts collected?"}
-    Z2 -->|Yes| Z3["setLastReceipts(threadId)"]
-    Z3 --> Z6["Append one source mention if missing"]
-    Z2 -->|No| Z6
-    Z6 --> Z7{"Language warning set?"}
-    Z7 -->|Yes| Z8["Prefix: 'Note: I work best with English, but I'll try to help.'"]
-    Z7 -->|No| Z9["No warning"]
-    Z8 --> Z10["Return final reply (+ citations if any)"]
-    Z9 --> Z10
-
-%% Key Changes in Transformers-First Architecture:
+%% Key Implementation Details:
 %% 
-%% 1. NLP PREPROCESSING (graph.ts):
-%%    - classifyContent() (transformers) for content classification
-%%    - detectLanguage() (langdetect) for language detection
-%%    - extractEntitiesEnhanced() for enhanced entity extraction with MONEY/TIME/DURATION entities
-%%    - classifyIntent() (transformers) for intent classification
+%% 1. G-E-R-A Pattern (Guard → Extract → Route → Act):
+%%    - Guard: Fast micro-rules for early exits
+%%    - Extract: Single-pass cached extraction with intent-gated extractors
+%%    - Route: Decision table using cached router results
+%%    - Act: Domain-specific nodes
 %%
-%% 2. ROUTING CASCADE (router.ts):
-%%    - Transformers → LLM → Rules fallback with timeout via TRANSFORMERS_ROUTER_TIMEOUT_MS
-%%    - Enhanced NER with confidence scoring and deduplication
-%%    - Pattern-based classification with multilingual support
-%%    - Intent classification using Transformers.js models
+%% 2. Performance Optimizations:
+%%    - Single router call per turn
+%%    - Intent-gated extractors (only run when needed)
+%%    - Fast-path optimizations (weather, policy, web-ish)
+%%    - Cached results for extraction
+%%    - Unified consent handling
 %%
-%% 3. COMPLEXITY DETECTION:
-%%    - Transformers-based complexity detection with constraint analysis
-%%    - Entity count + constraint categories for complex queries
-%%    - Confidence scoring for complexity assessment
-%%    - DEEP_RESEARCH_ENABLED flag to enable/disable complexity detection
+%% 3. Domain Nodes:
+%%    - weather: Open-Meteo API with fallback
+%%    - destinations: AI-enhanced catalog with web search fallback
+%%    - packing: blendWithFacts approach
+%%    - attractions: OpenTripMap with web search fallback
+%%    - flights: Amadeus API with blend fallback
+%%    - policy: PolicyAgent (RAG) with web search fallback
+%%    - web_search: Brave search with summarization
+%%    - system: Static responses
+%%    - unknown: blendWithFacts approach
 %%
-%% 4. SLOT EXTRACTION CASCADE:
-%%    - NER → LLM → Rules for city/date/entity extraction
-%%    - Enhanced entity types: LOCATION, DATE, MONEY, DURATION, PERSON, ORGANIZATION
-%%    - Confidence-based fallback between methods with deduplication
-%%    - Pattern-based detection for MONEY and DURATION entities
+%% 4. Consent Handling:
+%%    - Unified consent state management
+%%    - Micro-rules for obvious yes/no responses
+%%    - LLM fallback for ambiguous responses
 %%
-%% 5. PERFORMANCE OPTIMIZATIONS:
-%%    - Early content filtering reduces LLM calls
-%%    - Transformers-first reduces latency by 20-40%
-%%    - Cached model loading for repeated requests
-%%    - Per-turn memoization for NER/CLS/LLM results
-%%    - Timeout-based routing cascade with Transformers.js
-%%
-%% Environment Variables:
-%% - TRANSFORMERS_ROUTER_TIMEOUT_MS: Transformers timeout (default: 3000ms)
-%% - DEEP_RESEARCH_ENABLED: Enable complexity detection (true/false)
-%% - TRANSFORMERS_NER_MODEL: NER model override
-%% - NER_MODE: local|remote|auto (default: auto)
-%% - CLASSIFICATION_INTENT_MODEL_LOCAL: Local intent classification model
-%% - CLASSIFICATION_INTENT_MODEL_REMOTE_API: Remote API intent classification model
-%% - RESILIENCE: Circuit breakers and rate limiters are used for all external API calls.
+%% 5. Error Handling:
+%%    - Tool-specific fallbacks
+%%    - Graceful degradation to web search
+%%    - Clear error messages to users
+```

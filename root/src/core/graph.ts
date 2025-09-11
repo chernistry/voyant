@@ -180,7 +180,7 @@ export async function runGraphTurn(
     promises.push((async () => {
       const { extractCityLite } = await import('./graph.optimizers.js');
       const city = await extractCityLite(message, ctx.log);
-      if (city) C.route.slots.city = city;
+      if (city && C.route) C.route.slots.city = city;
     })());
   }
   
@@ -192,7 +192,11 @@ export async function runGraphTurn(
         C.clsContent = { content_type: 'travel', confidence: 0.5 };
         return;
       }
-      C.clsContent = await classifyContentTransformers(message, ctx.log);
+      const result = await classifyContentTransformers(message, ctx.log);
+      C.clsContent = { 
+        content_type: result.content_type || 'travel', 
+        confidence: result.confidence || 0.5 
+      };
       llmCallsThisTurn++;
     })());
   }
@@ -213,7 +217,7 @@ export async function runGraphTurn(
     updateThreadSlots(threadId, fastWeather.slots || {}, []);
     return await weatherNode(
       { msg: message, threadId, onStatus: ctx.onStatus },
-      fastWeather.slots,
+      fastWeather.slots || {},
       ctx
     );
   }
@@ -268,7 +272,7 @@ export async function runGraphTurn(
   
   // Update slots and set intent
   updateThreadSlots(threadId, slots, []);
-  setLastIntent(threadId, intent);
+  setLastIntent(threadId, intent as any);
   
   // Log metrics
   ctx.log.debug({ 
@@ -386,12 +390,14 @@ async function weatherNode(
   }
   
   try {
-    const { geocodeCity, getWeatherDaily } = await import('../tools/weather_open_meteo.js');
-    const { lat, lon } = await geocodeCity(city);
-    const wx = await getWeatherDaily(lat, lon);
+    const { getWeather } = await import('../tools/weather.js');
+    const result = await getWeather({ city });
     
-    const reply = `Current weather in ${city}: High ${wx.max}°C, Low ${wx.min}°C; Precipitation ${wx.pop}% (Open-Meteo)`;
-    return { done: true, reply, citations: ['Open-Meteo'] };
+    if (result.ok) {
+      return { done: true, reply: result.summary, citations: [result.source || 'Weather API'] };
+    } else {
+      return { done: true, reply: `Sorry, I couldn't get weather information for ${city}. ${result.reason}` };
+    }
   } catch (error) {
     logger.log?.warn({ error: String(error), city }, 'weather_fetch_failed');
     return { done: true, reply: `Sorry, I couldn't get weather information for ${city}. Please try another city.` };

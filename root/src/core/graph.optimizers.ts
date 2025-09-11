@@ -83,9 +83,11 @@ export async function maybeFastWeather(ctx: RuleContext): Promise<NodeOut | null
   const highLocs = ctx.C.ner.locations.filter(l => l.score >= 0.90);
   
   if (intent === 'weather' && confidence >= 0.80 && highLocs.length === 1) {
-    const city = highLocs[0].text;
-    ctx.log.debug({ city, confidence }, 'fast_weather_hit');
-    return { next: 'weather', slots: { city } };
+    const city = highLocs[0]?.text;
+    if (city) {
+      ctx.log.debug({ city, confidence }, 'fast_weather_hit');
+      return { next: 'weather', slots: { city } };
+    }
   }
   
   return null;
@@ -115,7 +117,7 @@ export async function extractCityLite(message: string, log: pino.Logger): Promis
   
   for (const pattern of patterns) {
     const match = message.match(pattern);
-    if (match) {
+    if (match && match[1]) {
       let city = match[1].trim();
       
       // Clean up common noise words
