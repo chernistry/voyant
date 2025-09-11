@@ -446,7 +446,7 @@ export async function runGraphTurn(
   const currentAwaitingDeepResearch = currentSlots.awaiting_deep_research_consent === 'true';
   const currentPendingDeepResearchQuery = currentSlots.pending_deep_research_query;
   
-  ctx.log.info({ 
+  ctx.log.debug({ 
     threadSlots: currentSlots,
     awaitingDeepResearch: currentAwaitingDeepResearch,
     pendingDeepResearchQuery: currentPendingDeepResearchQuery,
@@ -726,7 +726,7 @@ export async function runGraphTurn(
         'flight': 'transport'
       };
       
-      const mappedConstraint = typeToConstraint[contentClassification.content_type];
+      const mappedConstraint = typeToConstraint[contentClassification.content_type] as ConstraintType;
       if (mappedConstraint) {
         constraintCategories.push(mappedConstraint);
         ctx.log.debug({ 
@@ -781,7 +781,7 @@ export async function runGraphTurn(
   const comboKey = getCombinationKey(constraintCategories);
   const pathComplexity = constraintGraph.get(comboKey) ?? 'simple';
 
-  ctx.log.info({
+  ctx.log.debug({
     extractionMethod,
     extractionConfidence: Math.round(extractionConfidence * 100) / 100,
     constraintCategories,
@@ -1467,18 +1467,22 @@ async function policyNode(
   slots?: Record<string, string>,
   logger?: { log: pino.Logger }
 ): Promise<NodeOut> {
-  console.log('🔍 POLICY NODE CALLED:', ctx.msg);
+  if (process.env.LOG_LEVEL === 'debug') {
+    console.log('🔍 POLICY NODE CALLED:', ctx.msg);
+  }
   
   const { PolicyAgent } = await import('./policy_agent.js');
   const agent = new PolicyAgent();
   
   try {
-    const { answer, citations } = await agent.answer(
+    const { answer: originalAnswer, citations } = await agent.answer(
       ctx.msg, 
       undefined, 
       ctx.threadId, 
       logger?.log
     );
+    
+    let answer = originalAnswer;
     
     if (logger?.log?.debug) {
       logger.log.debug({ 
@@ -1542,6 +1546,50 @@ Type 'yes' to proceed with web search, or ask me something else.`;
         reply: noDataMessage, 
         citations: ['Internal Knowledge Base (No Results)']
       };
+    }
+
+    // Self-check verification of RAG answer
+    try {
+      const { verifyAnswer } = await import('./verify.js');
+      const facts = citations.map((c, i) => ({
+        key: `policy_${i}`,
+        value: c.snippet || c.title || 'Internal Knowledge Base',
+        source: 'Vectara'
+      }));
+      
+      const audit = await verifyAnswer({
+        reply: answer,
+        facts,
+        log: logger?.log
+      });
+      
+      if (audit.verdict === 'fail') {
+        if (logger?.log?.debug) {
+          logger.log.debug({ 
+            message: ctx.msg, 
+            failureReason: audit.notes.join(', ') 
+          }, '🔍 POLICY: Self-check failed, falling back to web search');
+        }
+        
+        // RAG failed self-check, automatically trigger web search
+        const transitionMessage = "I found some information in our database, but it doesn't seem to fully answer your question. Let me search the web for more current details:";
+        const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
+        
+        if ('reply' in webResult && webResult.reply) {
+          webResult.reply = `${transitionMessage}\n\n${webResult.reply}`;
+        }
+        
+        return webResult;
+      }
+      
+      // Use revised answer if available
+      if (audit.revisedAnswer) {
+        answer = audit.revisedAnswer;
+      }
+    } catch (error) {
+      if (logger?.log?.debug) {
+        logger.log.debug({ error: String(error) }, '🔍 POLICY: Self-check failed, proceeding with original answer');
+      }
     }
     
     // Store policy receipts

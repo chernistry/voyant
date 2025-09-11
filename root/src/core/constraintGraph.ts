@@ -23,7 +23,10 @@ export function buildConstraintGraph(): Map<string, Complexity> {
   for (let mask = 0; mask < 1 << n; mask++) {
     const combo: ConstraintType[] = [];
     for (let i = 0; i < n; i++) {
-      if (mask & (1 << i)) combo.push(CONSTRAINT_TYPES[i]);
+      if (mask & (1 << i)) {
+        const constraintType = CONSTRAINT_TYPES[i];
+        if (constraintType) combo.push(constraintType);
+      }
     }
     const key = combo.length ? combo.join('+') : 'none';
     const complexity: Complexity =

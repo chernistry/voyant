@@ -3,6 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+const isDebugMode = process.env.LOG_LEVEL === 'debug';
+
+function debugLog(message: string, data?: any) {
+  if (isDebugMode) {
+    console.debug(message, data);
+  }
+}
+
 type SlotState = {
   slots: Record<string, string>;
   expectedMissing: string[];
@@ -26,7 +34,7 @@ function loadCliSlots(): Map<string, SlotState> {
       return new Map(Object.entries(parsed));
     }
   } catch (error) {
-    console.debug('🔧 SLOTS: Failed to load CLI slots, starting fresh');
+    debugLog('🔧 SLOTS: Failed to load CLI slots, starting fresh');
   }
   return new Map();
 }
@@ -36,7 +44,7 @@ function saveCliSlots(store: Map<string, SlotState>): void {
     const data = Object.fromEntries(store);
     fs.writeFileSync(CLI_SLOTS_FILE, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.debug('🔧 SLOTS: Failed to save CLI slots');
+    debugLog('🔧 SLOTS: Failed to save CLI slots');
   }
 }
 
@@ -45,10 +53,10 @@ export function clearCliSlots(): void {
     try {
       if (fs.existsSync(CLI_SLOTS_FILE)) {
         fs.unlinkSync(CLI_SLOTS_FILE);
-        console.debug('🔧 SLOTS: Cleared CLI slots for fresh start');
+        debugLog('🔧 SLOTS: Cleared CLI slots for fresh start');
       }
     } catch (error) {
-      console.debug('🔧 SLOTS: Failed to clear CLI slots');
+      debugLog('🔧 SLOTS: Failed to clear CLI slots');
     }
   }
 }
@@ -61,7 +69,7 @@ export function getThreadSlots(threadId: string): Record<string, string> {
   }
   
   const slots = store.get(threadId)?.slots ?? {};
-  console.debug('🔧 SLOTS: getThreadSlots', { threadId, slots, storeSize: store.size, isCliMode });
+  debugLog('🔧 SLOTS: getThreadSlots', { threadId, slots, storeSize: store.size, isCliMode });
   return slots;
 }
 
@@ -86,7 +94,7 @@ export function updateThreadSlots(
     if (typeof v === 'string' && v.trim().length > 0) merged[k] = v;
   }
   
-  console.debug('🔧 SLOTS: updateThreadSlots', { 
+  debugLog('🔧 SLOTS: updateThreadSlots', { 
     threadId, 
     newSlots: slots, 
     prevSlots: prev.slots, 

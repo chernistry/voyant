@@ -17,7 +17,9 @@ if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = true;
 }
 
-console.log('🔧 Transformers.js configured for offline mode:', {
-  localModelPath: env.localModelPath,
-  allowRemoteModels: env.allowRemoteModels
-});
+if (process.env.LOG_LEVEL === 'debug') {
+  console.log('🔧 Transformers.js configured for offline mode:', {
+    localModelPath: env.localModelPath,
+    allowRemoteModels: env.allowRemoteModels
+  });
+}
