@@ -7,7 +7,7 @@ import { getPrompt } from './prompts.js';
 
 export type PolicyAnswer = { 
   answer: string; 
-  citations: Array<{ url?: string; title?: string; snippet?: string }>; 
+  citations: Array<{ url?: string; title?: string; snippet?: string; score?: number }>; 
 };
 
 /**
@@ -34,22 +34,44 @@ export class PolicyAgent {
 
     const res = await this.vectara.query(question, { corpus, maxResults: 6 });
 
-    const citations = (res.citations.length ? res.citations : res.hits)
+    // Filter citations by FCS (Factual Consistency Score) > 0.8
+    const highQualityCitations = (res.citations.length ? res.citations : res.hits)
+      .filter(c => (c.score ?? 0) > 0.8)
       .slice(0, 5)
       .map(c => ({
         url: c.url,
         title: c.title,
         snippet: ('text' in c ? c.text : ('snippet' in c ? c.snippet : '')) || '',
+        score: c.score, // Include score for debugging
       }));
+
+    // If no high-quality citations, fall back to top 3 regardless of score
+    const citations = highQualityCitations.length > 0 
+      ? highQualityCitations
+      : (res.citations.length ? res.citations : res.hits)
+          .slice(0, 3)
+          .map(c => ({
+            url: c.url,
+            title: c.title,
+            snippet: ('text' in c ? c.text : ('snippet' in c ? c.snippet : '')) || '',
+            score: c.score,
+          }));
 
     const answer = res.summary || await this.summarizeWithLLM(question, citations, log);
 
     if (log?.debug) {
+      const totalCitations = (res.citations.length ? res.citations : res.hits).length;
+      const highQualityCount = (res.citations.length ? res.citations : res.hits).filter(c => (c.score ?? 0) > 0.8).length;
+      
       log.debug({ 
-        citationsCount: citations.length, 
+        citationsCount: citations.length,
+        totalCitations,
+        highQualityCount,
+        fcsThreshold: 0.8,
         hasSummary: !!res.summary,
-        usedLLMSummary: !res.summary && citations.length > 0
-      }, '✅ PolicyAgent: Retrieved policy answer');
+        usedLLMSummary: !res.summary && citations.length > 0,
+        avgScore: citations.length > 0 ? (citations.reduce((sum, c) => sum + (c.score || 0), 0) / citations.length).toFixed(3) : 0
+      }, '✅ PolicyAgent: Retrieved policy answer with FCS filtering');
     }
 
     return { answer, citations };

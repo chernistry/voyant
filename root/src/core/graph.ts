@@ -598,6 +598,16 @@ async function policyNode(
       ? `${answer}\n\nSources:\n${citations.map((c, i) => `${i + 1}. ${c.title ?? 'Internal Knowledge Base'}${c.url ? ` — ${c.url}` : ''}`).join('\n')}`
       : answer;
     
+    // Store facts for /why command
+    const { setLastReceipts } = await import('./slot_memory.js');
+    const facts = citations.map((c, i) => ({
+      key: `policy_citation_${i}`,
+      value: c.snippet || c.title || 'Policy information',
+      source: c.title || c.url || 'Internal Knowledge Base'
+    }));
+    const decisions = [`Retrieved ${citations.length} policy citations with FCS filtering`];
+    setLastReceipts(ctx.threadId, facts, decisions, formattedAnswer);
+    
     const citationTitles = citations.map(c => c.title || c.url || 'Internal Knowledge Base');
     return { done: true, reply: formattedAnswer, citations: citationTitles };
     
