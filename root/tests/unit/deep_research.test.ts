@@ -2,8 +2,7 @@
 // Note: use dynamic import after setting mocks
 
 // Mock LLM to return optimized queries and passthrough summary
-// @ts-ignore
-jest.unstable_mockModule('../../src/core/llm.js', () => ({
+jest.mock('../../src/core/llm.js', () => ({
   callLLM: jest.fn(async (prompt: string) => {
     if (/search_query_optimizer/i.test(prompt) || /queries\":/i.test(prompt)) {
       return JSON.stringify({ queries: ['Tokyo weather March', 'Tokyo March climate'] });
@@ -14,8 +13,7 @@ jest.unstable_mockModule('../../src/core/llm.js', () => ({
 }));
 
 // Mock search provider to return deterministic results
-// @ts-ignore
-jest.unstable_mockModule('../../src/tools/search.js', () => ({
+jest.mock('../../src/tools/search.js', () => ({
   searchTravelInfo: jest.fn(async (q: string) => ({
     ok: true,
     results: [
