@@ -134,10 +134,15 @@ export async function parseCity(
       const json = JSON.parse(raw);
       const result = CityParseResult.parse(json);
       
-      // Validate that the LLM result is reasonable
+      // Validate that the LLM result appears in input text
       const normalizedLower = (result.normalized || '').trim().toLowerCase();
+      const inputLower = text.toLowerCase();
+      const cityAppearsInInput = result.normalized && 
+        inputLower.includes(result.normalized.toLowerCase());
+      
       const isPlaceholder = !result.normalized ||
         result.confidence < 0.5 ||
+        !cityAppearsInInput ||
         ['unknown', 'clean_city_name', 'there', 'normalized_name'].includes(normalizedLower) ||
         MONTH_WORDS.includes(normalizedLower);
         

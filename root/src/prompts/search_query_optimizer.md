@@ -6,6 +6,7 @@ Rules:
 - Avoid logical operators like OR unless clearly beneficial; prefer one concise phrasing.
 - Always include origin/location and time if present (month/season).
 - Preserve core search intent and ALL important constraints.
+- CRITICAL: For "from X" queries, ALWAYS include "from X" in the optimized query.
 - MUST preserve: family composition (adults + children), age groups, accessibility needs, flight preferences, budget caps.
 - Add audience/profile (e.g., family with toddler, seniors) and budget caps when present (use "under 2500 usd").
 - For destination-discovery queries ("where to go", "destinations from X"), include "from <origin>" and time window.

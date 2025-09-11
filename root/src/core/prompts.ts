@@ -41,7 +41,8 @@ type PromptName =
   | 'crawlee_page_summary'
   | 'crawlee_overall_summary'
   | 'destinations_recommender'
-  | 'llm_test_evaluator';
+  | 'llm_test_evaluator'
+  | 'entity_extraction_retry';
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
@@ -163,6 +164,9 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.llm_test_evaluator = await loadFileSafe(
     path.join(base, 'llm_test_evaluator.md'),
+  );
+  PROMPTS.entity_extraction_retry = await loadFileSafe(
+    path.join(base, 'entity_extraction_retry.md'),
   );
   loaded = true;
 }

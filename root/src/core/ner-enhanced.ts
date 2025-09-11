@@ -16,6 +16,11 @@ export interface EntityExtractionResult {
   confidence: number;
 }
 
+export interface RetryExtractionResult {
+  cities: string[];
+  confidence: number;
+}
+
 // Enhanced entity type mapping
 const ENTITY_TYPE_MAP: Record<string, 'LOCATION' | 'DATE' | 'TIME' | 'MONEY' | 'DURATION' | 'PERSON' | 'ORGANIZATION' | 'MISC'> = {
   'LOC': 'LOCATION',
@@ -37,6 +42,29 @@ const ENTITY_TYPE_MAP: Record<string, 'LOCATION' | 'DATE' | 'TIME' | 'MONEY' | '
   'I-ORG': 'ORGANIZATION',
   'MISC': 'MISC'
 };
+
+// Confidence-aware retry extraction
+export async function retryEntityExtractionWithConfidence(
+  log: pino.Logger,
+  text: string
+): Promise<RetryExtractionResult> {
+  const { getPrompt } = await import('./prompts.js');
+  const { callLLM } = await import('./llm.js');
+  const prompt = await getPrompt('entity_extraction_retry');
+  const finalPrompt = prompt.replace('{text}', text);
+
+  try {
+    const response = await callLLM(finalPrompt, { log });
+    const result = JSON.parse(response);
+    
+    return {
+      cities: result.cities?.map((c: any) => c.name) || [],
+      confidence: result.overallConfidence || 0.0
+    };
+  } catch (error) {
+    return { cities: [], confidence: 0.0 };
+  }
+}
 
 // Money patterns for enhanced detection
 const MONEY_PATTERNS = [

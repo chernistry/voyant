@@ -14,7 +14,7 @@ import { TransformersNLP } from './transformers-nlp-facade.js';
 
 import { classifyContent as classifyContentTransformers, classifyIntent } from './transformers-classifier.js';
 import { detectLanguage } from './transformers-detector.js';
-import { extractEntitiesEnhanced } from './ner-enhanced.js';
+import { extractEntitiesEnhanced, retryEntityExtractionWithConfidence } from './ner-enhanced.js';
 import type pino from 'pino';
 import pinoLib from 'pino';
 import {
@@ -700,10 +700,24 @@ export async function runGraphTurn(
     ctx.log.error({ error: String(error) }, '🔍 ENTITY: AI extraction failed, using regex fallback');
   }
   
-  // Stage 3: Skip regex fallback - rely fully on LLM for better accuracy
-  // Regex fallback disabled to prevent false positives like "Find" being treated as a city
+  // Stage 3: Confidence-based retry with enhanced prompts
   if (actualCities.length === 0) {
-    ctx.log.debug('🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy');
+    try {
+      const retryResult = await retryEntityExtractionWithConfidence(ctx.log, message);
+      if (retryResult.confidence >= 0.60) {
+        actualCities = retryResult.cities;
+        extractionMethod = 'llm-retry';
+        extractionConfidence = retryResult.confidence;
+        ctx.log.info({ 
+          cities: actualCities, 
+          confidence: Math.round(extractionConfidence * 100) / 100 
+        }, '🔍 ENTITY: Retry extraction successful');
+      } else {
+        ctx.log.debug('🔍 ENTITY: All extraction methods exhausted, routing to clarification');
+      }
+    } catch (error) {
+      ctx.log.debug('🔍 ENTITY: Retry extraction failed, proceeding with empty results');
+    }
   }
   
   // Confidence-driven routing with explicit thresholds

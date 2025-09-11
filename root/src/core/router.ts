@@ -339,20 +339,8 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   
   // Handle explicit search commands early (but not for policy questions)
   if (contentClassification?.is_explicit_search && (contentClassification as any).content_type !== 'policy') {
-    // Extract and optimize search query
-    let searchQuery = input.message
-      .replace(/search\s+(web|online|internet|google)\s+for\s+/i, '')
-      .replace(/google\s+/i, '')
-      .replace(/find\s+(online|web)\s+/i, '')
-      .replace(/search\s+for\s+/i, '')
-      .replace(/look\s+up\s+online\s+/i, '')
-      .replace(/web\s+search\s+/i, '')
-      .replace(/find\s+/i, '')
-      .trim();
-    
-    if (!searchQuery) {
-      searchQuery = input.message;
-    }
+    // Use original message as search query
+    const searchQuery = input.message.trim();
     
     // Optimize the search query
     const optimizedQuery = await optimizeSearchQuery(
@@ -370,8 +358,8 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  // Check for extremely long city names
-  if (/\b\w{30,}\b/.test(input.message)) {
+  // Skip extremely long words (likely spam)
+  if (input.message.length > 200) {
     return RouterResult.parse({
       intent: 'unknown',
       needExternal: false,
@@ -594,7 +582,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   // AI-first destinations detection
   if (intentClassification?.intent === 'destinations' && (intentClassification.confidence || 0) > 0.6) {
     // Check if message has origin preposition to avoid treating origin as destination
-    const hasOriginPreposition = /\b(?:from|out of|leaving|ex)\s+[A-Z]/i.test(input.message);
+    const hasOriginPreposition = /from/.test(input.message);
     if (hasOriginPreposition && finalSlots.originCity) {
       // Ensure we use originCity for destinations intent, not as destination
       finalSlots.city = finalSlots.originCity;
@@ -985,9 +973,9 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
       
       // Add heuristic categories for missed patterns
       const lower = m.toLowerCase();
-      if (/[£$€]/.test(m) || /\b(budget|cost|price|afford|expensive|cheap|spend|currency|exchange)\b/.test(lower)) categories.push('budget');
-      if (/\b(kids?|children|family|adults|people|toddler|parents)\b/.test(lower) || /\b\d+\b/.test(lower)) categories.push('group');
-      if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower)) categories.push('special');
+      if (/[£$€]/.test(m) || /budget|cost|price/.test(lower)) categories.push('budget');
+      if (/family|children|adults/.test(lower)) categories.push('group');
+      if (/visa|passport/.test(lower)) categories.push('special');
       
       const uniqueCategories = Array.from(new Set(categories));
       const entityDiversity = entityTypes.size;
@@ -1030,13 +1018,13 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
   const categories: string[] = [];
   try {
     const lower = m.toLowerCase();
-    if (/[£$€]/.test(m) || /\b(budget|cost|price|afford|expensive|cheap|spend|currency|exchange)\b/.test(lower)) categories.push('budget');
-    if (/\b(kids?|children|family|adults|people|toddler|parents)\b/.test(lower) || /\b\d+\b/.test(lower)) categories.push('group');
+    if (/[£$€]/.test(m) || /budget|cost|price/.test(lower)) categories.push('budget');
+    if (/family|children|adults/.test(lower)) categories.push('group');
     const date = await parseDate(m).catch(() => ({ success: false } as const));
     if ((date as any).success) categories.push('time');
     const od = await parseOriginDestination(m).catch(() => ({ success: false } as const));
     if ((od as any).success && ((od as any).data?.originCity || (od as any).data?.destinationCity)) categories.push('origin');
-    if (/\b(visa|passport|wheelchair|accessible|accessibility|layover|stopovers?)\b/.test(lower)) categories.push('special');
+    if (/visa|passport/.test(lower)) categories.push('special');
     
     const uniq = Array.from(new Set(categories));
     const score = Math.max(0, uniq.length - 2);
@@ -1163,8 +1151,8 @@ async function classifyIntentFromTransformers(
     }
     return { intent: 'attractions', needExternal: false, confidence };
   }
-  // Fallback to regex only for critical patterns
-  if (/attraction|do in|what to do|what should.*do|museum|activities|things to do/.test(m)) {
+  // Micro rules for attractions
+  if (/attraction|museum|activities/.test(m)) {
     const hasLocation = entityResult.locations.length > 0 || slots.city;
     const confidence = hasLocation ? 0.9 : 0.7;
     
@@ -1217,8 +1205,8 @@ async function classifyIntentFromTransformers(
     }
     return { intent: 'weather', needExternal: true, confidence };
   }
-  // Fallback to regex only for critical patterns
-  if (/\\b(weather|погода|temperature|climate|forecast|rain|sunny|cloudy|hot|cold|degrees?)\\b/i.test(m)) {
+  // Micro rules for weather
+  if (/weather|temperature/.test(m)) {
     const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
     const confidence = hasLocation ? 0.95 : 0.8;
     
@@ -1280,8 +1268,8 @@ async function classifyIntentFromTransformers(
     }
     return { intent: 'destinations', needExternal: true, confidence };
   }
-  // Fallback to regex for critical patterns
-  if (/where should i go|destination|where to go|tell me about.*country/.test(m)) {
+  // Micro rules for destinations
+  if (/destination|where/.test(m)) {
     const confidence = 0.85;
     
     if (log?.debug) {
