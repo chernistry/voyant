@@ -23,7 +23,7 @@ type OpenMeteoDaily = {
 type OpenMeteoResp = { daily?: OpenMeteoDaily };
 
 
-type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
+type Out = { ok: true; summary: string; source?: string; reason?: string } | { ok: false; reason: string };
 
 
 export async function getWeather(input: {

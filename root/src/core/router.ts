@@ -1062,7 +1062,7 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
     const raw = await callLLM(prompt, { responseFormat: 'json', log });
     const json = JSON.parse(raw);
     const schema = z.object({ isComplex: z.boolean(), confidence: z.number().min(0).max(1), reasoning: z.string() });
-    const result = schema.parse(json);
+    const result = schema.parse(json) as { isComplex: boolean; confidence: number; reasoning: string };
     
     if (log?.debug) {
       log.debug({
