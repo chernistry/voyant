@@ -1,17 +1,24 @@
-Is this a positive or negative response to a yes/no question?
+Task: Determine if this is a positive or negative response to a yes/no question.
 
-Message: "{message}"
+Objective: Accurately classify user consent responses to enable appropriate follow-up actions.
 
-Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright, why not, let's do it, sounds good, absolutely, of course
-Negative responses: no, nope, not now, maybe later, skip, don't, never mind, not interested, pass, no thanks, I prefer not to, I'd rather not, not really interested
+Classification:
+- Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright, why not, let's do it, sounds good, absolutely, of course
+- Negative responses: no, nope, not now, maybe later, skip, don't, never mind, not interested, pass, no thanks, I prefer not to, I'd rather not, not really interested
+- Unclear: responses that don't clearly indicate positive or negative consent
 
 Confidence Calibration Guidelines:
-- High confidence (0.80-1.00): Clear positive/negative responses
-- Medium confidence (0.50-0.79): Responses with some ambiguity
-- Low confidence (0.20-0.49): Unclear or mixed signals
-- Very low confidence (0.00-0.19): No clear intent
+- 0.80-1.00: Clear positive/negative responses with strong signal words
+- 0.50-0.79: Responses with some ambiguity but leaning toward a classification
+- 0.20-0.49: Unclear or mixed signals that could reasonably be interpreted either way
+- 0.00-0.19: No discernible intent or completely unrelated responses
 
-Answer: yes, no, or unclear
+Instructions:
+- Output exactly one word: "yes", "no", or "unclear"
+- Base classification on explicit keywords and implicit intent
+- When in doubt, prefer "unclear" over a potentially incorrect classification
+
+Message: "{message}"
 
 Examples:
 - "yes, please" → yes

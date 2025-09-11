@@ -313,157 +313,11 @@ export async function blendWithFacts(
   }
   
   // Trust the slot extraction - if LLM found a city, use it
-  // Only ask for clarification if no city was extracted at all
   const cityHint = input.route.slots.city && input.route.slots.city.trim();
   const whenHint = (input.route.slots.dates && input.route.slots.dates.trim()) || 
                    (input.route.slots.month && input.route.slots.month.trim());
                    
   if (input.route.intent === 'unknown') {
-    // Use LLM for explicit search detection with fallback
-    let isExplicitSearch = false;
-    try {
-      const contentClassification = await classifyContentLLM(input.message, ctx.log);
-      isExplicitSearch = contentClassification?.is_explicit_search || false;
-    } catch {
-      // Fallback to regex patterns
-      isExplicitSearch = /search|google/i.test(input.message);
-    }
-    
-    if (isExplicitSearch) {
-      let searchQuery = input.message.replace(/^(search|google)\s+(web|online|for)?\s*/i, '').trim();
-      if (!searchQuery) searchQuery = input.message;
-      
-      // Optimize the search query
-      ctx.onStatus?.('Searching for travel information...');
-      const optimizedQuery = await optimizeSearchQuery(
-        searchQuery,
-        input.route.slots,
-        'web_search',
-        ctx.log
-      );
-      
-      return await performWebSearch(optimizedQuery, ctx, input.threadId);
-    }
-    // Do not escalate to web search for generic or unrelated refinement requests
-    
-    // Sensitive content safety guardrails
-    const sensitiveWar = /\bwar\s*zones?\b|\bactive\s*conflict\b|\bcombat\s*zone\b/i.test(input.message);
-    const inappropriate = /\binappropriate\b|\bnsfw\b|\boffensive\b/i.test(input.message);
-    if (sensitiveWar) {
-      return {
-        reply: "For safety reasons I can't help plan trips to active conflict or war zones. Please consult official travel advisories and ask about safer travel topics (weather, destinations, packing, attractions).",
-        citations: undefined,
-      };
-    }
-    if (inappropriate) {
-      return {
-        reply: "I can't help with inappropriate content. If you'd like, I can assist with travel planning (destinations, weather, packing, attractions).",
-        citations: undefined,
-      };
-    }
-
-    // Use LLM for unrelated content detection with fallback
-    let isUnrelated = false;
-    try {
-      const contentClassification = await classifyContentLLM(input.message, ctx.log);
-      isUnrelated = contentClassification?.content_type === 'unrelated';
-    } catch {
-      // Fallback to simple patterns
-      isUnrelated = /programming|code|javascript|react|cook|pasta|medicine|doctor/i.test(input.message);
-    }
-
-    if (isUnrelated) {
-      return {
-        reply: "I'm a travel assistant focused on helping with weather, destinations, packing, and attractions. Could you ask me something about travel planning?",
-        citations: undefined,
-      };
-    }
-
-    // Use LLM for system question detection with fallback
-    let isSystemQuestion = false;
-    try {
-      const contentClassification = await classifyContentLLM(input.message, ctx.log);
-      isSystemQuestion = contentClassification?.content_type === 'system';
-    } catch {
-      // Fallback to regex patterns
-      const systemPatterns = [
-        /who are you|what are you|are you real|are you human|ai assistant/i,
-        /help me with|can you do|what can you|how do you work/i,
-        /explain yourself|what do you mean/i
-      ];
-      isSystemQuestion = systemPatterns.some(pattern => pattern.test(input.message));
-    }
-
-    // Use LLM for edge case detection with fallbacks
-    let isEmptyOrWhitespace = input.message.trim().length === 0;
-    let isEmojiOnly = false;
-    let isGibberish = false;
-    let isVeryLong = input.message.length > 500;
-    let hasLongCityName = /\b\w{30,}\b/.test(input.message);
-    
-    try {
-      const contentClassification = await classifyContentLLM(input.message, ctx.log);
-      isEmojiOnly = contentClassification?.content_type === 'emoji_only';
-      isGibberish = contentClassification?.content_type === 'gibberish';
-    } catch {
-      // Fallback to regex patterns
-      isEmojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\s]*$/u.test(input.message) && input.message.trim().length > 0;
-      isGibberish = /^[a-z]{10,}$/i.test(input.message.replace(/\s/g, '')) && !/\b(weather|pack|travel|city|go|visit|attraction|destination|trip|flight|hotel)\b/i.test(input.message);
-    }
-
-    ctx.log.debug({
-      message: input.message,
-      intent: input.route.intent,
-      confidence: input.route.confidence
-    }, 'blend_unknown_intent');
-
-    if (isEmptyOrWhitespace) {
-      return {
-        reply: 'I need more information to help you. Could you ask me something about travel planning?',
-        citations: undefined,
-      };
-    }
-
-    if (isEmojiOnly) {
-      return {
-        reply: 'I can\'t interpret emoji-only messages. Could you ask me something about travel planning in words?',
-        citations: undefined,
-      };
-    }
-
-    if (hasLongCityName) {
-      return {
-        reply: 'I notice you mentioned a very long city name. Could you provide a standard city name for me to help with your travel planning?',
-        citations: undefined,
-      };
-    }
-
-    if (hasMixedLanguages) {
-      // Continue with normal processing but add warning prefix later
-      ctx.log.debug({ message: input.message }, 'mixed_language_detected');
-    }
-
-    if (isVeryLong) {
-      return {
-        reply: 'That\'s quite a detailed message! Could you ask me a specific question about weather, packing, destinations, or attractions to help with your travel planning?',
-        citations: undefined,
-      };
-    }
-
-    if (isGibberish) {
-      return {
-        reply: 'I don\'t understand that input. Could you ask me a clear question about travel planning?',
-        citations: undefined,
-      };
-    }
-
-    if (isSystemQuestion) {
-      return {
-        reply: 'I\'m an AI travel assistant designed to help with weather, destinations, packing advice, and attractions. How can I help with your travel planning?',
-        citations: undefined,
-      };
-    }
-
     return {
       reply: 'Could you share the city and month/dates?',
       citations: undefined,
@@ -472,9 +326,7 @@ export async function blendWithFacts(
   
   // Check for restaurant/food queries in attractions intent
   if (input.route.intent === 'attractions') {
-    const queryType = await detectQueryType(input.message, ctx);
-    
-    if ((queryType === 'restaurant') && input.threadId) {
+    if (plan.query_facets.wants_restaurants && input.threadId) {
       // Store the pending search query and set consent state
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
@@ -491,22 +343,14 @@ export async function blendWithFacts(
   
   // Avoid accidental web search for refinements; only trigger when explicitly asked
   if (input.route.intent === 'destinations' || input.route.intent === 'packing') {
-    const explicitSearchRequested = /\b(search|google|http[s]?:\/\/|www\.)\b/i.test(input.message);
-    if (explicitSearchRequested) {
-      return await performWebSearch(input.message, ctx, input.threadId);
+    if (plan.explicit_search) {
+      return await performWebSearch(input.message, ctx, input.threadId, plan);
     }
   }
 
   // Check for budget/cost queries in destinations intent
   if (input.route.intent === 'destinations') {
-    const budgetPatterns = [
-      /budget|cost|price|money|expensive|cheap|afford|spend/i,
-      /how\s+much/i,
-      /exchange\s+rate|currency/i
-    ];
-    // Be conservative: only trigger flight search if user explicitly mentions flight terms
-    const explicitFlight = /\b(airline|flight|fly|plane|ticket|booking|which\s+airlines|what\s+airlines)\b/i.test(input.message);
-    if (explicitFlight && input.threadId) {
+    if (plan.query_facets.wants_flights && input.threadId) {
       updateThreadSlots(input.threadId, {
         awaiting_search_consent: 'true',
         pending_search_query: input.message
@@ -558,24 +402,28 @@ export async function blendWithFacts(
         datesOrMonth: whenHint || 'today',
       });
       if (wx.ok) {
-        const source =
-          wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
-        cits.push(source);
-        ctx.log.debug({ wxSource: wx.source, source, citsLength: cits.length }, 'weather_citation_added');
-        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
-        factsArr.push({ source, key: 'weather_summary', value: wx.summary });
-        decisions.push('Used weather API because user asked about weather or it informs packing.');
+        const source = wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
+        // Use deterministic composer for weather
+        const reply = composeWeatherReply(cityHint, whenHint || 'today', wx.summary, source);
+        
+        // Store facts for receipts
+        if (input.threadId) {
+          const factsArr: Fact[] = [{ source, key: 'weather_summary', value: wx.summary }];
+          const decisions = ['Used weather API because user asked about weather.'];
+          setLastReceipts(input.threadId, factsArr, decisions, reply);
+        }
+        
+        return { reply, citations: [source] };
       } else {
         ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
-        // Handle unknown city specifically
         if (wx.reason === 'unknown_city') {
           return { 
             reply: `I couldn't find weather data for "${cityHint}". Could you provide a valid city name?`, 
             citations: undefined 
           };
         }
-        decisions.push('Weather API unavailable; avoided numbers and provided generic guidance.');
       }
+    } else if (input.route.intent === 'packing') {
     } else if (input.route.intent === 'packing') {
       ctx.onStatus?.('Preparing packing recommendations...');
       const wx = await getWeather({
@@ -583,25 +431,31 @@ export async function blendWithFacts(
         datesOrMonth: whenHint || 'today',
       });
       if (wx.ok) {
-        const source =
-          wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
-        cits.push(source);
-        facts += `Weather for ${cityHint}: ${wx.summary}\n`;
-        factsArr.push({ source, key: 'weather_summary', value: wx.summary });
-        decisions.push('Used weather to tailor packing items.');
-        // Packing suggestions based on weather
+        const source = wx.source === getSearchSource() ? getSearchCitation() : 'Open-Meteo';
+        
+        // Get packing items based on weather
         await loadPackingOnce();
         const temps = parseTemps(wx.summary);
         const band = chooseBandFromTemps(temps?.maxC, temps?.minC);
         const items = band ? PACKING[band] : [];
-        if (items && items.length > 0) {
-          facts += `Packing: ${items.join(', ')}\n`;
-          factsArr.push({ source, key: 'packing_items', value: items });
+        
+        // Use deterministic composer for packing
+        const reply = composePackingReply(cityHint, whenHint, wx.summary, items, source);
+        
+        // Store facts for receipts
+        if (input.threadId) {
+          const factsArr: Fact[] = [
+            { source, key: 'weather_summary', value: wx.summary },
+            { source, key: 'packing_items', value: items }
+          ];
+          const decisions = ['Used weather to tailor packing items.'];
+          setLastReceipts(input.threadId, factsArr, decisions, reply);
         }
+        
+        return { reply, citations: [source] };
       } else {
         ctx.log.debug({ reason: wx.reason }, 'weather_adapter_failed');
         // For packing, proceed with general guidance even if city lookup fails
-        decisions.push('Weather unavailable; providing general packing guidance without numbers.');
       }
     } else if (input.route.intent === 'destinations') {
       // Check if this is a refinement of existing context
@@ -704,31 +558,25 @@ export async function blendWithFacts(
       const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
       const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
       if (at.ok && (at.source === 'opentripmap' || at.source === getSearchSource())) {
-        cits.push(
-          at.source === 'opentripmap'
-            ? 'OpenTripMap'
-            : getSearchCitation(),
-        );
-        facts += `POIs: ${at.summary} (${
-          at.source === 'opentripmap' ? 'OpenTripMap' : getSearchCitation()
-        })\n`;
-        factsArr.push({
-          source:
-            at.source === 'opentripmap'
-              ? 'OpenTripMap'
-              : getSearchCitation(),
-          key: 'poi_list',
-          value: at.summary,
-        });
-        decisions.push(wantsKid ? 'Listed kid-friendly attractions from travel APIs.' : 'Listed top attractions from travel APIs.');
+        const source = at.source === 'opentripmap' ? 'OpenTripMap' : getSearchCitation();
+        
+        // Use deterministic composer for attractions
+        const attractions = at.summary.split(/;\s*/).map(s => s.trim()).filter(Boolean).slice(0, 5);
+        const reply = composeAttractionsReply(cityHint || 'the area', attractions, source);
+        
+        // Store facts for receipts
+        if (input.threadId) {
+          const factsArr: Fact[] = [{ source, key: 'poi_list', value: at.summary }];
+          const decisions = [wantsKid ? 'Listed kid-friendly attractions from travel APIs.' : 'Listed top attractions from travel APIs.'];
+          setLastReceipts(input.threadId, factsArr, decisions, reply);
+        }
+        
+        return { reply, citations: [source] };
       } else if (!at.ok && at.reason === 'unknown_city') {
-        // Handle unknown cities gracefully - don't fabricate attractions
-        facts += `City: ${cityHint} (location not found)\n`;
-        factsArr.push({ source: 'System', key: 'unknown_city', value: cityHint });
-        decisions.push('City not found; will ask for clarification or suggest general travel guidance.');
-      } else {
-        ctx.log.debug({ reason: at.ok ? `unexpected_source_${at.source}` : at.reason }, 'attractions_adapter_failed');
-        decisions.push('Attractions lookup unavailable; avoided fabricating POIs.');
+        return {
+          reply: `I'm unable to retrieve current attraction data for ${cityHint} right now. You might want to check local tourism websites or travel guides for the most up-to-date information about popular attractions, museums, and points of interest in the area.`,
+          citations: undefined
+        };
       }
     }
   } catch (e) {
@@ -738,166 +586,104 @@ export async function blendWithFacts(
   
   ctx.onStatus?.('Preparing your response...');
   
-  const systemMd = await getPrompt('system');
-  const blendMd = await getPrompt('blend');
-  const cotMd = await getPrompt('cot');
-  
-  // Include available slot context even when external APIs fail
-  let contextInfo = '';
-  if (cityHint && facts.trim() === '') {
-    // For attractions queries with no facts, provide helpful fallback response
-    if (input.route.intent === 'attractions') {
-      return {
-        reply: `I'm unable to retrieve current attraction data for ${cityHint} right now. You might want to check local tourism websites or travel guides for the most up-to-date information about popular attractions, museums, and points of interest in the area.`,
-        citations: undefined
-      };
-    } else {
+  // For complex cases that need narrative generation, use batched LLM
+  if (plan.style === 'narrative' || input.route.intent === 'destinations') {
+    const systemMd = await getPrompt('system');
+    const blendMd = await getPrompt('blend');
+    const cotMd = await getPrompt('cot');
+    
+    // Include available slot context even when external APIs fail
+    let contextInfo = '';
+    if (cityHint && facts.trim() === '') {
       contextInfo = `Available context: City is ${cityHint}\n`;
     }
-  }
 
-  // If we have OpenTripMap POIs, format deterministically (no LLM) to avoid fabrications
-  if (input.route.intent === 'attractions' && /POIs:\s*(.+)\s*\(OpenTripMap\)/.test(facts)) {
-    const m = facts.match(/POIs:\s*(.+)\s*\(OpenTripMap\)/);
-    const list = (m?.[1] || '').split(/;\s*/).map(s => s.trim()).filter(Boolean).slice(0, 5);
-    if (list.length > 0) {
-      const bullets = list.map(item => `• ${item}`).join('\n');
-      const reply = `${bullets} (OpenTripMap)`;
-      return { reply, citations: ['OpenTripMap'] };
-    }
-  }
-  
-  // Use CoT for main generation flow (hidden from user)
-  let reply: string;
-  try {
-    const cotPrompt = `${systemMd}\n\n${cotMd}\n\nAnalyze and plan response for:\nSlots: ${JSON.stringify(input.route.slots)}\nFacts: ${contextInfo + facts}\nUser: ${input.message}`;
-    
-    const cotAnalysis = await callLLM(cotPrompt, { log: ctx.log });
-    
-    // Check if CoT suggests missing critical information, but only if slots are actually missing
-    if (cotAnalysis.includes('missing') && (cotAnalysis.includes('city') || cotAnalysis.includes('date'))) {
-      const missingSlots = [];
-      // Only add city as missing if we actually don't have it in slots
-      if (cotAnalysis.includes('missing') && cotAnalysis.includes('city') && !cityHint) {
-        missingSlots.push('city');
-      }
-      // Only add dates as missing if we actually don't have them in slots
-      if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month')) && !whenHint) {
-        missingSlots.push('dates');
-      }
-      
-      if (missingSlots.length > 0) {
-        const missing = missingSlots[0];
-        if (missing === 'city') {
-          return { reply: "Which city are you interested in?", citations: undefined };
-        }
-        if (missing === 'dates') {
-          return { reply: "When are you planning to travel?", citations: undefined };
-        }
-      }
-    }
-    
-    // Generate final answer using blend prompt
-    const tmpl = blendMd && blendMd.includes('{{FACTS}}')
-      ? blendMd
-          .replace('{{FACTS}}', (contextInfo + facts) || '(none)')
-          .replace('{{USER}}', input.message)
-      : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
-    const prompt = `${systemMd}\n\n${tmpl}`.trim();
-    const rawReply = await callLLM(prompt, { log: ctx.log });
-    
-    // Decode HTML entities from LLM response
-    reply = rawReply
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>');
-      
-  } catch (e) {
-    ctx.log.debug({ error: e }, 'CoT generation failed, using fallback');
-    
-    // Fallback to original generation without CoT
-    const tmpl = blendMd && blendMd.includes('{{FACTS}}')
-      ? blendMd
-          .replace('{{FACTS}}', (contextInfo + facts) || '(none)')
-          .replace('{{USER}}', input.message)
-      : `Facts (may be empty):\n${contextInfo + facts}\nUser: ${input.message}`;
-    const prompt = `${systemMd}\n\n${tmpl}`.trim();
-    const rawReply = await callLLM(prompt, { log: ctx.log });
-    
-    // Decode HTML entities from LLM response
-    reply = rawReply
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>');
-  }
-  // Enforce no fabricated citations when no external facts were used
-  try {
-    validateNoCitation(reply, cits.length > 0);
-  } catch (err) {
-    ctx.log.warn({ reply, cits, hasExternal: cits.length > 0 }, 'citation_validation_failed');
-    // Don't throw - just log and continue with the response
-  }
-  // Persist receipts components for this thread (only if external facts were actually retrieved)
-  if (input.threadId && factsArr.length > 0) {
+    const factsText = (contextInfo + facts) || '(none)';
+    const cotPrompt = `${systemMd}\n\n${cotMd}\n\nAnalyze:\nSlots: ${JSON.stringify(input.route.slots)}\nFacts:\n${factsText}\nUser: ${input.message}`;
+    const finalPrompt = `${systemMd}\n\n${
+      blendMd?.includes('{{FACTS}}')
+        ? blendMd.replace('{{FACTS}}', factsText).replace('{{USER}}', input.message)
+        : `Facts:\n${factsText}\nUser: ${input.message}`
+    }`;
+
     try {
-      setLastReceipts(input.threadId, factsArr, decisions, reply);
-    } catch {
-      // ignore
+      const [cotAnalysis, rawReply] = await callLLMBatch([cotPrompt, finalPrompt], { log: ctx.log });
+      
+      // Check if CoT suggests missing critical information
+      if (cotAnalysis && cotAnalysis.includes('missing') && (cotAnalysis.includes('city') || cotAnalysis.includes('date'))) {
+        const missingSlots = [];
+        if (cotAnalysis.includes('missing') && cotAnalysis.includes('city') && !cityHint) {
+          missingSlots.push('city');
+        }
+        if (cotAnalysis.includes('missing') && (cotAnalysis.includes('date') || cotAnalysis.includes('month')) && !whenHint) {
+          missingSlots.push('dates');
+        }
+        
+        if (missingSlots.length > 0) {
+          const missing = missingSlots[0];
+          if (missing === 'city') {
+            return { reply: "Which city are you interested in?", citations: undefined };
+          }
+          if (missing === 'dates') {
+            return { reply: "When are you planning to travel?", citations: undefined };
+          }
+        }
+      }
+      
+      // Decode HTML entities from LLM response
+      let reply = (rawReply || '')
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+        
+      // Add mixed language warning if detected
+      if (plan.mixed_languages) {
+        reply = `Note: I work best with English, but I'll try to help. ${reply}`;
+      }
+      
+      // Ensure a human-readable source mention appears once when external facts were used
+      let replyWithSource = reply;
+      if (cits.length > 0 && cits[0]) {
+        const firstSource = cits[0] as string;
+        const alreadyMentionsSource = new RegExp(`\\b${firstSource.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(replyWithSource);
+        if (!alreadyMentionsSource) {
+          replyWithSource = `${replyWithSource} (${firstSource})`;
+        }
+      }
+
+      // Persist receipts components for this thread
+      if (input.threadId && factsArr.length > 0) {
+        try {
+          setLastReceipts(input.threadId, factsArr, decisions, replyWithSource);
+        } catch {
+          // ignore
+        }
+      }
+      
+      // Validate citations
+      try {
+        validateNoCitation(replyWithSource, cits.length > 0);
+      } catch (err) {
+        ctx.log.warn({ reply: replyWithSource, cits, hasExternal: cits.length > 0 }, 'citation_validation_failed');
+      }
+      
+      return { reply: replyWithSource, citations: cits.length ? cits : undefined };
+      
+    } catch (e) {
+      ctx.log.debug({ error: e }, 'Batched LLM generation failed');
+      return {
+        reply: 'I encountered an issue processing your request. Could you try rephrasing your question?',
+        citations: undefined,
+      };
     }
   }
   
-  // Ensure a human-readable source mention appears once when external facts were used
-  let replyWithSource = reply;
-  if (cits.length > 0 && cits[0]) {
-    const firstSource = cits[0] as string;
-    const alreadyMentionsSource = new RegExp(`\\b${firstSource.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(replyWithSource);
-    if (!alreadyMentionsSource) {
-      // Append succinct source mention in parentheses, matching prompt guidance
-      replyWithSource = `${replyWithSource} (${firstSource})`;
-    }
-  }
-
-  // Strengthen context reuse for packing: explicitly mention city and timing when known
-  if (input.route.intent === 'packing' && (cityHint || whenHint)) {
-    const ctxBits: string[] = [];
-    if (cityHint) ctxBits.push(String(cityHint));
-    if (whenHint) ctxBits.push(String(whenHint));
-    const ctxText = ctxBits.length ? `For ${ctxBits.join(' in ')}: ` : '';
-    // Prepend only if reply doesn't already start with city or contain it prominently
-    const includesCity = cityHint ? new RegExp(`\n?\b${String(cityHint).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\b`, 'i').test(replyWithSource) : false;
-    if (!includesCity) {
-      replyWithSource = `${ctxText}${replyWithSource}`;
-    }
-  }
-
-  // Ensure destinations include a brief weather rationale when weather facts were fetched
-  if (input.route.intent === 'destinations') {
-    const weatherFact = factsArr.find((f) => f.key === 'weather_summary');
-    if (weatherFact && typeof weatherFact.value === 'string') {
-      const mentionsWeather = /weather|°c|temperature|precip/i.test(replyWithSource);
-      if (!mentionsWeather) {
-        const wx = String(weatherFact.value);
-        const ctxLabel = cityHint ? `${cityHint}${whenHint ? ` in ${whenHint}` : ''}` : (whenHint ? String(whenHint) : '');
-        const weatherLine = ctxLabel ? ` Weather for ${ctxLabel}: ${wx}` : ` Weather: ${wx}`;
-        replyWithSource = `${replyWithSource}${weatherLine}`;
-      }
-    }
-  }
-
-  // Add mixed language warning if detected
-  let finalReply = hasMixedLanguages 
-    ? `Note: I work best with English, but I'll try to help. ${replyWithSource}`
-    : replyWithSource;
-
-  // If user asks for kid-friendly refinements, ensure family-friendly adjustments are present
-  const wantsKidFriendly = /\b(kids?|children|kid[- ]?friendly|family)\b/i.test(input.message);
-  if (wantsKidFriendly && !/kid|family/i.test(finalReply)) {
-    finalReply = `${finalReply} Family-friendly: choose child-friendly airlines and onboard amenities; pick central neighborhoods near parks and playgrounds; visit museums with kids' sections; ensure stroller-friendly access; plan shorter transfers.`;
-  }
-    
-  return { reply: finalReply, citations: cits.length ? cits : undefined };
+  // Fallback for any remaining cases
+  return {
+    reply: 'Could you provide more details about what you\'re looking for?',
+    citations: undefined,
+  };
 }
 
 function extractCity(text: string): string | undefined {
