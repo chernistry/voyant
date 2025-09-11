@@ -279,6 +279,21 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     console.debug('Date parser failed, using fallback:', error);
   }
   
+  // Handle DD-MM-YYYY format explicitly
+  const ddmmyyyyMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const day = ddmmyyyyMatch[1];
+    const month = ddmmyyyyMatch[2]; 
+    const year = ddmmyyyyMatch[3];
+    if (day && month && year) {
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        const isoString = date.toISOString().split('T')[0];
+        return isoString || `${currentYear}-01-01`;
+      }
+    }
+  }
+  
   // Fallback: try basic parsing
   let date = new Date(dateStr);
   if (!isNaN(date.getTime())) {
