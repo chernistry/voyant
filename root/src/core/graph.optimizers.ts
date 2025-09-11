@@ -4,7 +4,15 @@
  */
 
 import type pino from 'pino';
-import type { Entities } from './ner-enhanced.js';
+
+// Types (duplicated to avoid circular imports)
+type ScoredSpan = { text: string; score: number };
+type Entities = {
+  locations: ScoredSpan[];
+  dates: ScoredSpan[];
+  durations: ScoredSpan[];
+  money: ScoredSpan[];
+};
 
 // Precompiled regex patterns
 export const RE = {
@@ -26,6 +34,7 @@ export type TurnCache = {
   ner?: Entities;
   clsContent?: { content_type: string; confidence: number };
   clsIntent?: { intent: string; confidence: number };
+  forced?: string; // For forced intent routing
 };
 
 export async function buildTurnCache(message: string, log: pino.Logger): Promise<TurnCache> {
