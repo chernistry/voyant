@@ -1,5 +1,7 @@
 Task: Classify intent and extract slots. Return strict JSON only.
 
+Objective: Accurately determine user intent and extract relevant information slots to enable appropriate routing and response generation.
+
 Hard requirements:
 - Output exactly one JSON object. No code fences, no prose, no trailing commas.
 - Use only the keys in the schema. Do not add comments or extra fields.
@@ -54,43 +56,43 @@ Output schema (strict JSON only):
 
 Few‑shot examples (input → output, strict JSON):
 Input: "what's the weather in NYC in June?"
-Output: {"intent":"weather","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"weather","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.90,"missingSlots":[]}
 
 Input: "what to pack for Tokyo in March"
 Output: {"intent":"packing","needExternal":false,"slots":{"city":"Tokyo","month":"March","dates":"March"},"confidence":0.85,"missingSlots":[]}
 
 Input: "What to wear to Haifa today?"
-Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.90,"missingSlots":[]}
 
 Input: "What to wear to Hafia toda?"
-Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.8,"missingSlots":[]}
+Output: {"intent":"packing","needExternal":true,"slots":{"city":"Haifa","dates":"today"},"confidence":0.80,"missingSlots":[]}
 
 Input: "Any festivals or events that week?"
 Output: {"intent":"unknown","needExternal":true,"slots":{},"confidence":0.90,"missingSlots":[]}
 
 Input: "what to do there?"
-Output: {"intent":"attractions","needExternal":false,"slots":{},"confidence":0.4,"missingSlots":["city"]}
+Output: {"intent":"attractions","needExternal":false,"slots":{},"confidence":0.40,"missingSlots":["city"]}
 
 Input: "Best kid-friendly things in SF for late Aug?"
-Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Francisco","month":"August","dates":"late August","travelerProfile":"family with kids"},"confidence":0.8,"missingSlots":[]}
+Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Francisco","month":"August","dates":"late August","travelerProfile":"family with kids"},"confidence":0.80,"missingSlots":[]}
 
 Input: "Flights to Paris next weekend under $600?"
 Output: {"intent":"flights","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.85,"missingSlots":["month"]}
 
 Input: "Do I need a visa for Japan?"
-Output: {"intent":"policy","needExternal":true,"slots":{"city":"Japan"},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"policy","needExternal":true,"slots":{"city":"Japan"},"confidence":0.90,"missingSlots":[]}
 
 Input: "Search for family-friendly destinations from NYC in summer"
 Output: {"intent":"web_search","needExternal":true,"slots":{"city":"New York City","month":"summer","travelerProfile":"family with kids"},"confidence":0.85,"missingSlots":[]}
 
 Input: "What can you help me with?"
-Output: {"intent":"system","needExternal":false,"slots":{},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"system","needExternal":false,"slots":{},"confidence":0.90,"missingSlots":[]}
 
 Input: "Book me a flight from NYC to LA on Friday"
-Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","city":"Los Angeles","dates":"Friday"},"confidence":0.9,"missingSlots":["month"]}
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","city":"Los Angeles","dates":"Friday"},"confidence":0.90,"missingSlots":["month"]}
 
 Input: "Passport requirements for Thailand"
-Output: {"intent":"policy","needExternal":true,"slots":{"city":"Thailand"},"confidence":0.9,"missingSlots":[]}
+Output: {"intent":"policy","needExternal":true,"slots":{"city":"Thailand"},"confidence":0.90,"missingSlots":[]}
 
 Input: "Where to go from Tel Aviv in August?"
 Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Tel Aviv","month":"August","dates":"August"},"confidence":0.85,"missingSlots":[]}
