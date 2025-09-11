@@ -1027,6 +1027,17 @@ export async function runGraphTurn(
   let intent = routeResult.next;
   const forced = turnCache.get('force_intent') as string | undefined;
   if (forced) intent = forced as typeof intent;
+  
+  // Skip complexity analysis for direct flight searches - router already handled this
+  if (intent === 'flights') {
+    const prior = getThreadSlots(threadId);
+    const extractedSlots = routeResult.slots || {};
+    const slots = { ...prior, ...extractedSlots };
+    updateThreadSlots(threadId, slots as Record<string, string>, []);
+    const allDisclaimers = languageWarning + dayTripNote + budgetDisclaimer;
+    return flightsNode(routeCtx, slots as Record<string, string>, ctx, allDisclaimers);
+  }
+  
   const prior = getThreadSlots(threadId);
   
   // Filter out placeholder values from extracted slots, but only for city switching
