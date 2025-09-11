@@ -3,7 +3,7 @@ Is this a positive or negative response to a yes/no question?
 Message: "{message}"
 
 Positive responses: yes, yeah, yep, sure, ok, okay, please, do it, go ahead, search, fine, alright, why not, let's do it, sounds good, absolutely, of course
-Negative responses: no, nope, not now, maybe later, skip, don't, never mind, not interested, pass
+Negative responses: no, nope, not now, maybe later, skip, don't, never mind, not interested, pass, no thanks, I prefer not to, I'd rather not, not really interested
 
 Confidence Calibration Guidelines:
 - High confidence (0.80-1.00): Clear positive/negative responses
@@ -19,6 +19,8 @@ Examples:
 - "let's go" → yes
 - "sure thing" → yes
 - "no thanks" → no
+- "I prefer not to do web search" → no
+- "I'd rather not do that" → no
 - "maybe later" → no
 - "not now" → no
 - "hmm, I guess" → unclear

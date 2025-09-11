@@ -51,7 +51,7 @@ export async function evaluateWithLLM(
         model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
-        max_tokens: 500,
+        max_tokens: 5000,
         response_format: { type: 'json_object' }
       })
     });

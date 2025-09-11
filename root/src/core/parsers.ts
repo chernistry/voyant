@@ -592,7 +592,7 @@ export async function parseIntent(text: string, context?: Record<string, any>, l
     : '';
     
   try {
-    const promptTemplate = await getPrompt('intent_parser');
+    const promptTemplate = await getPrompt('nlp_intent_detection');
     const prompt = promptTemplate
       .replace('{text}', text)
       .replace('{contextInfo}', contextInfo);

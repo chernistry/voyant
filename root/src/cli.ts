@@ -72,7 +72,10 @@ function renderMarkdownToTerminal(markdown: string): string {
     .trim();
 }
 
-async function streamText(text: string, delayMs = 8) {
+// Get streaming delay from environment or use default
+const STREAMING_DELAY_MS = parseInt(process.env.CLI_STREAMING_DELAY_MS || '2');
+
+async function streamText(text: string, delayMs = STREAMING_DELAY_MS) {
   for (const char of text) {
     process.stdout.write(char);
     await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -113,9 +116,9 @@ class Spinner {
     this.interval = setInterval(() => {
       process.stdout.write(`\r${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(this.currentStatus)}`);
       this.currentFrame = (this.currentFrame + 1) % this.frames.length;
-      
-      // Change status every 2 seconds (25 frames * 80ms)
-      if (this.currentFrame % 25 === 0) {
+
+      // Change status every 1.5 seconds (19 frames * 80ms)
+      if (this.currentFrame % 19 === 0) {
         this.currentStatus = this.getRandomStatus();
       }
     }, 80);
@@ -181,6 +184,9 @@ async function main() {
   console.log(chalk.white.bold('Commands:'));
   console.log(chalk.blue('  /why   Show how I got my answer (sources, reasoning, fact-checking)'));
   console.log(chalk.red('  exit   Quit'));
+  console.log(chalk.gray('─'.repeat(60)));
+  // console.log(chalk.white.bold('Environment Variables:'));
+  // console.log(chalk.yellow('  CLI_STREAMING_DELAY_MS  Set text streaming delay (default: 2ms)'));
   console.log(chalk.gray('─'.repeat(60)));
   console.log();
 

@@ -23,6 +23,9 @@ Examples:
 - "What can you do?" → {"content_type": "system", "is_explicit_search": false, "needs_web_search": false, "categories": [], "confidence": 0.9}
 - "Find visa requirements for Germans" → {"content_type": "travel", "is_explicit_search": true, "needs_web_search": true, "categories": ["special"], "confidence": 0.9}
 - "Search for flights to Paris" → {"content_type": "flight", "is_explicit_search": true, "needs_web_search": true, "categories": ["transport", "location"], "confidence": 0.9}
+- "flights from moscow to tel aviv 12-10-2025 one way" → {"content_type": "flight", "is_explicit_search": false, "needs_web_search": false, "categories": ["transport", "location", "time"], "confidence": 0.95}
+- "flights from NYC to London March 15" → {"content_type": "flight", "is_explicit_search": false, "needs_web_search": false, "categories": ["transport", "location", "time"], "confidence": 0.95}
+- "flight from Paris to Rome tomorrow" → {"content_type": "flight", "is_explicit_search": false, "needs_web_search": false, "categories": ["transport", "location", "time"], "confidence": 0.95}
 - "Any festivals or events that week?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": true, "categories": ["time"], "confidence": 0.9}
 - "What concerts are happening in Boston?" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": true, "categories": ["location"], "confidence": 0.9}
 - "Weather in London" → {"content_type": "travel", "is_explicit_search": false, "needs_web_search": false, "categories": ["location"], "confidence": 0.8}

@@ -75,13 +75,17 @@ async function optimizeQueries(
   context: Record<string, unknown>,
   log?: pino.Logger,
 ): Promise<string[]> {
-  // Try Brave Suggest first for lightweight expansion (skip during tests to avoid network)
+  // Try search provider's suggestion API for lightweight expansion (skip during tests to avoid network)
   let seeds: string[] = [];
   if (process.env.NODE_ENV !== 'test') {
-    try {
-      const mod = await import('../tools/brave_suggest.js');
-      seeds = await mod.braveSuggest(original, { count: 6, country: 'US' });
-    } catch {}
+    const provider = (process.env.SEARCH_PROVIDER || 'brave').toLowerCase();
+    if (provider === 'brave') {
+      try {
+        const mod = await import('../tools/brave_suggest.js');
+        seeds = await mod.braveSuggest(original, { count: 6, country: 'US' });
+      } catch {}
+    }
+    // Note: Tavily doesn't have a separate suggest API, so we skip seed generation for Tavily
   }
 
   try {

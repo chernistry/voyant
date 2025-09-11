@@ -636,6 +636,241 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   return result;
 }
 
+async function classifyIntentFromTransformers(
+  message: string, 
+  intentResult: any,
+  entityResult: any,
+  slots: any, 
+  log?: pino.Logger
+): Promise<{ intent: string; needExternal: boolean; confidence: number } | undefined> {
+  
+  if (log?.debug) {
+    log.debug({
+      message: message.substring(0, 50),
+      intentResult,
+      entityResult: {
+        totalEntities: entityResult.entities.length,
+        locations: entityResult.locations.length,
+        locationTexts: entityResult.locations.map((l: any) => l.text)
+      },
+      slots
+    }, '🔍 TRANSFORMERS: Detailed classification input');
+  }
+  
+  // Enhanced pattern matching with Russian support - check attractions FIRST
+  const m = message.toLowerCase();
+  
+  // Attractions with enhanced location detection (prioritize over destinations)
+  // AI-first: Use intent classification first
+  const attractionsIntent = await classifyIntent(message, {}, log);
+  if (attractionsIntent?.intent === 'attractions' && (attractionsIntent.confidence || 0) > 0.6) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.9 : 0.7;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'attractions', 
+        hasLocation, 
+        confidence 
+      }, '🎯 TRANSFORMERS: Attractions intent detected');
+    }
+    return { intent: 'attractions', needExternal: false, confidence };
+  }
+  // Micro rules for attractions
+  if (/attraction|museum|activities/.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city;
+    const confidence = hasLocation ? 0.9 : 0.7;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'attractions_regex_fallback', 
+        hasLocation, 
+        confidence 
+      }, '🎯 TRANSFORMERS: Attractions intent detected (regex fallback)');
+    }
+    return { intent: 'attractions', needExternal: false, confidence };
+  }
+  
+  // Use transformers intent classification as primary signal (after attractions check)
+  if (intentResult.confidence > 0.8) {
+    
+    const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
+    
+    if (log?.debug) {
+      log.debug({ 
+        intent: intentResult.intent,
+        confidence: intentResult.confidence,
+        needExternal,
+        reason: 'transformers_high_confidence'
+      }, '🎯 TRANSFORMERS: High confidence intent classification');
+    }
+    
+    return { 
+      intent: intentResult.intent, 
+      needExternal, 
+      confidence: intentResult.confidence 
+    };
+  }
+  
+  // Weather patterns - enhanced with Russian
+  // AI-first: Use intent classification first
+  const weatherIntent = await classifyIntent(message, {}, log);
+  if (weatherIntent?.intent === 'weather' && (weatherIntent.confidence || 0) > 0.6) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
+    const confidence = hasLocation ? 0.95 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'weather_ai_first', 
+        hasLocation, 
+        locations: entityResult.locations.length,
+        confidence,
+        reason: 'ai_classification_with_russian_support'
+      }, '🎯 TRANSFORMERS: Weather intent detected');
+    }
+    return { intent: 'weather', needExternal: true, confidence };
+  }
+  // Micro rules for weather
+  if (/weather|temperature/.test(m)) {
+    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
+    const confidence = hasLocation ? 0.95 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'weather_regex_fallback', 
+        hasLocation, 
+        locations: entityResult.locations.length,
+        confidence,
+        reason: 'enhanced_pattern_matching_with_russian',
+        russianPattern: /погода/i.test(m)
+      }, '🎯 TRANSFORMERS: Weather intent detected (regex fallback)');
+    }
+    return { intent: 'weather', needExternal: true, confidence };
+  }
+  
+  // Packing advice with duration context
+  // AI-first: Use intent classification first
+  const packingIntent = await classifyIntent(message, {}, log);
+  if (packingIntent?.intent === 'packing' && (packingIntent.confidence || 0) > 0.6) {
+    const hasDuration = entityResult.durations.length > 0;
+    const confidence = hasDuration ? 0.9 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'packing', 
+        hasDuration,
+        confidence 
+      }, '🎯 TRANSFORMERS: Packing intent detected');
+    }
+    return { intent: 'packing', needExternal: false, confidence };
+  }
+  // Fallback to regex for critical patterns
+  if (intentResult.intent === 'packing' && intentResult.confidence > 0.6) {
+    const hasDuration = entityResult.durations.length > 0;
+    const confidence = hasDuration ? 0.9 : 0.8;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'packing_regex_fallback', 
+        hasDuration,
+        confidence 
+      }, '🎯 TRANSFORMERS: Packing intent detected (regex fallback)');
+    }
+    return { intent: 'packing', needExternal: false, confidence };
+  }
+  
+  // Destinations with enhanced pattern matching
+  // AI-first: Use intent classification first
+  const destinationsIntent = await classifyIntent(message, {}, log);
+  if (destinationsIntent?.intent === 'destinations' && (destinationsIntent.confidence || 0) > 0.6) {
+    const confidence = 0.85;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'destinations', 
+        confidence 
+      }, '🎯 TRANSFORMERS: Destinations intent detected');
+    }
+    return { intent: 'destinations', needExternal: true, confidence };
+  }
+  // Micro rules for destinations
+  if (/destination|where/.test(m)) {
+    const confidence = 0.85;
+    
+    if (log?.debug) {
+      log.debug({ 
+        pattern: 'destinations_regex_fallback', 
+        confidence 
+      }, '🎯 TRANSFORMERS: Destinations intent detected (regex fallback)');
+    }
+    return { intent: 'destinations', needExternal: true, confidence };
+  }
+  
+  return undefined;
+}
+
+function determineExternalNeed(intent: string, entityResult: any, slots: any): boolean {
+  switch (intent) {
+    case 'weather':
+    case 'destinations':
+      return true;
+    case 'attractions':
+      // Need external data if we have a specific location
+      return entityResult.locations.length > 0 || !!slots.city;
+    case 'packing':
+      // Usually don't need external data for packing advice
+      return false;
+    default:
+      return false;
+  }
+}
+
+async function tryRouteViaTransformers(message: string, threadId?: string, log?: pino.Logger): Promise<RouterResultT | undefined> {
+  try {
+    // Use enhanced NER for better entity extraction
+    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
+    const entityResult = await extractEntitiesEnhanced(message, log);
+    
+    // Use transformers-based intent classification
+    const { classifyIntent } = await import('./transformers-classifier.js');
+    const intentResult = await classifyIntent(message, log);
+    
+    if (log?.debug) {
+      log.debug({ 
+        entities: entityResult.entities.length,
+        locations: entityResult.locations.length,
+        intent: intentResult.intent,
+        confidence: intentResult.confidence
+      }, '🔍 TRANSFORMERS: Enhanced processing complete');
+    }
+
+    // Get thread context for slot merging
+    const ctxSlots = threadId ? getThreadSlots(threadId) : {};
+    
+    // Extract slots using our parsers (which now use Transformers internally)
+    const extractedSlots = await extractSlots(message, ctxSlots, log);
+    
+    // Enhanced intent classification based on transformers results
+    const intent = await classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
+    
+    if (intent && intent.confidence > 0.7) {
+      return RouterResult.parse({
+        intent: intent.intent,
+        needExternal: intent.needExternal,
+        slots: { ...ctxSlots, ...extractedSlots },
+        confidence: intent.confidence
+      });
+    }
+    
+    return undefined;
+  } catch (error) {
+    if (log?.debug) {
+      log.debug({ error: String(error) }, '❌ TRANSFORMERS: Failed to route via Transformers');
+    }
+    return undefined;
+  }
+}
+
 /**
  * Transformers-first fast routing with a strict timeout. Returns undefined on timeout
  * or low confidence so the cascade can proceed to LLM and rules.
@@ -927,13 +1162,14 @@ async function detectComplexQueryFast(message: string, log?: any): Promise<{ isC
       };
     }
     
-    return { 
-      isComplex: false, 
-      confidence: 0.7, 
-      reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}` 
+    return {
+      isComplex: false,
+      confidence: 0.7,
+      reasoning: `ai_confidence_scoring: confidence=${complexityScore?.confidence || 0}, constraints=${constraints.size}`
     };
   }
 }
+
 async function detectComplexQuery(message: string, log?: any): Promise<{ isComplex: boolean; confidence: number; reasoning: string }> {
   const m = message || '';
   
@@ -971,77 +1207,63 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
         }
       });
       
-      // Add heuristic categories for missed patterns
-      const lower = m.toLowerCase();
-      if (/[£$€]/.test(m) || /budget|cost|price/.test(lower)) categories.push('budget');
-      if (/family|children|adults/.test(lower)) categories.push('group');
-      if (/visa|passport/.test(lower)) categories.push('special');
-      
-      const uniqueCategories = Array.from(new Set(categories));
-      const entityDiversity = entityTypes.size;
-      const totalEntities = entities.length;
-      
-      // Complexity scoring based on Transformers analysis
-      const categoryScore = Math.max(0, uniqueCategories.length - 2);
-      const entityScore = Math.min(entityDiversity * 0.2, 0.4);
-      const densityScore = Math.min(totalEntities * 0.1, 0.3);
-      
-      const confidence = Math.min(0.6 + categoryScore * 0.1 + entityScore + densityScore, 0.95);
-      const isComplex = uniqueCategories.length >= 4 || (uniqueCategories.length >= 3 && totalEntities >= 6);
-      
-      if (log?.debug) {
-        log.debug({
-          method: 'transformers',
-          entities: entities.length,
-          entityTypes: Array.from(entityTypes),
-          categories: uniqueCategories,
-          confidence,
-          isComplex
-        }, '🤖 COMPLEXITY: Transformers-based detection');
-      }
-      
-      if (isComplex) {
-        return { 
-          isComplex, 
-          confidence, 
-          reasoning: `transformers: entities=${totalEntities}, types=${Array.from(entityTypes).join(',')}, constraints=${uniqueCategories.join(', ')}` 
+      // Use LLM-based complexity assessment instead of hardcoded rules
+      try {
+        const promptTemplate = await getPrompt('complexity_assessor');
+        const prompt = promptTemplate.replace('{message}', message);
+        const response = await callLLM(prompt, { responseFormat: 'json', log });
+        const result = JSON.parse(response);
+        
+        if (log?.debug) {
+          log.debug({
+            method: 'llm_complexity_assessor_with_entities',
+            entities: entities.length,
+            entityTypes: Array.from(entityTypes),
+            result
+          }, '🔍 COMPLEXITY: LLM assessment with entity context');
+        }
+        
+        return {
+          isComplex: result.isComplex || false,
+          confidence: result.confidence || 0.5,
+          reasoning: result.reasoning || 'llm_assessment_with_entities'
         };
+      } catch (error) {
+        if (log?.debug) {
+          log.debug({ error: String(error) }, '🔍 COMPLEXITY: LLM assessment failed');
+        }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     if (log?.debug) {
       log.debug({ error: String(error) }, '❌ COMPLEXITY: Transformers detection failed');
     }
   }
   
-  // Fallback to heuristic + LLM detection
-  const categories: string[] = [];
+  // Use LLM-based complexity assessment
   try {
-    const lower = m.toLowerCase();
-    if (/[£$€]/.test(m) || /budget|cost|price/.test(lower)) categories.push('budget');
-    if (/family|children|adults/.test(lower)) categories.push('group');
-    const date = await parseDate(m).catch(() => ({ success: false } as const));
-    if ((date as any).success) categories.push('time');
-    const od = await parseOriginDestination(m).catch(() => ({ success: false } as const));
-    if ((od as any).success && ((od as any).data?.originCity || (od as any).data?.destinationCity)) categories.push('origin');
-    if (/visa|passport/.test(lower)) categories.push('special');
-    
-    const uniq = Array.from(new Set(categories));
-    const score = Math.max(0, uniq.length - 2);
-    const confidence = Math.min(0.6 + 0.1 * score, 0.95);
-    const isComplex = uniq.length >= 3;
+    const promptTemplate = await getPrompt('complexity_assessor');
+    const prompt = promptTemplate.replace('{message}', message);
+    const response = await callLLM(prompt, { responseFormat: 'json', log });
+    const result = JSON.parse(response);
     
     if (log?.debug) {
       log.debug({
-        method: 'heuristic',
-        categories: uniq,
-        confidence,
-        isComplex
-      }, '🔍 COMPLEXITY: Heuristic detection');
+        method: 'llm_complexity_assessor',
+        result
+      }, '🔍 COMPLEXITY: LLM assessment');
     }
     
-    if (isComplex) return { isComplex, confidence, reasoning: `heuristic: constraints=${uniq.join(', ')}` };
-  } catch {}
+    return {
+      isComplex: result.isComplex || false,
+      confidence: result.confidence || 0.5,
+      reasoning: result.reasoning || 'llm_assessment'
+    };
+  } catch (error) {
+    if (log?.debug) {
+      log.debug({ error: String(error) }, '🔍 COMPLEXITY: LLM assessment failed');
+    }
   
   // Final LLM fallback with JSON
   try {
@@ -1064,238 +1286,4 @@ async function detectComplexQuery(message: string, log?: any): Promise<{ isCompl
   
   return { isComplex: false, confidence: 0.4, reasoning: 'insufficient_signal' };
 }
-
-async function tryRouteViaTransformers(message: string, threadId?: string, log?: pino.Logger): Promise<RouterResultT | undefined> {
-  try {
-    // Use enhanced NER for better entity extraction
-    const { extractEntitiesEnhanced } = await import('./ner-enhanced.js');
-    const entityResult = await extractEntitiesEnhanced(message, log);
-    
-    // Use transformers-based intent classification
-    const { classifyIntent } = await import('./transformers-classifier.js');
-    const intentResult = await classifyIntent(message, log);
-    
-    if (log?.debug) {
-      log.debug({ 
-        entities: entityResult.entities.length,
-        locations: entityResult.locations.length,
-        intent: intentResult.intent,
-        confidence: intentResult.confidence
-      }, '🔍 TRANSFORMERS: Enhanced processing complete');
-    }
-
-    // Get thread context for slot merging
-    const ctxSlots = threadId ? getThreadSlots(threadId) : {};
-    
-    // Extract slots using our parsers (which now use Transformers internally)
-    const extractedSlots = await extractSlots(message, ctxSlots, log);
-    
-    // Enhanced intent classification based on transformers results
-    const intent = await classifyIntentFromTransformers(message, intentResult, entityResult, extractedSlots, log);
-    
-    if (intent && intent.confidence > 0.7) {
-      return RouterResult.parse({
-        intent: intent.intent,
-        needExternal: intent.needExternal,
-        slots: { ...ctxSlots, ...extractedSlots },
-        confidence: intent.confidence
-      });
-    }
-    
-    return undefined;
-  } catch (error) {
-    if (log?.debug) {
-      log.debug({ error: String(error) }, '❌ TRANSFORMERS: Failed to route via Transformers');
-    }
-    return undefined;
-  }
-}
-
-async function classifyIntentFromTransformers(
-  message: string, 
-  intentResult: any,
-  entityResult: any,
-  slots: any, 
-  log?: pino.Logger
-): Promise<{ intent: string; needExternal: boolean; confidence: number } | undefined> {
-  
-  if (log?.debug) {
-    log.debug({
-      message: message.substring(0, 50),
-      intentResult,
-      entityResult: {
-        totalEntities: entityResult.entities.length,
-        locations: entityResult.locations.length,
-        locationTexts: entityResult.locations.map((l: any) => l.text)
-      },
-      slots
-    }, '🔍 TRANSFORMERS: Detailed classification input');
-  }
-  
-  // Enhanced pattern matching with Russian support - check attractions FIRST
-  const m = message.toLowerCase();
-  
-  // Attractions with enhanced location detection (prioritize over destinations)
-  // AI-first: Use intent classification first
-  const attractionsIntent = await classifyIntent(message, {}, log);
-  if (attractionsIntent?.intent === 'attractions' && (attractionsIntent.confidence || 0) > 0.6) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
-    const confidence = hasLocation ? 0.9 : 0.7;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'attractions', 
-        hasLocation, 
-        confidence 
-      }, '🎯 TRANSFORMERS: Attractions intent detected');
-    }
-    return { intent: 'attractions', needExternal: false, confidence };
-  }
-  // Micro rules for attractions
-  if (/attraction|museum|activities/.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city;
-    const confidence = hasLocation ? 0.9 : 0.7;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'attractions_regex_fallback', 
-        hasLocation, 
-        confidence 
-      }, '🎯 TRANSFORMERS: Attractions intent detected (regex fallback)');
-    }
-    return { intent: 'attractions', needExternal: false, confidence };
-  }
-  
-  // Use transformers intent classification as primary signal (after attractions check)
-  if (intentResult.confidence > 0.8) {
-    
-    const needExternal = determineExternalNeed(intentResult.intent, entityResult, slots);
-    
-    if (log?.debug) {
-      log.debug({ 
-        intent: intentResult.intent,
-        confidence: intentResult.confidence,
-        needExternal,
-        reason: 'transformers_high_confidence'
-      }, '🎯 TRANSFORMERS: High confidence intent classification');
-    }
-    
-    return { 
-      intent: intentResult.intent, 
-      needExternal, 
-      confidence: intentResult.confidence 
-    };
-  }
-  
-  // Weather patterns - enhanced with Russian
-  // AI-first: Use intent classification first
-  const weatherIntent = await classifyIntent(message, {}, log);
-  if (weatherIntent?.intent === 'weather' && (weatherIntent.confidence || 0) > 0.6) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
-    const confidence = hasLocation ? 0.95 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'weather_ai_first', 
-        hasLocation, 
-        locations: entityResult.locations.length,
-        confidence,
-        reason: 'ai_classification_with_russian_support'
-      }, '🎯 TRANSFORMERS: Weather intent detected');
-    }
-    return { intent: 'weather', needExternal: true, confidence };
-  }
-  // Micro rules for weather
-  if (/weather|temperature/.test(m)) {
-    const hasLocation = entityResult.locations.length > 0 || slots.city || /\\b(в|in)\\s+\\w+/i.test(message);
-    const confidence = hasLocation ? 0.95 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'weather_regex_fallback', 
-        hasLocation, 
-        locations: entityResult.locations.length,
-        confidence,
-        reason: 'enhanced_pattern_matching_with_russian',
-        russianPattern: /погода/i.test(m)
-      }, '🎯 TRANSFORMERS: Weather intent detected (regex fallback)');
-    }
-    return { intent: 'weather', needExternal: true, confidence };
-  }
-  
-  // Packing advice with duration context
-  // AI-first: Use intent classification first
-  const packingIntent = await classifyIntent(message, {}, log);
-  if (packingIntent?.intent === 'packing' && (packingIntent.confidence || 0) > 0.6) {
-    const hasDuration = entityResult.durations.length > 0;
-    const confidence = hasDuration ? 0.9 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'packing', 
-        hasDuration,
-        confidence 
-      }, '🎯 TRANSFORMERS: Packing intent detected');
-    }
-    return { intent: 'packing', needExternal: false, confidence };
-  }
-  // Fallback to regex for critical patterns
-  if (intentResult.intent === 'packing' && intentResult.confidence > 0.6) {
-    const hasDuration = entityResult.durations.length > 0;
-    const confidence = hasDuration ? 0.9 : 0.8;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'packing_regex_fallback', 
-        hasDuration,
-        confidence 
-      }, '🎯 TRANSFORMERS: Packing intent detected (regex fallback)');
-    }
-    return { intent: 'packing', needExternal: false, confidence };
-  }
-  
-  // Destinations with enhanced pattern matching
-  // AI-first: Use intent classification first
-  const destinationsIntent = await classifyIntent(message, {}, log);
-  if (destinationsIntent?.intent === 'destinations' && (destinationsIntent.confidence || 0) > 0.6) {
-    const confidence = 0.85;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'destinations', 
-        confidence 
-      }, '🎯 TRANSFORMERS: Destinations intent detected');
-    }
-    return { intent: 'destinations', needExternal: true, confidence };
-  }
-  // Micro rules for destinations
-  if (/destination|where/.test(m)) {
-    const confidence = 0.85;
-    
-    if (log?.debug) {
-      log.debug({ 
-        pattern: 'destinations_regex_fallback', 
-        confidence 
-      }, '🎯 TRANSFORMERS: Destinations intent detected (regex fallback)');
-    }
-    return { intent: 'destinations', needExternal: true, confidence };
-  }
-  
-  return undefined;
-}
-
-function determineExternalNeed(intent: string, entityResult: any, slots: any): boolean {
-  switch (intent) {
-    case 'weather':
-    case 'destinations':
-      return true;
-    case 'attractions':
-      // Need external data if we have a specific location
-      return entityResult.locations.length > 0 || !!slots.city;
-    case 'packing':
-      // Usually don't need external data for packing advice
-      return false;
-    default:
-      return false;
-  }
 }

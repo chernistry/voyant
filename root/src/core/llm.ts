@@ -113,7 +113,7 @@ async function tryModel(
           model,
           messages: [{ role: 'user', content: prompt }],
           temperature: format === 'json' ? 0.2 : 0.5,
-          max_tokens: 2000,
+          max_tokens: 5000,
           ...(format === 'json' ? { response_format: { type: 'json_object' } } : {}),
         }),
         signal: controller.signal,
