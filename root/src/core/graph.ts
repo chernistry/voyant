@@ -151,7 +151,7 @@ export async function runGraphTurn(
   if (!C.route) {
     const routed = await routeIntent({
       message,
-      threadId: 'graph-context', 
+      threadId: threadId, 
       logger: { log: ctx.log }
     });
     C.route = { 
@@ -599,6 +599,17 @@ async function policyNode(
 }
 
 async function systemNode(ctx: NodeCtx): Promise<NodeOut> {
+  // Check if deep research consent is needed
+  const slots = getThreadSlots(ctx.threadId);
+  const consentState = readConsentState(slots);
+  
+  if (consentState.awaiting && consentState.type === 'deep' && consentState.pending) {
+    return {
+      done: true,
+      reply: 'This looks like a complex travel planning request that would benefit from deeper research. Would you like me to search for comprehensive information to help with your trip planning?'
+    };
+  }
+  
   return {
     done: true,
     reply: 'I\'m an AI travel assistant. I can help you with weather, destinations, packing, and attractions. What would you like to know?',
