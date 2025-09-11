@@ -132,49 +132,72 @@ export async function runGraphTurn(
     return { done: true, reply: 'I can look this up on the web. Want me to search now?' };
   }
   
-  // === EXTRACT STAGE: Single-pass cached extraction ===
-  // Populate cache with heavy calls exactly once
-  const populateCache = async () => {
-    const promises = [];
-    
-    // Content classification
-    if (!C.clsContent) {
-      promises.push((async () => {
-        const { transformersEnabled } = await import('../config/transformers.js');
-        if (!transformersEnabled()) {
-          C.clsContent = { content_type: 'travel', confidence: 0.5 };
-          return;
-        }
-        C.clsContent = await classifyContentTransformers(message, ctx.log);
-        llmCallsThisTurn++;
-      })());
+  // Weather fast-path guard - before any LLM calls
+  if (/\bweather\b/i.test(message) && /\btoday\b/i.test(message)) {
+    const { extractCityLite } = await import('./graph.optimizers.js');
+    const city = await extractCityLite(message, ctx.log);
+    if (city) {
+      ctx.log.debug({ city, fastpath: 'weather_guard' }, 'guard_weather_hit');
+      return await weatherNode(
+        { msg: message, threadId, onStatus: ctx.onStatus },
+        { city },
+        ctx
+      );
     }
-    
-    // Intent classification
-    if (!C.clsIntent) {
-      promises.push((async () => {
-        const routeResult = await routeIntent({
-          message,
-          threadId: 'graph-context',
-          logger: { log: ctx.log }
-        });
-        C.clsIntent = { intent: routeResult.intent, confidence: routeResult.confidence };
-        llmCallsThisTurn++;
-      })());
-    }
-    
-    // Entity extraction
-    if (!C.ner) {
-      promises.push((async () => {
-        C.ner = await extractEntitiesEnhanced(message, ctx.log) as Entities;
-        llmCallsThisTurn++;
-      })());
-    }
-    
-    await Promise.all(promises);
-  };
+  }
   
-  await populateCache();
+  // === EXTRACT STAGE: Router-once with intent-gated extractors ===
+  // Single router call with slots
+  if (!C.route) {
+    const routed = await routeIntent({
+      message,
+      threadId: 'graph-context', 
+      logger: { log: ctx.log }
+    });
+    C.route = { 
+      intent: routed.intent, 
+      slots: routed.slots || {}, 
+      confidence: routed.confidence 
+    };
+    llmCallsThisTurn++;
+    ctx.log.debug({ route: C.route }, 'router_once');
+  }
+  
+  // Intent-gated extractors
+  const routedIntent = C.forced ?? C.route.intent;
+  const promises = [];
+  
+  // Only run NER for flights intent
+  if (routedIntent === 'flights' && !C.ner) {
+    promises.push((async () => {
+      C.ner = await extractEntitiesEnhanced(message, ctx.log) as Entities;
+      llmCallsThisTurn++;
+    })());
+  }
+  
+  // Lightweight city extraction for weather/attractions/packing/destinations
+  if (['weather', 'attractions', 'packing', 'destinations'].includes(routedIntent) && !C.route.slots.city) {
+    promises.push((async () => {
+      const { extractCityLite } = await import('./graph.optimizers.js');
+      const city = await extractCityLite(message, ctx.log);
+      if (city) C.route.slots.city = city;
+    })());
+  }
+  
+  // Content classification only for non-weather intents
+  if (routedIntent !== 'weather' && !C.clsContent) {
+    promises.push((async () => {
+      const { transformersEnabled } = await import('../config/transformers.js');
+      if (!transformersEnabled()) {
+        C.clsContent = { content_type: 'travel', confidence: 0.5 };
+        return;
+      }
+      C.clsContent = await classifyContentTransformers(message, ctx.log);
+      llmCallsThisTurn++;
+    })());
+  }
+  
+  await Promise.all(promises);
   
   // === FAST PATH: Weather with high confidence ===
   const { maybeFastWeather } = await import('./graph.optimizers.js');
@@ -218,7 +241,7 @@ export async function runGraphTurn(
     }
   }
   
-  // === ROUTE STAGE: Simplified decision logic ===
+  // === ROUTE STAGE: Use cached router result ===
   // Check for unrelated content
   if (C.clsContent?.content_type === 'unrelated') {
     return {
@@ -227,18 +250,13 @@ export async function runGraphTurn(
     };
   }
   
-  // Route to intent
-  const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
-  const routeResult = await routeIntentNode(routeCtx, ctx);
-  if ('done' in routeResult) return routeResult;
-  
-  let intent = routeResult.next;
-  if (C.forced) intent = C.forced as typeof intent;
+  // Use cached router result instead of calling routeIntentNode
+  let intent = C.forced ?? C.route.intent;
   
   // === SLOT PROCESSING ===
   const prior = getThreadSlots(threadId);
-  const extractedSlots = routeResult.slots || {};
-  const slots = normalizeSlots(prior, extractedSlots);
+  const extractedSlots = C.route.slots || {};
+  const slots = normalizeSlots(prior, extractedSlots, intent);
   
   // Check for missing required slots
   const missing = checkMissingSlots(intent, slots, message);
@@ -260,6 +278,7 @@ export async function runGraphTurn(
   }, 'graph_turn_complete');
   
   // === ACT STAGE: Route to domain nodes ===
+  const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
   return await routeToDomainNode(intent, routeCtx, slots, ctx);
 }
 
@@ -361,20 +380,22 @@ async function weatherNode(
   const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...slots };
   
-  const { reply, citations } = await blendWithFacts(
-    {
-      message: ctx.msg,
-      route: {
-        intent: 'weather',
-        needExternal: false,
-        slots: mergedSlots,
-        confidence: 0.7,
-      },
-      threadId: ctx.threadId,
-    },
-    logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
-  );
-  return { done: true, reply, citations };
+  const city = mergedSlots.city;
+  if (!city) {
+    return { done: true, reply: 'Which city would you like weather information for?' };
+  }
+  
+  try {
+    const { geocodeCity, getWeatherDaily } = await import('../tools/weather_open_meteo.js');
+    const { lat, lon } = await geocodeCity(city);
+    const wx = await getWeatherDaily(lat, lon);
+    
+    const reply = `Current weather in ${city}: High ${wx.max}°C, Low ${wx.min}°C; Precipitation ${wx.pop}% (Open-Meteo)`;
+    return { done: true, reply, citations: ['Open-Meteo'] };
+  } catch (error) {
+    logger.log?.warn({ error: String(error), city }, 'weather_fetch_failed');
+    return { done: true, reply: `Sorry, I couldn't get weather information for ${city}. Please try another city.` };
+  }
 }
 
 async function destinationsNode(
