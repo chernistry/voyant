@@ -4,7 +4,7 @@ import path from 'node:path';
 import { ChatInputT, ChatOutput } from '../schemas/chat.js';
 import { getThreadId, pushMessage } from './memory.js';
 import { runGraphTurn } from './graph.js';
-import { callLLM, optimizeSearchQuery } from './llm.js';
+import { callLLM, callLLMBatch, optimizeSearchQuery } from './llm.js';
 import { classifyContentLLM } from './nlp.js';
 import { getPrompt } from './prompts.js';
 import { getWeather } from '../tools/weather.js';
@@ -21,114 +21,9 @@ import type { Fact } from './receipts.js';
 import { getLastReceipts, setLastReceipts, updateThreadSlots } from './slot_memory.js';
 import { buildReceiptsSkeleton, ReceiptsSchema } from './receipts.js';
 import { verifyAnswer } from './verify.js';
-
-async function decideShouldSearch(
-  message: string,
-  ctx: { log: pino.Logger },
-): Promise<boolean> {
-  const promptTemplate = await getPrompt('web_search_decider');
-  const prompt = promptTemplate.replace('{message}', message);
-
-  try {
-    const response = await callLLM(prompt, { log: ctx.log });
-    return response.toLowerCase().includes('yes');
-  } catch {
-    return false;
-  }
-}
-
-async function detectQueryType(
-  message: string,
-  ctx: { log: pino.Logger },
-): Promise<'restaurant' | 'budget' | 'flight' | 'none'> {
-  const promptTemplate = await getPrompt('query_type_detector');
-  const prompt = promptTemplate.replace('{message}', message);
-
-  try {
-    const response = await callLLM(prompt, { log: ctx.log });
-    const type = response.toLowerCase().trim();
-    if (['restaurant', 'budget', 'flight'].includes(type)) {
-      return type as 'restaurant' | 'budget' | 'flight';
-    }
-    return 'none';
-  } catch {
-    return 'none';
-  }
-}
-
-async function summarizeSearch(
-  results: Array<{ title: string; url: string; description: string }>,
-  query: string,
-  ctx: { log: pino.Logger },
-): Promise<{ reply: string; citations: string[] }> {
-  // Feature flag check
-  if (process.env.SEARCH_SUMMARY === 'off') {
-    return formatSearchResultsFallback(results);
-  }
-
-  try {
-    const promptTemplate = await getPrompt('search_summarize');
-    const topResults = results.slice(0, 7);
-
-    // Debug: Log search results for analysis
-    ctx.log.debug({
-      searchResultsCount: results.length,
-      topResultsTitles: results.slice(0, 3).map(r => r.title),
-      query: query
-    }, 'search_results_for_summarization');
-
-    // Format results for LLM
-    const formattedResults = topResults.map((result, index) => ({
-      id: index + 1,
-      title: result.title.replace(/<[^>]*>/g, ''), // Strip HTML
-      url: result.url,
-      description: result.description.replace(/<[^>]*>/g, '').slice(0, 200)
-    }));
-    
-    const prompt = promptTemplate
-      .replace('{query}', query)
-      .replace('{results}', JSON.stringify(formattedResults, null, 2));
-    
-    const response = await callLLM(prompt, { log: ctx.log });
-    
-    // Sanitize and validate response
-    let sanitized = response
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .trim();
-    
-    // Ensure no CoT leakage
-    sanitized = sanitized.replace(/<!--[\s\S]*?-->/g, '');
-    
-    // Truncate if too long (increased for 3-paragraph summaries)
-    if (sanitized.length > 2000) {
-      const sentences = sanitized.split(/[.!?]+/);
-      let truncated = '';
-      for (const sentence of sentences) {
-        if ((truncated + sentence).length > 1900) break;
-        truncated += sentence + '.';
-      }
-      sanitized = truncated;
-    }
-    
-    // Ensure Sources block with direct links present; if missing, append from our results
-    const hasLinks = /https?:\/\//i.test(sanitized) || /Sources:/i.test(sanitized);
-    let finalText = sanitized;
-    if (!hasLinks) {
-      const sourcesBlock = ['Sources:', ...formattedResults.slice(0, 5).map(r => `${r.id}. ${r.title} - ${r.url}`)].join('\n');
-      finalText = `${sanitized}\n\n${sourcesBlock}`;
-    }
-    return {
-      reply: finalText,
-      citations: [getSearchCitation()]
-    };
-  } catch (error) {
-    ctx.log.debug('Search summarization failed, using fallback');
-    return formatSearchResultsFallback(results);
-  }
-}
+import { planBlend, type BlendPlan } from './blend.planner.js';
+import { summarizeSearch } from './searchSummarizer.js';
+import { composeWeatherReply, composePackingReply, composeAttractionsReply } from './composers.js';
 
 function formatSearchResultsFallback(
   results: Array<{ title: string; url: string; description: string }>
@@ -150,6 +45,7 @@ async function performWebSearch(
   query: string,
   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
   threadId?: string,
+  plan?: BlendPlan,
 ): Promise<{ reply: string; citations?: string[] }> {
   ctx.log.debug({ query }, 'performing_web_search');
   // Opt-in deep research path
@@ -206,7 +102,8 @@ async function performWebSearch(
     citations = [`${getSearchCitation()} + Deep Research`];
     ctx.log.debug('using_crawlee_deep_research_summary');
   } else {
-    const result = await summarizeSearch(searchResult.results, query, ctx);
+    const useLLM = plan?.summarize_web_with_llm ?? (searchResult.results.length >= 3);
+    const result = await summarizeSearch(searchResult.results, query, useLLM, ctx);
     reply = result.reply;
     citations = result.citations || [getSearchCitation()];
   }
@@ -364,15 +261,55 @@ export async function blendWithFacts(
   input: { message: string; route: RouterResultT; threadId?: string },
   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
 ) {
-  // Use LLM for mixed language detection with fallback
-  let hasMixedLanguages = false;
-  try {
-    const contentClassification = await classifyContentLLM(input.message, ctx.log);
-    const nonLatin = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
-    hasMixedLanguages = (contentClassification?.has_mixed_languages || false) || nonLatin;
-  } catch {
-    // Fallback to regex detection
-    hasMixedLanguages = /[а-яё]/i.test(input.message) || /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(input.message);
+  // Single planner LLM call to drive all decisions
+  const plan = await planBlend(input.message, input.route, ctx.log);
+  
+  // Early exits based on planner decisions
+  if (plan.safety.disallowed_topic) {
+    return {
+      reply: plan.safety.reason || "I can't help with that topic. Please ask about travel planning instead.",
+      citations: undefined,
+    };
+  }
+  
+  if (plan.unrelated) {
+    return {
+      reply: "I'm a travel assistant focused on helping with weather, destinations, packing, and attractions. Could you ask me something about travel planning?",
+      citations: undefined,
+    };
+  }
+  
+  if (plan.system_question) {
+    return {
+      reply: 'I\'m an AI travel assistant designed to help with weather, destinations, packing advice, and attractions. How can I help with your travel planning?',
+      citations: undefined,
+    };
+  }
+  
+  if (plan.explicit_search) {
+    let searchQuery = input.message.replace(/^(search|google)\s+(web|online|for)?\s*/i, '').trim();
+    if (!searchQuery) searchQuery = input.message;
+    
+    ctx.onStatus?.('Searching for travel information...');
+    const optimizedQuery = await optimizeSearchQuery(
+      searchQuery,
+      input.route.slots,
+      'web_search',
+      ctx.log
+    );
+    
+    return await performWebSearch(optimizedQuery, ctx, input.threadId, plan);
+  }
+  
+  // Handle missing slots
+  if (plan.missing_slots.length > 0) {
+    const missing = plan.missing_slots[0];
+    if (missing === 'city') {
+      return { reply: "Which city are you interested in?", citations: undefined };
+    }
+    if (missing === 'dates') {
+      return { reply: "When are you planning to travel?", citations: undefined };
+    }
   }
   
   // Trust the slot extraction - if LLM found a city, use it

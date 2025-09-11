@@ -4,6 +4,7 @@ import path from 'node:path';
 type PromptName =
   | 'system'
   | 'blend'
+  | 'blend_planner'
   | 'cot'
   | 'verify'
   | 'web_search_decider'
@@ -43,6 +44,7 @@ type PromptName =
 
 let loaded = false;
 const PROMPTS: Partial<Record<PromptName, string>> = {};
+const memo = new Map<string, string>();
 
 async function loadFileSafe(filePath: string): Promise<string> {
   try {
@@ -57,6 +59,7 @@ export async function preloadPrompts(): Promise<void> {
   const base = path.join(process.cwd(), 'src', 'prompts');
   PROMPTS.system = await loadFileSafe(path.join(base, 'system.md'));
   PROMPTS.blend = await loadFileSafe(path.join(base, 'blend.md'));
+  PROMPTS.blend_planner = await loadFileSafe(path.join(base, 'blend_planner.md'));
   PROMPTS.cot = await loadFileSafe(path.join(base, 'cot.md'));
   PROMPTS.verify = await loadFileSafe(path.join(base, 'verify.md'));
   PROMPTS.web_search_decider = await loadFileSafe(
@@ -162,6 +165,9 @@ export async function preloadPrompts(): Promise<void> {
 }
 
 export async function getPrompt(name: PromptName): Promise<string> {
+  if (memo.has(name)) return memo.get(name)!;
   if (!loaded) await preloadPrompts();
-  return PROMPTS[name] ?? '';
+  const text = PROMPTS[name] ?? '';
+  memo.set(name, text);
+  return text;
 }
