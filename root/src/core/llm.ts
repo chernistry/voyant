@@ -423,6 +423,17 @@ function fallbackOptimizeQuery(query: string): string {
   return words.join(' ') || query.slice(0, 50);
 }
 
+export async function callLLMBatch(prompts: string[], opts: any): Promise<string[]> {
+  if (prompts.length === 0) return [];
+  if (prompts.length === 1) return [await callLLM(prompts[0], opts)];
+  
+  // Simple batch: join with delimiters, one roundtrip, split back
+  const sep = '\n\n---PROMPT_SPLIT---\n\n';
+  const joined = prompts.join(sep);
+  const out = await callLLM(joined, opts);
+  return out.split(sep).map(s => s.trim());
+}
+
 function fallbackBuildClarifyingQuestion(
   missing: string[],
   slots: Record<string, string> = {},
