@@ -112,3 +112,12 @@ export function getAllBreakerStats() {
   }
   return result;
 }
+
+export function resetAllBreakers() {
+  for (const breaker of breakers.values()) {
+    (breaker as any).close?.();
+    (breaker as any).shutdown?.();
+  }
+  breakers.clear();
+  stats.clear();
+}

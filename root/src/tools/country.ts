@@ -9,7 +9,7 @@ import { extractEntities } from '../core/ner.js';
 import { callLLM } from '../core/llm.js';
 import { getPrompt } from '../core/prompts.js';
 
-type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string };
+type Out = { ok: true; summary: string; source?: string; reason?: string } | { ok: false; reason: string };
 
 export async function getCountryFacts(input: { city?: string; country?: string }): Promise<Out> {
   const target = input.country || input.city;

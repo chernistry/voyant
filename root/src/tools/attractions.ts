@@ -9,7 +9,7 @@ import { classifyAttractions, type AttractionItem } from '../core/transformers-a
 import { callLLM } from '../core/llm.js';
 import { getPrompt } from '../core/prompts.js';
 
-type Out = { ok: true; summary: string; source?: string } | { ok: false; reason: string; source?: string };
+type Out = { ok: true; summary: string; source?: string; reason?: string } | { ok: false; reason: string; source?: string };
 
 export async function getAttractions(input: {
   city?: string;

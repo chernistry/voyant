@@ -1,13 +1,14 @@
 import { jest } from '@jest/globals';
 import nock from 'nock';
 import { fetchJSON, ExternalFetchError } from '../../src/util/fetch.js';
-import { getBreaker, getBreakerStats } from '../../src/util/circuit.js';
+import { getBreaker, getBreakerStats, resetAllBreakers } from '../../src/util/circuit.js';
 import { getLimiter, getLimiterStats } from '../../src/util/limiter.js';
 
 describe('Circuit Breaker and Rate Limiting', () => {
   beforeEach(() => {
     nock.cleanAll();
     jest.clearAllMocks();
+    resetAllBreakers();
     // Reset environment variables
     delete process.env.EXT_BREAKER_ERROR_PCT;
     delete process.env.EXT_BREAKER_VOLUME;

@@ -12,7 +12,7 @@ export interface SearchResult {
 }
 
 export type Out =
-  | { ok: true; results: SearchResult[]; deepSummary?: string }
+  | { ok: true; results: SearchResult[]; deepSummary?: string; reason?: string }
   | { ok: false; reason: string };
 
 // Circuit breaker for Brave Search API

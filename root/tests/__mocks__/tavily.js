@@ -11,5 +11,4 @@ const TavilyClient = {
   })
 };
 
-export { TavilyClient };
-export default TavilyClient;
+module.exports = { TavilyClient };

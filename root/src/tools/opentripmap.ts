@@ -39,7 +39,7 @@ export type PoiFeature = {
 };
 
 type Out =
-  | { ok: true; pois: PoiFeature[]; source?: string }
+  | { ok: true; pois: PoiFeature[]; source?: string; reason?: string }
   | { ok: false; reason: string; source?: string };
 
 export async function searchPOIs(input: {

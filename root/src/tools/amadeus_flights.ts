@@ -301,7 +301,7 @@ export async function searchFlights(input: {
   returnDate?: string;
   passengers?: number;
   cabinClass?: string;
-}): Promise<{ ok: true; summary: string; source: string } | { ok: false; reason: string }> {
+}): Promise<{ ok: true; summary: string; source: string; reason?: string } | { ok: false; reason: string }> {
   // Validation is now handled in graph.ts, but we'll keep a basic check
   if (!input.origin || !input.destination || !input.departureDate) {
     return { ok: false, reason: 'missing_required_fields' };
