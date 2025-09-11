@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { getPrompt } from './prompts.js';
 import { callLLM, classifyContent } from './llm.js';
 import { parseCity, parseDate, parseIntent } from './parsers.js';
-import { routeWithLLM } from './router.llm.js';
 
 export type Intent = 'weather'|'packing'|'attractions'|'destinations'|'unknown'|'web_search'|'system';
 export type ContentType = 'system'|'travel'|'unrelated'|'budget'|'restaurant'|'flight'|'gibberish'|'emoji_only';
@@ -55,17 +54,22 @@ export async function detectIntentAndSlots(
   log: pino.Logger,
   _opts: { timeoutMs?: number; minConfidence?: number } = {}
 ): Promise<RouteResult> {
-  // Use existing enhanced LLM router for robust routing + slots
-  const via = await routeWithLLM(message, context as Record<string, string>, { log }).catch(() => undefined);
-  if (via) {
-    const missing: string[] = via.missingSlots || [];
+  // Use LLM-based intent classification
+  try {
+    const prompt = await getPrompt('router_llm');
+    const finalPrompt = prompt.replace('{message}', message);
+    const response = await callLLM(finalPrompt, { responseFormat: 'json', log });
+    const parsed = JSON.parse(response);
+    
     return {
-      intent: via.intent as Intent,
-      needExternal: via.needExternal,
-      slots: via.slots as Slots,
-      confidence: via.confidence,
-      missingSlots: missing,
+      intent: parsed.intent as Intent,
+      needExternal: parsed.needExternal || false,
+      slots: parsed.slots as Slots || {},
+      confidence: parsed.confidence || 0.5,
+      missingSlots: parsed.missingSlots || []
     };
+  } catch (error) {
+    log.debug({ error: String(error) }, 'LLM routing failed');
   }
   // Fallback to the intent parser + individual parsers
   const intentRes = await parseIntent(message, context, log).catch(() => ({ success: false, confidence: 0 }));

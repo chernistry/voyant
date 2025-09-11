@@ -3,7 +3,6 @@ import path from 'node:path';
 
 type PromptName =
   | 'system'
-  | 'router'
   | 'blend'
   | 'cot'
   | 'verify'
@@ -13,9 +12,7 @@ type PromptName =
   | 'context_switch_detector'
   | 'city_parser'
   | 'date_parser'
-  | 'intent_parser'
   | 'router_llm'
-  | 'router_fallback'
   | 'nlp_city_extraction'
   | 'nlp_clarifier'
   | 'nlp_intent_detection'
@@ -59,7 +56,6 @@ export async function preloadPrompts(): Promise<void> {
   if (loaded) return;
   const base = path.join(process.cwd(), 'src', 'prompts');
   PROMPTS.system = await loadFileSafe(path.join(base, 'system.md'));
-  PROMPTS.router = await loadFileSafe(path.join(base, 'router.md'));
   PROMPTS.blend = await loadFileSafe(path.join(base, 'blend.md'));
   PROMPTS.cot = await loadFileSafe(path.join(base, 'cot.md'));
   PROMPTS.verify = await loadFileSafe(path.join(base, 'verify.md'));
@@ -78,14 +74,8 @@ export async function preloadPrompts(): Promise<void> {
   PROMPTS.date_parser = await loadFileSafe(
     path.join(base, 'date_parser.md'),
   );
-  PROMPTS.intent_parser = await loadFileSafe(
-    path.join(base, 'intent_parser.md'),
-  );
   PROMPTS.router_llm = await loadFileSafe(
     path.join(base, 'router_llm.md'),
-  );
-  PROMPTS.router_fallback = await loadFileSafe(
-    path.join(base, 'router_fallback.md'),
   );
   PROMPTS.nlp_city_extraction = await loadFileSafe(
     path.join(base, 'nlp_city_extraction.md'),

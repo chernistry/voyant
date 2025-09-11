@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { callLLM, classifyIntent, classifyContent, optimizeSearchQuery } from './llm.js';
 import { extractEntities } from './ner.js';
 import { parseDate, parseOriginDestination } from './parsers.js';
-import { routeWithLLM } from './router.llm.js';
+
 import { getThreadSlots, updateThreadSlots } from './slot_memory.js';
 import { extractSlots } from './parsers.js';
 import type pino from 'pino';
@@ -424,41 +424,9 @@ export async function routeIntent(input: { message: string; threadId?: string; l
     });
   }
 
-  const viaStrictLLM = await routeWithLLM(input.message, ctxSlots, input.logger).catch(() => undefined);
-  if (viaStrictLLM && viaStrictLLM.confidence > 0.5) {
-    // Coerce to RouterResultT shape (missingSlots ignored by schema)
-    const { intent, needExternal, slots, confidence } = viaStrictLLM;
-    if (typeof input.logger?.log?.info === 'function') {
-      input.logger.log.debug({ 
-        step: 2,
-        method: 'llm',
-        submethod: 'strict_llm',
-        intent, 
-        confidence, 
-        source: 'strict_llm',
-        success: true
-      }, '✅ ROUTING_CASCADE: Strict LLM succeeded');
-    }
 
-    // AI-first: Trust LLM classification completely
-
-    // Only override LLM result if it's NOT a travel intent but we detected unrelated content
-    if (isUnrelated && intent === 'unknown') {
-      if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: intent, originalConfidence: confidence }, 'overriding_llm_with_unrelated');
-      }
-      return RouterResult.parse({
-        intent: 'unknown',
-        needExternal: false,
-        slots: finalSlots,
-        confidence: 0.3  // Lower confidence to trigger blend.ts special handling
-      });
-    }
-
-    return RouterResult.parse({ intent, needExternal, slots: { ...finalSlots, ...slots }, confidence });
-  }
   
-  const viaLLM = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
+  const viaLLM: RouterResultT | undefined = await tryRouteViaLLM(input.message, input.logger).catch(() => undefined);
   if (viaLLM && viaLLM.confidence > 0.5) {
     if (typeof input.logger?.log?.info === 'function') {
       input.logger.log.debug({ 
@@ -488,8 +456,8 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   
   // Fall back to heuristics for low confidence or failed LLM routing
   // If we have LLM results with good slots but low confidence, preserve the slots
-  if (viaStrictLLM?.slots) {
-    finalSlots = { ...extractedSlots, ...viaStrictLLM.slots };
+  if (viaLLM?.slots) {
+    finalSlots = { ...extractedSlots, ...viaLLM.slots };
   }
 
   // STEP 3: Final fallback to rule-based heuristics
@@ -594,12 +562,11 @@ export async function routeIntent(input: { message: string; threadId?: string; l
   }
   
   // If we have a low-confidence LLM result, use it; otherwise unknown
-  if (viaStrictLLM) {
-    const { intent, needExternal, slots, confidence } = viaStrictLLM;
+  if (viaLLM && viaLLM.intent) {
     // Override LLM result if we detected unrelated content via heuristics
     if (isUnrelated) {
       if (typeof input.logger?.log?.debug === 'function') {
-        input.logger.log.debug({ originalIntent: intent, originalConfidence: confidence }, 'overriding_llm_with_unrelated');
+        input.logger.log.debug({ originalIntent: viaLLM.intent, originalConfidence: viaLLM.confidence }, 'overriding_llm_with_unrelated');
       }
       return RouterResult.parse({
         intent: 'unknown',
@@ -608,7 +575,7 @@ export async function routeIntent(input: { message: string; threadId?: string; l
         confidence: 0.3
       });
     }
-    return RouterResult.parse({ intent, needExternal, slots, confidence });
+    return viaLLM;
   }
   if (viaLLM) {
     // Override LLM result if we detected unrelated content via heuristics
@@ -949,16 +916,9 @@ export async function routeViaTransformersFirst(
 }
 
 async function tryRouteViaLLM(message: string, logger?: { log: pino.Logger }): Promise<RouterResultT | undefined> {
-  const routerMd = await getPrompt('router');
-  if (!routerMd.trim()) return undefined;
-  const instructions = routerMd
-    .split('\n')
-    .filter((l) => !l.trim().startsWith('{') && !l.trim().endsWith('}'))
-    .join('\n');
-  
   const promptTemplate = await getPrompt('router_llm');
   const prompt = promptTemplate
-    .replace('{instructions}', instructions)
+    .replace('{instructions}', '')
     .replace('{message}', message);
   
   const raw = await callLLM(prompt, { responseFormat: 'json', log: logger?.log });

@@ -57,11 +57,16 @@ export async function retryEntityExtractionWithConfidence(
     const response = await callLLM(finalPrompt, { log });
     const result = JSON.parse(response);
     
+    // Validate the response structure using Zod schema
+    const { ExtractionResult } = await import('../schemas/extraction.js');
+    const validatedResult = ExtractionResult.parse(result);
+    
     return {
-      cities: result.cities?.map((c: any) => c.name) || [],
-      confidence: result.overallConfidence || 0.0
+      cities: validatedResult.cities.map(c => c.name),
+      confidence: validatedResult.overallConfidence
     };
   } catch (error) {
+    log.debug({ error: String(error) }, '🔍 ENTITY: Retry extraction validation failed');
     return { cities: [], confidence: 0.0 };
   }
 }

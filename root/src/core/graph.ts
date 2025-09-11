@@ -248,6 +248,14 @@ export async function runGraphTurn(
     const k = `cls:content:${message}`;
     const v = turnCache.get(k);
     if (v) return v as Awaited<ReturnType<typeof classifyContentTransformers>>;
+    
+    // Check if transformers is enabled
+    const { transformersEnabled } = await import('../config/transformers.js');
+    if (!transformersEnabled()) {
+      // Return default/fallback result when transformers disabled
+      return { content_type: 'travel', confidence: 0.5 };
+    }
+    
     const r = await classifyContentTransformers(message, ctx.log);
     turnCache.set(k, r);
     return r;
@@ -256,7 +264,16 @@ export async function runGraphTurn(
     const k = `cls:intent:${message}`;
     const v = turnCache.get(k);
     if (v) return v as Awaited<ReturnType<typeof classifyIntent>>;
-    const r = await classifyIntent(message, ctx.log);
+    
+    // Use the main router which handles the transformers->LLM cascade properly
+    const { routeIntent } = await import('./router.js');
+    const routeResult = await routeIntent({
+      message,
+      threadId: 'graph-context',
+      logger: { log: ctx.log }
+    });
+    
+    const r = { intent: routeResult.intent, confidence: routeResult.confidence };
     turnCache.set(k, r);
     return r;
   };
@@ -1125,16 +1142,31 @@ export async function runGraphTurn(
     let isFlightQuery = false;
     
     try {
-      const contentClassification = await classifyContentTransformers(message, ctx.log);
-      if (contentClassification.confidence >= 0.75) {
-        isFlightQuery = contentClassification?.content_type === 'travel' && /\b(flight|airline|plane|fly)\b/i.test(message);
-        ctx.log.debug({ 
-          isFlightQuery, 
-          confidence: Math.round(contentClassification.confidence * 100) / 100,
-          method: 'transformers'
-        }, '🔍 FLIGHT: Transformers classification');
+      // Check if transformers is enabled
+      const { transformersEnabled } = await import('../config/transformers.js');
+      if (transformersEnabled()) {
+        const contentClassification = await classifyContentTransformers(message, ctx.log);
+        if (contentClassification.confidence >= 0.75) {
+          isFlightQuery = contentClassification?.content_type === 'travel' && /\b(flight|airline|plane|fly)\b/i.test(message);
+          ctx.log.debug({ 
+            isFlightQuery, 
+            confidence: Math.round(contentClassification.confidence * 100) / 100,
+            method: 'transformers'
+          }, '🔍 FLIGHT: Transformers classification');
+        } else {
+          // Fallback to regex patterns (regex fallback)
+          const flightPatterns = [
+            /airline|flight|fly|plane|ticket|booking/i,
+            /what\s+airlines/i,
+            /which\s+airlines/i
+          ];
+          isFlightQuery = flightPatterns.some(pattern => pattern.test(message));
+          if (isFlightQuery) {
+            ctx.log.debug({ isFlightQuery }, '🔍 FLIGHT: Using regex fallback (regex fallback)');
+          }
+        }
       } else {
-        // Fallback to regex patterns (regex fallback)
+        // Transformers disabled, use regex patterns
         const flightPatterns = [
           /airline|flight|fly|plane|ticket|booking/i,
           /what\s+airlines/i,
@@ -1142,7 +1174,7 @@ export async function runGraphTurn(
         ];
         isFlightQuery = flightPatterns.some(pattern => pattern.test(message));
         if (isFlightQuery) {
-          ctx.log.debug({ isFlightQuery }, '🔍 FLIGHT: Using regex fallback (regex fallback)');
+          ctx.log.debug({ isFlightQuery }, '🔍 FLIGHT: Using regex fallback (transformers disabled)');
         }
       }
     } catch (error) {

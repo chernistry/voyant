@@ -8,14 +8,24 @@ Hard requirements:
 Guidelines:
 - Use the output schema exactly. No extra keys. No comments.
 - Normalize entities:
-  - `intent` ∈ {"destinations","packing","attractions","weather","unknown"}
+  - `intent` ∈ {"destinations","packing","attractions","weather","flights","policy","web_search","system","unknown"}
   - `city`: expand common abbreviations (e.g., NYC → New York City, LA → Los Angeles)
   - `month`: full month name (e.g., "June"); if a date range implies a month, infer the month name
   - `dates`: concise human-readable span if present (e.g., "2025-06-12 to 2025-06-18" or "June 2025")
   - `travelerProfile`: short phrase like "family with kids", "solo traveler", "couple", "business"
-- `needExternal` is true when the user asks for current facts (weather now/forecast, prices, live events, visa rules); false for evergreen advice (packing lists, generic attractions without live data)
+- `needExternal` is true when the user asks for current facts (weather now/forecast, prices, live events, visa rules, flight searches); false for evergreen advice (packing lists, generic attractions without live data)
 - Set `confidence` in [0,1]; use ≤0.5 if intent is ambiguous
 - Put any required but missing items into `missingSlots`
+
+Intent Classification Rules:
+- `flights`: Direct flight searches, booking requests, flight prices, airline queries
+- `policy`: Visa requirements, immigration rules, passport info, entry requirements, travel policies
+- `web_search`: Explicit search requests, complex travel planning, multi-constraint queries, research requests
+- `system`: Questions about the AI assistant, consent responses, clarifications, app functionality
+- `destinations`: Travel destination recommendations, "where to go" questions
+- `weather`: Weather forecasts, climate information, temperature queries
+- `packing`: What to pack, clothing advice, luggage recommendations
+- `attractions`: Things to do, sightseeing, activities, tourist attractions
 
 Confidence Calibration Guidelines:
 - 0.80-1.00: Clear intent with all required slots present
@@ -31,13 +41,11 @@ Multilingual Handling:
 - For languages with different script systems (e.g., Cyrillic, Chinese), ensure accurate transliteration of city names
 - Handle mixed-language inputs by processing each language segment appropriately
 
-{instructions}
-
 User: {message}
 
 Output schema (strict JSON only):
 {
-  "intent": "destinations|packing|attractions|weather|unknown",
+  "intent": "destinations|packing|attractions|weather|flights|policy|web_search|system|unknown",
   "needExternal": true|false,
   "slots": {"city": "...", "month": "...", "dates": "...", "travelerProfile": "..."},
   "confidence": 0..1,
@@ -67,7 +75,22 @@ Input: "Best kid-friendly things in SF for late Aug?"
 Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Francisco","month":"August","dates":"late August","travelerProfile":"family with kids"},"confidence":0.8,"missingSlots":[]}
 
 Input: "Flights to Paris next weekend under $600?"
-Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.75,"missingSlots":["month"]}
+Output: {"intent":"flights","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.85,"missingSlots":["month"]}
+
+Input: "Do I need a visa for Japan?"
+Output: {"intent":"policy","needExternal":true,"slots":{"city":"Japan"},"confidence":0.9,"missingSlots":[]}
+
+Input: "Search for family-friendly destinations from NYC in summer"
+Output: {"intent":"web_search","needExternal":true,"slots":{"city":"New York City","month":"summer","travelerProfile":"family with kids"},"confidence":0.85,"missingSlots":[]}
+
+Input: "What can you help me with?"
+Output: {"intent":"system","needExternal":false,"slots":{},"confidence":0.9,"missingSlots":[]}
+
+Input: "Book me a flight from NYC to LA on Friday"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","city":"Los Angeles","dates":"Friday"},"confidence":0.9,"missingSlots":["month"]}
+
+Input: "Passport requirements for Thailand"
+Output: {"intent":"policy","needExternal":true,"slots":{"city":"Thailand"},"confidence":0.9,"missingSlots":[]}
 
 Input: "Where to go from Tel Aviv in August?"
 Output: {"intent":"destinations","needExternal":true,"slots":{"city":"Tel Aviv","month":"August","dates":"August"},"confidence":0.85,"missingSlots":[]}
