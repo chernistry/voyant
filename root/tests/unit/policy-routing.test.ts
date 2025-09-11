@@ -1,6 +1,7 @@
+import { describe, it, expect } from '@jest/globals';
 import { routeIntent } from '../../src/core/router.js';
 
-describe('Policy Routing Fix', () => {
+describe('Policy Routing', () => {
   beforeEach(() => {
     process.env.NODE_ENV = 'test';
     process.env.NER_MODE = 'local';
@@ -12,7 +13,9 @@ describe('Policy Routing Fix', () => {
   });
 
   it('should route Delta policy questions to policy intent', async () => {
-    const message = "What is the timeframe for Delta's risk-free cancellation policy and what are the key conditions?";
+    const message =
+      "What is the timeframe for Delta's risk-free cancellation policy " +
+      'and what are the key conditions?';
     const result = await routeIntent({ message });
     
     expect(result.intent).toBe('policy');
