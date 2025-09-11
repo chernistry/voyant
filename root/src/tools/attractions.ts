@@ -65,11 +65,10 @@ async function tryOpenTripMap(city: string, limit = 7, profile: 'default' | 'kid
       return { ok: false, reason: 'unknown_city' };
     }
     
-    // Use broader kinds for better NLP classification
+    // Use broader kinds for better NLP classification (only valid OpenTripMap categories)
     const baseKinds = [
       'museums','cultural','historic','architecture','monuments','castles','palaces',
-      'parks','gardens','amusements','viewpoints','bridges','towers','lighthouses',
-      'fortifications','archaeological_sites','natural','other','interesting_places'
+      'amusements','bridges','towers','lighthouses','fortifications','natural','other','interesting_places'
     ];
     const kidKinds = baseKinds.concat(['zoos', 'aquariums', 'theme_parks', 'playgrounds']);
 
