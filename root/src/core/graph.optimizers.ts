@@ -34,6 +34,7 @@ export type TurnCache = {
   ner?: Entities;
   clsContent?: { content_type: string; confidence: number };
   clsIntent?: { intent: string; confidence: number };
+  route?: { intent: string; slots: Record<string, string>; confidence: number };
   forced?: string; // For forced intent routing
 };
 
@@ -99,4 +100,37 @@ export async function routeToDomain(ctx: RuleContext): Promise<NodeOut | null> {
 // Metrics helpers
 export function incrementCounter(name: string, labels?: Record<string, string>) {
   // Placeholder for metrics - could integrate with existing metrics system
+}
+/**
+ * Lightweight city extraction using regex + proper noun detection
+ * Used for weather/attractions/packing/destinations intents only
+ */
+export async function extractCityLite(message: string, log: pino.Logger): Promise<string | undefined> {
+  // Simple regex patterns for common city mentions
+  const patterns = [
+    /(?:in|for|at|weather in|weather for)\s+([A-Z][a-zA-ZÀ-ÿ\s'-]{1,30}?)(?:\s|$|[,.!?])/i,
+    /([A-Z][a-zA-ZÀ-ÿ\s'-]{1,30}?)\s+(?:weather|today|tomorrow)/i,
+    /^([A-Z][a-zA-ZÀ-ÿ\s'-]{1,30}?)(?:\s|$|[,.!?])/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match) {
+      let city = match[1].trim();
+      
+      // Clean up common noise words
+      city = city.replace(/\b(today|tomorrow|now|weather|the)\b/gi, '').trim();
+      
+      // Reject if contains digits or is too short
+      if (/\d/.test(city) || city.length < 2) continue;
+      
+      // Basic validation - should look like a city name
+      if (/^[A-Za-zÀ-ÿ\s.'-]+$/.test(city)) {
+        log.debug({ city, pattern: pattern.source }, 'city_lite_extracted');
+        return city;
+      }
+    }
+  }
+  
+  return undefined;
 }

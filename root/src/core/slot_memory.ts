@@ -137,11 +137,39 @@ export function getLastReceipts(threadId: string): { facts?: Fact[]; decisions?:
   return { facts: s?.lastFacts, decisions: s?.lastDecisions, reply: s?.lastReply };
 }
 
-export function normalizeSlots(prior: Record<string, string>, extracted: Record<string, string>): Record<string, string> {
+export function normalizeSlots(
+  prior: Record<string, string>, 
+  extracted: Record<string, string>,
+  intent?: string
+): Record<string, string> {
+  const out = { ...prior };
+  const safe = { ...extracted };
+
+  // 1) Strip "today/now" from city/destination fields
+  for (const k of ['city', 'destinationCity', 'originCity']) {
+    if (typeof safe[k] === 'string') {
+      safe[k] = safe[k].replace(/\b(today|now)\b/gi, '').trim();
+      // Reject if contains digits or is empty after cleanup
+      if (/\d/.test(safe[k]) || !safe[k]) delete safe[k];
+    }
+  }
+
+  // 2) Don't backfill month/dates from "today"
+  if (safe.month && /today|now/i.test(safe.month)) delete safe.month;
+  if (safe.dates && /today|now/i.test(safe.dates)) delete safe.dates;
+
+  // 3) Intent-scoped writes to prevent cross-contamination
+  if (intent === 'weather') {
+    // Weather queries should not write flight-related slots
+    delete safe.originCity;
+    delete safe.destinationCity;
+    delete safe.dates; // Don't persist dates from "today"
+    delete safe.month;
+  }
+
+  // 4) Apply existing filtering logic
   const filtered: Record<string, string> = {};
-  
-  // Filter out placeholder values from extracted slots
-  for (const [key, value] of Object.entries(extracted)) {
+  for (const [key, value] of Object.entries(safe)) {
     if (typeof value === 'string' && value.trim()) {
       const v = value.toLowerCase();
       const placeholderTokens = ['unknown', 'clean_city_name', 'there', 'normalized_name'];
@@ -162,8 +190,8 @@ export function normalizeSlots(prior: Record<string, string>, extracted: Record<
       }
     }
   }
-  
-  return { ...prior, ...filtered };
+
+  return { ...out, ...filtered };
 }
 
 export function readConsentState(slots: Record<string, string>) {
