@@ -1,5 +1,5 @@
 /**
- * Unified NER facade - consolidates transformers-nlp.ts and tools/ner.ts
+ * Unified NER facade - consolidates transformers-nlp.ts and deprecated tools/ner.ts
  * 
  * Strategy selection:
  * - NER_MODE=local: Use @huggingface/transformers pipeline
