@@ -137,4 +137,67 @@ export function getLastReceipts(threadId: string): { facts?: Fact[]; decisions?:
   return { facts: s?.lastFacts, decisions: s?.lastDecisions, reply: s?.lastReply };
 }
 
+export function normalizeSlots(prior: Record<string, string>, extracted: Record<string, string>): Record<string, string> {
+  const filtered: Record<string, string> = {};
+  
+  // Filter out placeholder values from extracted slots
+  for (const [key, value] of Object.entries(extracted)) {
+    if (typeof value === 'string' && value.trim()) {
+      const v = value.toLowerCase();
+      const placeholderTokens = ['unknown', 'clean_city_name', 'there', 'normalized_name'];
+      const datePlaceholders = ['unknown', 'next week', 'normalized_date_string', 'month_name'];
+      
+      if (key === 'city') {
+        if (placeholderTokens.includes(v)) continue;
+        const looksProper = /^[A-Z][A-Za-z\- ]+$/.test(value);
+        const genericWords = ['city', 'destination', 'place'];
+        const containsGeneric = genericWords.some(w => v.includes(w));
+        if (!looksProper || containsGeneric) continue;
+        filtered[key] = value;
+        continue;
+      }
+      
+      if (!datePlaceholders.includes(v)) {
+        filtered[key] = value;
+      }
+    }
+  }
+  
+  return { ...prior, ...filtered };
+}
+
+export function readConsentState(slots: Record<string, string>) {
+  return {
+    awaiting: !!(slots.awaiting_search_consent === 'true' || slots.awaiting_deep_research_consent === 'true' || slots.awaiting_web_search_consent === 'true'),
+    type: slots.awaiting_search_consent === 'true' ? 'web' : 
+          slots.awaiting_deep_research_consent === 'true' ? 'deep' : 
+          slots.awaiting_web_search_consent === 'true' ? 'web_after_rag' : '',
+    pending: slots.pending_search_query || slots.pending_deep_research_query || slots.pending_web_search_query || ''
+  };
+}
+
+export function writeConsentState(threadId: string, next: { type: 'web' | 'deep' | 'web_after_rag' | '', pending: string }) {
+  const updates: Record<string, string> = {
+    awaiting_search_consent: '',
+    pending_search_query: '',
+    awaiting_deep_research_consent: '',
+    pending_deep_research_query: '',
+    awaiting_web_search_consent: '',
+    pending_web_search_query: ''
+  };
+  
+  if (next.type === 'web') {
+    updates.awaiting_search_consent = 'true';
+    updates.pending_search_query = next.pending;
+  } else if (next.type === 'deep') {
+    updates.awaiting_deep_research_consent = 'true';
+    updates.pending_deep_research_query = next.pending;
+  } else if (next.type === 'web_after_rag') {
+    updates.awaiting_web_search_consent = 'true';
+    updates.pending_web_search_query = next.pending;
+  }
+  
+  updateThreadSlots(threadId, updates, []);
+}
+
 
