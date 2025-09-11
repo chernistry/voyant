@@ -1,4 +1,60 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+
+jest.mock('tavily', () => ({
+  TavilyClient: jest.fn(() => ({
+    search: jest.fn().mockResolvedValue({
+      results: [
+        {
+          url: 'https://example.com',
+          content: 'Mocked search result for tavily.',
+          title: 'Mock Title',
+        },
+      ],
+    }),
+  })),
+}));
+
+jest.mock('tavily', () => ({
+  TavilyClient: jest.fn().mockImplementation(() => ({
+    search: jest.fn().mockResolvedValue({
+      results: [
+        {
+          url: 'https://example.com',
+          content: 'Mocked search result for tavily.',
+          title: 'Mock Title',
+        },
+      ],
+    }),
+  })),
+}));
+
+jest.mock('tavily', () => ({
+  TavilyClient: jest.fn().mockImplementation(() => ({
+    search: jest.fn().mockResolvedValue({
+      results: [
+        {
+          url: 'https://example.com',
+          content: 'Mocked search result for tavily.',
+          title: 'Mock Title',
+        },
+      ],
+    }),
+  })),
+}));
+
+jest.mock('tavily', () => ({
+  TavilyClient: jest.fn().mockImplementation(() => ({
+    search: jest.fn().mockResolvedValue({
+      results: [
+        {
+          url: 'https://example.com',
+          content: 'Mocked search result for tavily.',
+          title: 'Mock Title',
+        },
+      ],
+    }),
+  })),
+}));
 import { configureNock, createTestApp, createRecorderIfEnabled, makeRequest, recordedRequest, TranscriptRecorder, nock } from './_setup.js';
 import { expectLLMEvaluation } from '../../src/test/llm-evaluator.js';
 import express from 'express';

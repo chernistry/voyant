@@ -73,9 +73,11 @@ describe('Flight Search Integration', () => {
 
     const result = await runGraphTurn(
       'Find flights from New York to Miami on June 15th',
-      'test-thread-123'
+      'test-thread-123',
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(result).toHaveProperty('done', true);
     expect(result.reply).toContain('Found 2 one-way flights');
     expect(result.reply).toContain('New York to Miami');
     expect(result.reply).toContain('June 15');
@@ -122,9 +124,11 @@ describe('Flight Search Integration', () => {
 
     const result = await runGraphTurn(
       'I need 2 business class flights from Los Angeles to London on July 20th',
-      'test-thread-456'
+      'test-thread-456',
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(result).toHaveProperty('done', true);
     expect(result.reply).toContain('Found 1 one-way flights');
     expect(result.reply).toContain('Los Angeles to London');
     expect(result.reply).toContain('July 20');
@@ -163,9 +167,11 @@ describe('Flight Search Integration', () => {
 
     const result = await runGraphTurn(
       'Round trip flights from San Francisco to Seattle, departing August 10 returning August 17',
-      'test-thread-789'
+      'test-thread-789',
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(result).toHaveProperty('done', true);
     expect(result.reply).toContain('round-trip flights');
     expect(result.reply).toContain('San Francisco to Seattle');
     expect(result.reply).toContain('August 10');
@@ -178,10 +184,11 @@ describe('Flight Search Integration', () => {
 
     const result = await runGraphTurn(
       'Find flights from Boston to Chicago tomorrow',
-      'test-thread-error'
+      'test-thread-error',
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
-    // Should fallback to blend with facts
+    expect(result).toHaveProperty('done', true);
     expect(result.reply).toBeTruthy();
     expect(result.reply.length).toBeGreaterThan(0);
   });
@@ -197,9 +204,11 @@ describe('Flight Search Integration', () => {
 
     const result = await runGraphTurn(
       'Flights from Anchorage to Honolulu on December 25th',
-      'test-thread-empty'
+      'test-thread-empty',
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(result).toHaveProperty('done', true);
     // Should fallback to blend with facts when no flights found
     expect(result.reply).toBeTruthy();
     expect(result.reply.length).toBeGreaterThan(0);
@@ -240,9 +249,11 @@ describe('Flight Search Integration', () => {
 
     const firstResult = await runGraphTurn(
       'Flights from Denver to Phoenix on September 1st',
-      threadId
+      threadId,
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(firstResult).toHaveProperty('done', true);
     expect(firstResult.reply).toContain('Denver to Phoenix');
 
     // Second query should use context
@@ -277,9 +288,11 @@ describe('Flight Search Integration', () => {
 
     const secondResult = await runGraphTurn(
       'What about flights to Las Vegas the next day?',
-      threadId
+      threadId,
+      { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
     );
 
+    expect(secondResult).toHaveProperty('done', true);
     expect(secondResult.reply).toContain('Las Vegas');
   });
 });

@@ -8,9 +8,14 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', { useESM: true }],
+    '^.+\\.(js|jsx|mjs|cjs)$': ['babel-jest', { presets: ['@babel/preset-env'] }]
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!tavily/)(?!ky/)'
+  ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^tavily$': '<rootDir>/tests/__mocks__/tavily.js'
   },
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.ts'],

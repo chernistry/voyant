@@ -124,7 +124,7 @@ describe('Brave Search Adapter', () => {
   });
 
   describe('extractCountryFromResults', () => {
-    test('extracts country information from results', () => {
+    test('extracts country information from results', async () => {
       const results = [
         {
           title: 'Japan Travel Information',
@@ -139,7 +139,7 @@ describe('Brave Search Adapter', () => {
       expect(country).toContain('travel');
     });
 
-    test('returns null when no country info found', () => {
+    test('returns null when no country info found', async () => {
       const results = [
         {
           title: 'Random Article',

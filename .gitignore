@@ -13,3 +13,4 @@ package-lock.json
 *debug*
 root/dist/*
 *deprecated*
+root/coverage/*
