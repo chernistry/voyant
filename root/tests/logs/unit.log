@@ -1,0 +1,846 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:unit
+
+> voyant-travel-assistant@1.0.0 test:unit
+> jest --runInBand --config jest.config.cjs --testPathPattern=tests/unit/
+
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ FAIL  tests/unit/amadeus_flights.test.ts
+  ● Test suite failed to run
+
+    tests/unit/amadeus_flights.test.ts:31:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    31         expect(result.reason).toBe('missing_required_fields');
+                             ~~~~~~
+    tests/unit/amadeus_flights.test.ts:147:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    147         expect(result.reason).toBe('timeout');
+                              ~~~~~~
+    tests/unit/amadeus_flights.test.ts:168:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    168         expect(result.reason).toBe('no_flights_found');
+                              ~~~~~~
+
+{"level":20,"time":1757576246421,"pid":83358,"hostname":"sicksadmbp","target":"test-service","attempt":1,"maxAttempts":1,"url":"https://api.test-service-cb1.com/test","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576246443,"pid":83358,"hostname":"sicksadmbp","target":"test-service","status":500,"statusText":"Internal Server Error","msg":"📡 API response received"}
+{"level":20,"time":1757576246443,"pid":83358,"hostname":"sicksadmbp","target":"test-service","status":500,"statusText":"Internal Server Error","msg":"❌ HTTP error response"}
+{"level":20,"time":1757576246445,"pid":83358,"hostname":"sicksadmbp","target":"test-service","errorText":"Server Error","msg":"📄 Error response body"}
+{"level":20,"time":1757576246447,"pid":83358,"hostname":"sicksadmbp","target":"test-service","msg":"🔌 Circuit breaker is open"}
+{"level":20,"time":1757576246620,"pid":83358,"hostname":"sicksadmbp","target":"test-service","msg":"🔌 Circuit breaker is open"}
+{"level":20,"time":1757576246629,"pid":83358,"hostname":"sicksadmbp","target":"stats-test","attempt":1,"maxAttempts":1,"url":"https://api.stats-test-cb2.com/success","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576246632,"pid":83358,"hostname":"sicksadmbp","target":"stats-test","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757576246636,"pid":83358,"hostname":"sicksadmbp","target":"stats-test","responseSize":18,"duration":13,"msg":"✅ API request successful"}
+{"level":20,"time":1757576246643,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","attempt":1,"maxAttempts":1,"url":"https://api.rate-test-rl1.com/test","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576246645,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757576246649,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","responseSize":15,"duration":12,"msg":"✅ API request successful"}
+{"level":20,"time":1757576247143,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","attempt":1,"maxAttempts":1,"url":"https://api.rate-test-rl1.com/test","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576247147,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757576247151,"pid":83358,"hostname":"sicksadmbp","target":"rate-test","responseSize":15,"duration":513,"msg":"✅ API request successful"}
+{"level":20,"time":1757576247163,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","attempt":1,"maxAttempts":1,"url":"https://api.integration-test-int1.com/fail","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576247166,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","status":500,"statusText":"Internal Server Error","msg":"📡 API response received"}
+{"level":20,"time":1757576247166,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","status":500,"statusText":"Internal Server Error","msg":"❌ HTTP error response"}
+{"level":20,"time":1757576247167,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","errorText":"Server Error","msg":"📄 Error response body"}
+{"level":20,"time":1757576247169,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","msg":"🔌 Circuit breaker is open"}
+ FAIL  tests/unit/circuit-breaker-rate-limit.test.ts
+  ● Circuit Breaker and Rate Limiting › Integration › should preserve existing retry behavior
+
+    circuit_open
+
+      202 |         log.debug({ target }, '🔌 Circuit breaker is open');
+      203 |         observeExternal({ target, status: 'breaker_open' }, duration);
+    > 204 |         throw new ExternalFetchError('network', 'circuit_open');
+          |               ^
+      205 |       }
+      206 |       
+      207 |       if (err instanceof ExternalFetchError) {
+
+      at fetchJSON (src/util/fetch.ts:204:15)
+      at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:158:22)
+
+  ● Circuit Breaker and Rate Limiting › Integration › should not retry 4xx errors except 429
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "HTTP_404"
+    Received message:   "circuit_open"
+
+          202 |         log.debug({ target }, '🔌 Circuit breaker is open');
+          203 |         observeExternal({ target, status: 'breaker_open' }, duration);
+        > 204 |         throw new ExternalFetchError('network', 'circuit_open');
+              |               ^
+          205 |       }
+          206 |       
+          207 |       if (err instanceof ExternalFetchError) {
+
+          at fetchJSON (src/util/fetch.ts:204:15)
+          at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:177:7)
+
+      178 |         target: 'no-retry-test',
+      179 |         retries: 2 
+    > 180 |       })).rejects.toThrow('HTTP_404');
+          |                   ^
+      181 |     });
+      182 |   });
+      183 | });
+
+      at Object.toThrow (node_modules/@jest/expect/node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:180:19)
+
+{"level":20,"time":1757576247276,"pid":83358,"hostname":"sicksadmbp","target":"integration-test","msg":"🔌 Circuit breaker is open"}
+{"level":20,"time":1757576247283,"pid":83358,"hostname":"sicksadmbp","target":"retry-test","attempt":1,"maxAttempts":2,"url":"https://api.retry-test-int2.com/retry","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576247286,"pid":83358,"hostname":"sicksadmbp","target":"retry-test","status":500,"statusText":"Internal Server Error","msg":"📡 API response received"}
+{"level":20,"time":1757576247286,"pid":83358,"hostname":"sicksadmbp","target":"retry-test","status":500,"statusText":"Internal Server Error","msg":"❌ HTTP error response"}
+{"level":20,"time":1757576247289,"pid":83358,"hostname":"sicksadmbp","target":"retry-test","errorText":"Server Error","msg":"📄 Error response body"}
+{"level":20,"time":1757576247290,"pid":83358,"hostname":"sicksadmbp","target":"retry-test","msg":"🔌 Circuit breaker is open"}
+{"level":20,"time":1757576247296,"pid":83358,"hostname":"sicksadmbp","target":"no-retry-test","attempt":1,"maxAttempts":3,"url":"https://api.no-retry-test-int3.com/notfound","msg":"🌐 API request attempt"}
+{"level":20,"time":1757576247299,"pid":83358,"hostname":"sicksadmbp","target":"no-retry-test","status":404,"statusText":"Not Found","msg":"📡 API response received"}
+{"level":20,"time":1757576247299,"pid":83358,"hostname":"sicksadmbp","target":"no-retry-test","status":404,"statusText":"Not Found","msg":"❌ HTTP error response"}
+{"level":20,"time":1757576247301,"pid":83358,"hostname":"sicksadmbp","target":"no-retry-test","errorText":"Not Found","msg":"📄 Error response body"}
+{"level":20,"time":1757576247302,"pid":83358,"hostname":"sicksadmbp","target":"no-retry-test","msg":"🔌 Circuit breaker is open"}
+ PASS  tests/unit/circuit-breaker.test.ts (7.505 s)
+ PASS  tests/unit/constraintGraph.test.ts
+ PASS  tests/unit/content.classification.test.ts
+ FAIL  tests/unit/country-nlp-detection.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    /Users/sasha/IdeaProjects/navan/root/tests/__mocks__/tavily.js:14
+    export { TavilyClient };
+    ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    > 1 | import { TavilyClient } from 'tavily';
+        | ^
+      2 | import { deepResearchPages } from './crawlee_research.js';
+      3 | import { CircuitBreaker } from '../core/circuit-breaker.js';
+      4 | import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1505:14)
+      at Object.<anonymous> (src/tools/tavily_search.ts:1:1)
+      at Object.<anonymous> (src/tools/search.ts:2:1)
+      at Object.<anonymous> (src/tools/country.ts:2:1)
+      at Object.<anonymous> (tests/unit/country-nlp-detection.test.ts:1:1)
+
+ PASS  tests/unit/crawlee.engine.test.ts
+ PASS  tests/unit/crawlee.fallback.test.ts
+ PASS  tests/unit/deep_research.test.ts
+ FAIL  tests/unit/destinations-nlp.test.ts (87.477 s)
+  ● Console
+
+    console.log
+      🔧 Transformers.js configured for offline mode: {
+        localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+        allowRemoteModels: false
+      }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+  ● AI-Powered Destinations Filtering › AI Cascade: NLP→LLM→Fallback › should show AI failure for unclear input
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "failed"
+    Received: "llm"
+
+      24 |       const result = await extractTravelPreferences('programming code javascript');
+      25 |       
+    > 26 |       expect(result.aiMethod).toBe('failed');
+         |                               ^
+      27 |       expect(result.budgetLevel).toBe('mid');
+      28 |       expect(result.confidence).toBeLessThan(0.5);
+      29 |     });
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:26:31)
+
+  ● AI-Powered Destinations Filtering › AI Cascade: NLP→LLM→Fallback › should handle cultural preferences via AI
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "museums"
+    Received: "museums|art galleries|history"
+
+      51 |       
+      52 |       expect(['nlp', 'llm']).toContain(result.aiMethod);
+    > 53 |       expect(result.activityType).toBe('museums');
+         |                                   ^
+      54 |       expect(result.confidence).toBeGreaterThanOrEqual(0.4);
+      55 |     });
+      56 |
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:53:35)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should prioritize family destinations when AI detects family travel
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      82 |       });
+      83 |       
+    > 84 |       expect(result).toHaveLength(4);
+         |                      ^
+      85 |       const cities = result.map(r => r.value.city);
+      86 |       expect(cities.some(city => 
+      87 |         ['Amsterdam', 'Barcelona', 'Vienna', 'Copenhagen'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:84:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle romantic preferences with AI understanding
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+       95 |       });
+       96 |       
+    >  97 |       expect(result).toHaveLength(4);
+          |                      ^
+       98 |       const cities = result.map(r => r.value.city);
+       99 |       expect(cities.some(city => 
+      100 |         ['Paris', 'Florence', 'Vienna', 'Prague'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:97:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle budget preferences via AI
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      108 |       });
+      109 |       
+    > 110 |       expect(result).toHaveLength(4);
+          |                      ^
+      111 |       result.forEach(dest => {
+      112 |         expect(['low', 'mid'].includes(dest.value.tags.budget)).toBe(true);
+      113 |       });
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:110:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle cultural preferences with AI semantic understanding
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      120 |       });
+      121 |       
+    > 122 |       expect(result).toHaveLength(4);
+          |                      ^
+      123 |       const cities = result.map(r => r.value.city);
+      124 |       expect(cities.some(city => 
+      125 |         ['Paris', 'Rome', 'Florence', 'Vienna', 'Berlin'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:122:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should gracefully handle AI failure
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      133 |       });
+      134 |       
+    > 135 |       expect(result).toHaveLength(4);
+          |                      ^
+      136 |       expect(result.every(r => r.source.includes('Catalog'))).toBe(true);
+      137 |     });
+      138 |
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:135:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should maintain month filtering with AI enhancement
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      143 |       });
+      144 |       
+    > 145 |       expect(result.length).toBeGreaterThan(0);
+          |                             ^
+      146 |       expect(result.length).toBeLessThanOrEqual(4);
+      147 |       result.forEach(dest => {
+      148 |         // Skip months check - catalog doesn't have months field
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:145:29)
+
+ FAIL  tests/unit/flight_intent_basic.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ PASS  tests/unit/location-context-retention.test.ts (8.586 s)
+  ● Console
+
+    console.log
+      🔧 Transformers.js configured for offline mode: {
+        localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+        allowRemoteModels: false
+      }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+ FAIL  tests/unit/ner.facade.test.ts
+  ● Test suite failed to run
+
+    TypeError: Cannot set properties of undefined (setting 'allowRemoteModels')
+
+       5 |
+       6 | // Configure immediately on import
+    >  7 | env.allowRemoteModels = false;
+         |                      ^
+       8 | env.allowLocalModels = true;
+       9 | env.useFS = true;
+      10 | env.useFSCache = true;
+
+      at Object.<anonymous> (src/core/transformers-env.ts:7:22)
+      at Object.<anonymous> (src/core/ner.ts:15:1)
+      at Object.<anonymous> (tests/unit/ner.facade.test.ts:11:1)
+
+ PASS  tests/unit/nlp_wrappers.test.ts
+  ● Console
+
+    console.log
+      🔧 Transformers.js configured for offline mode: {
+        localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+        allowRemoteModels: false
+      }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+ PASS  tests/unit/parsers-nlp-first.test.ts
+  ● Console
+
+    console.log
+      🔧 Transformers.js configured for offline mode: {
+        localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+        allowRemoteModels: false
+      }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+ PASS  tests/unit/parsers.od.test.ts
+ FAIL  tests/unit/policy-routing.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ PASS  tests/unit/policy.receipts.test.ts
+ PASS  tests/unit/rate-limiter.test.ts
+ FAIL  tests/unit/router-context-destinations.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ FAIL  tests/unit/router.cascade.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ PASS  tests/unit/test-jest-config.test.ts
+ FAIL  tests/unit/transformers-nlp.test.ts
+  ● Test suite failed to run
+
+    tests/unit/transformers-nlp.test.ts:3:33 - error TS2307: Cannot find module '../../src/core/transformers-corrector.js' or its corresponding type declarations.
+
+    3 import { correctSpelling } from '../../src/core/transformers-corrector.js';
+                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:197:21 - error TS2339: Property 'corrected_text' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    197       expect(result.corrected_text).toBe('weather in berlin for packing');
+                            ~~~~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:198:21 - error TS2339: Property 'corrections' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    198       expect(result.corrections.length).toBeGreaterThan(0);
+                            ~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:263:25 - error TS2339: Property 'corrected_text' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    263           expect(result.corrected_text).toBe(testCase.expected.corrected);
+                                ~~~~~~~~~~~~~~
+
+ PASS  tests/unit/vectara.client.test.ts
+
+Summary of all failing tests
+ FAIL  tests/unit/amadeus_flights.test.ts
+  ● Test suite failed to run
+
+    tests/unit/amadeus_flights.test.ts:31:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    31         expect(result.reason).toBe('missing_required_fields');
+                             ~~~~~~
+    tests/unit/amadeus_flights.test.ts:147:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    147         expect(result.reason).toBe('timeout');
+                              ~~~~~~
+    tests/unit/amadeus_flights.test.ts:168:23 - error TS2339: Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Property 'reason' does not exist on type '{ ok: true; summary: string; source: string; }'.
+
+    168         expect(result.reason).toBe('no_flights_found');
+                              ~~~~~~
+
+ FAIL  tests/unit/circuit-breaker-rate-limit.test.ts
+  ● Circuit Breaker and Rate Limiting › Integration › should preserve existing retry behavior
+
+    circuit_open
+
+      202 |         log.debug({ target }, '�� Circuit breaker is open');
+      203 |         observeExternal({ target, status: 'breaker_open' }, duration);
+    > 204 |         throw new ExternalFetchError('network', 'circuit_open');
+          |               ^
+      205 |       }
+      206 |       
+      207 |       if (err instanceof ExternalFetchError) {
+
+      at fetchJSON (src/util/fetch.ts:204:15)
+      at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:158:22)
+
+  ● Circuit Breaker and Rate Limiting › Integration › should not retry 4xx errors except 429
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "HTTP_404"
+    Received message:   "circuit_open"
+
+          202 |         log.debug({ target }, '�� Circuit breaker is open');
+          203 |         observeExternal({ target, status: 'breaker_open' }, duration);
+        > 204 |         throw new ExternalFetchError('network', 'circuit_open');
+              |               ^
+          205 |       }
+          206 |       
+          207 |       if (err instanceof ExternalFetchError) {
+
+          at fetchJSON (src/util/fetch.ts:204:15)
+          at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:177:7)
+
+      178 |         target: 'no-retry-test',
+      179 |         retries: 2 
+    > 180 |       })).rejects.toThrow('HTTP_404');
+          |                   ^
+      181 |     });
+      182 |   });
+      183 | });
+
+      at Object.toThrow (node_modules/@jest/expect/node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (tests/unit/circuit-breaker-rate-limit.test.ts:180:19)
+
+ FAIL  tests/unit/country-nlp-detection.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    /Users/sasha/IdeaProjects/navan/root/tests/__mocks__/tavily.js:14
+    export { TavilyClient };
+    ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    > 1 | import { TavilyClient } from 'tavily';
+        | ^
+      2 | import { deepResearchPages } from './crawlee_research.js';
+      3 | import { CircuitBreaker } from '../core/circuit-breaker.js';
+      4 | import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1505:14)
+      at Object.<anonymous> (src/tools/tavily_search.ts:1:1)
+      at Object.<anonymous> (src/tools/search.ts:2:1)
+      at Object.<anonymous> (src/tools/country.ts:2:1)
+      at Object.<anonymous> (tests/unit/country-nlp-detection.test.ts:1:1)
+
+ FAIL  tests/unit/destinations-nlp.test.ts (87.477 s)
+  ● AI-Powered Destinations Filtering › AI Cascade: NLP→LLM→Fallback › should show AI failure for unclear input
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "failed"
+    Received: "llm"
+
+      24 |       const result = await extractTravelPreferences('programming code javascript');
+      25 |       
+    > 26 |       expect(result.aiMethod).toBe('failed');
+         |                               ^
+      27 |       expect(result.budgetLevel).toBe('mid');
+      28 |       expect(result.confidence).toBeLessThan(0.5);
+      29 |     });
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:26:31)
+
+  ● AI-Powered Destinations Filtering › AI Cascade: NLP→LLM→Fallback › should handle cultural preferences via AI
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "museums"
+    Received: "museums|art galleries|history"
+
+      51 |       
+      52 |       expect(['nlp', 'llm']).toContain(result.aiMethod);
+    > 53 |       expect(result.activityType).toBe('museums');
+         |                                   ^
+      54 |       expect(result.confidence).toBeGreaterThanOrEqual(0.4);
+      55 |     });
+      56 |
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:53:35)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should prioritize family destinations when AI detects family travel
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      82 |       });
+      83 |       
+    > 84 |       expect(result).toHaveLength(4);
+         |                      ^
+      85 |       const cities = result.map(r => r.value.city);
+      86 |       expect(cities.some(city => 
+      87 |         ['Amsterdam', 'Barcelona', 'Vienna', 'Copenhagen'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:84:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle romantic preferences with AI understanding
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+       95 |       });
+       96 |       
+    >  97 |       expect(result).toHaveLength(4);
+          |                      ^
+       98 |       const cities = result.map(r => r.value.city);
+       99 |       expect(cities.some(city => 
+      100 |         ['Paris', 'Florence', 'Vienna', 'Prague'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:97:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle budget preferences via AI
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      108 |       });
+      109 |       
+    > 110 |       expect(result).toHaveLength(4);
+          |                      ^
+      111 |       result.forEach(dest => {
+      112 |         expect(['low', 'mid'].includes(dest.value.tags.budget)).toBe(true);
+      113 |       });
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:110:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should handle cultural preferences with AI semantic understanding
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      120 |       });
+      121 |       
+    > 122 |       expect(result).toHaveLength(4);
+          |                      ^
+      123 |       const cities = result.map(r => r.value.city);
+      124 |       expect(cities.some(city => 
+      125 |         ['Paris', 'Rome', 'Florence', 'Vienna', 'Berlin'].includes(city)
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:122:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should gracefully handle AI failure
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 0
+    Received array:  []
+
+      133 |       });
+      134 |       
+    > 135 |       expect(result).toHaveLength(4);
+          |                      ^
+      136 |       expect(result.every(r => r.source.includes('Catalog'))).toBe(true);
+      137 |     });
+      138 |
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:135:22)
+
+  ● AI-Powered Destinations Filtering › AI-Enhanced Destination Recommendations › should maintain month filtering with AI enhancement
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      143 |       });
+      144 |       
+    > 145 |       expect(result.length).toBeGreaterThan(0);
+          |                             ^
+      146 |       expect(result.length).toBeLessThanOrEqual(4);
+      147 |       result.forEach(dest => {
+      148 |         // Skip months check - catalog doesn't have months field
+
+      at Object.<anonymous> (tests/unit/destinations-nlp.test.ts:145:29)
+
+ FAIL  tests/unit/flight_intent_basic.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ FAIL  tests/unit/ner.facade.test.ts
+  ● Test suite failed to run
+
+    TypeError: Cannot set properties of undefined (setting 'allowRemoteModels')
+
+       5 |
+       6 | // Configure immediately on import
+    >  7 | env.allowRemoteModels = false;
+         |                      ^
+       8 | env.allowLocalModels = true;
+       9 | env.useFS = true;
+      10 | env.useFSCache = true;
+
+      at Object.<anonymous> (src/core/transformers-env.ts:7:22)
+      at Object.<anonymous> (src/core/ner.ts:15:1)
+      at Object.<anonymous> (tests/unit/ner.facade.test.ts:11:1)
+
+ FAIL  tests/unit/policy-routing.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ FAIL  tests/unit/router-context-destinations.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ FAIL  tests/unit/router.cascade.test.ts
+  ● Test suite failed to run
+
+    src/core/router.ts:1074:5 - error TS2322: Type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' is not assignable to type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+      Property 'isComplex' is optional in type '{ confidence?: number; reasoning?: string; isComplex?: boolean; }' but required in type '{ isComplex: boolean; confidence: number; reasoning: string; }'.
+
+    1074     return result;
+             ~~~~~~
+
+ FAIL  tests/unit/transformers-nlp.test.ts
+  ● Test suite failed to run
+
+    tests/unit/transformers-nlp.test.ts:3:33 - error TS2307: Cannot find module '../../src/core/transformers-corrector.js' or its corresponding type declarations.
+
+    3 import { correctSpelling } from '../../src/core/transformers-corrector.js';
+                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:197:21 - error TS2339: Property 'corrected_text' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    197       expect(result.corrected_text).toBe('weather in berlin for packing');
+                            ~~~~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:198:21 - error TS2339: Property 'corrections' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    198       expect(result.corrections.length).toBeGreaterThan(0);
+                            ~~~~~~~~~~~
+    tests/unit/transformers-nlp.test.ts:263:25 - error TS2339: Property 'corrected_text' does not exist on type '{ confidence?: number; entities?: { text?: string; entity_group?: string; score?: number; }[]; content_classification?: { content_type?: "travel" | "system" | "refinement" | "unrelated" | "budget"; confidence?: number; intent?: "weather" | ... 2 more ... | "destinations"; }; intent_classification?: { ...; }; languag...'.
+
+    263           expect(result.corrected_text).toBe(testCase.expected.corrected);
+                                ~~~~~~~~~~~~~~
+
+
+Test Suites: 10 failed, 14 passed, 24 total
+Tests:       10 failed, 73 passed, 83 total
+Snapshots:   0 total
+Time:        115.565 s
+Ran all test suites matching /tests\/unit\//i.
+
+Jest has detected the following 6 open handles potentially keeping Jest from exiting:
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.query (src/tools/vectara.ts:122:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:64:35)
+
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.query (src/tools/vectara.ts:122:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:88:20)
+
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.query (src/tools/vectara.ts:122:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:98:16)
+
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.index (src/tools/vectara.ts:203:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:110:35)
+
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.index (src/tools/vectara.ts:203:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:132:16)
+
+
+  ●  Timeout
+
+      52 |         fn(),
+      53 |         new Promise<never>((_, reject) =>
+    > 54 |           setTimeout(() => reject(new Error('Circuit breaker timeout')), this.config.timeout)
+         |           ^
+      55 |         )
+      56 |       ]);
+      57 |
+
+      at src/core/circuit-breaker.ts:54:11
+      at CircuitBreaker.execute (src/core/circuit-breaker.ts:53:9)
+      at VectaraClient.query (src/tools/vectara.ts:122:52)
+      at Object.<anonymous> (tests/unit/vectara.client.test.ts:151:20)
+
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ 

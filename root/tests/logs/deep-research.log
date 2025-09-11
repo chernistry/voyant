@@ -1,0 +1,58 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:e2e:deep-research
+
+
+> voyant-travel-assistant@1.0.0 test:e2e:deep-research
+> jest --runInBand --testPathPattern=tests/e2e/deep_research_consent_flow.test.ts
+
+  console.log
+    🔧 Transformers.js configured for offline mode: {
+      localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+      allowRemoteModels: false
+    }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+ FAIL  tests/e2e/deep_research_consent_flow.test.ts (62.592 s)
+  E2E-Graph: Consent Flow - Deep Research
+    ✕ deep_research_consent_complex_query_detection (60002 ms)
+
+  ● E2E-Graph: Consent Flow - Deep Research › deep_research_consent_complex_query_detection
+
+    thrown: "Exceeded timeout of 60000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      30 |   });
+      31 |
+    > 32 |   test('deep_research_consent_complex_query_detection', async () => {
+         |   ^
+      33 |     // Enable deep research for this test
+      34 |     process.env.DEEP_RESEARCH_ENABLED = 'true';
+      35 |     
+
+      at tests/e2e/deep_research_consent_flow.test.ts:32:3
+      at Object.<anonymous> (tests/e2e/deep_research_consent_flow.test.ts:25:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        62.794 s
+Ran all test suites matching /tests\/e2e\/deep_research_consent_flow.test.ts/i.
+
+Jest has detected the following 1 open handle potentially keeping Jest from exiting:
+
+  ●  TCPSERVERWRAP
+
+      36 |     const complexQuery = 'comprehensive travel plan for 3-week Europe trip with kids';
+      37 |     const response1 = await request(app)
+    > 38 |       .post('/chat')
+         |        ^
+      39 |       .send({ message: complexQuery, threadId });
+      40 |
+      41 |     expect(response1.status).toBe(200);
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:63:35)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:39:18)
+      at Object.<anonymous> (tests/e2e/deep_research_consent_flow.test.ts:38:8)
+
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ 

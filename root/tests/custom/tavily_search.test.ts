@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { searchTravelInfo } from '../src/tools/search.js';
+import { searchTravelInfo } from '../../src/tools/search.js';
 
 describe('Tavily Search Adapter', () => {
   beforeEach(() => {

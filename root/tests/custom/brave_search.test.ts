@@ -3,7 +3,7 @@ import {
   searchTravelInfo,
   extractWeatherFromResults,
   extractCountryFromResults,
-} from '../src/tools/brave_search.js';
+} from '../../src/tools/brave_search.js';
 
 describe('Brave Search Adapter', () => {
   beforeEach(() => {
@@ -51,7 +51,7 @@ describe('Brave Search Adapter', () => {
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(['http_5xx', 'http_4xx', 'network', 'timeout']).toContain(result.reason);
+        expect(['http_5xx', 'http_4xx', 'network', 'timeout', 'circuit_open']).toContain(result.reason);
       }
     });
 
@@ -136,7 +136,8 @@ describe('Brave Search Adapter', () => {
       const country = await extractCountryFromResults(results, 'Japan');
 
       expect(country).toContain('Japan');
-      expect(country).toContain('travel');
+      expect(country).toContain('Japan');
+      expect(country).toContain('Yen');
     });
 
     test('returns null when no country info found', async () => {

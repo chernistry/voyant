@@ -1,5 +1,5 @@
-import { handleChat } from '../src/core/blend.js';
-import { getContext, pushMessage } from '../src/core/memory.js';
+import { handleChat } from '../../src/core/blend.js';
+import { getContext, pushMessage } from '../../src/core/memory.js';
 import pino from 'pino';
 
 const log = pino({ level: 'silent' });

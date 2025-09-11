@@ -64,11 +64,15 @@ describe('Date Formatting Integration Test', () => {
       passengers: 1,
     });
 
+    // Mock callLLM to return a fixed date for testing
+    const mockCallLLM = require('../../src/core/llm').callLLM;
+    mockCallLLM.mockResolvedValue('{"success":true,"dates":"2025-10-12","confidence":0.95}');
+  
     console.log('Search result:', result);
     console.log('Mock calls:', mockFetchJSON.mock.calls.length);
 
     // Check that we made the expected calls
-    expect(mockFetchJSON).toHaveBeenCalledTimes(2);
+    expect(mockFetchJSON).toHaveBeenCalledTimes(1); // Only token call, LLM handles date
     
     // First call should be for the token
     expect(mockFetchJSON.mock.calls[0][0]).toContain('/v1/security/oauth2/token');

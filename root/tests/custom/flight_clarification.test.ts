@@ -1,5 +1,5 @@
-import { routeIntent } from '../src/core/router.js';
-import { updateThreadSlots, getThreadSlots } from '../src/core/slot_memory.js';
+import { routeIntent } from '../../src/core/router.js';
+import { updateThreadSlots, getThreadSlots } from '../../src/core/slot_memory.js';
 
 describe('Flight Query Complexity and Clarification', () => {
   beforeEach(() => {

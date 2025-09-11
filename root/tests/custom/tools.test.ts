@@ -1,6 +1,6 @@
-import { getWeather } from '../src/tools/weather.js';
-import { getCountryFacts } from '../src/tools/country.js';
-import { getAttractions } from '../src/tools/attractions.js';
+import { getWeather } from '../../src/tools/weather.js';
+import { getCountryFacts } from '../../src/tools/country.js';
+import { getAttractions } from '../../src/tools/attractions.js';
 
 describe('Tools Layer', () => {
   describe('Weather Tool', () => {

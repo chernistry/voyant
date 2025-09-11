@@ -1,4 +1,4 @@
-import { blendWithFacts } from '../src/core/blend.js';
+import { blendWithFacts } from '../../src/core/blend.js';
 import pino from 'pino';
 
 const log = pino({ level: 'silent' });

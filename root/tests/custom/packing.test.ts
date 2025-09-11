@@ -12,7 +12,7 @@ jest.mock('../src/tools/attractions.js', () => ({
 
 describe('Packing suggestions integration', () => {
   test('includes packing list when weather fetched and intent is packing', async () => {
-    const { blendWithFacts } = await import('../src/core/blend.js');
+    const { blendWithFacts } = await import('../../src/core/blend.js');
     const log = pino({ level: 'silent' });
     const input = {
       message: 'What to pack for Tokyo in March?',

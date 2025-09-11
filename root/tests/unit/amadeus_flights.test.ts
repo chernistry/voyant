@@ -128,7 +128,13 @@ describe('Amadeus Flight Search', () => {
 
     it('should handle API errors gracefully', async () => {
       const { ExternalFetchError } = require('../../src/util/fetch.js');
-      mockFetchJSON.mockRejectedValueOnce(new ExternalFetchError('timeout'));
+      mockFetchJSON
+        .mockResolvedValueOnce({
+          access_token: 'test_token',
+          token_type: 'Bearer',
+          expires_in: 3600,
+        })
+        .mockRejectedValueOnce(new ExternalFetchError('http_5xx', undefined, 500));
 
       const result = await searchFlights({
         origin: 'JFK',
@@ -217,26 +223,37 @@ describe('Amadeus Flight Search', () => {
   });
 
   describe('Date Conversion', () => {
-    it('should convert DD-MM-YYYY to YYYY-MM-DD', () => {
-      expect(convertToAmadeusDate('12-10-2025')).toBe('2025-10-12');
-      expect(convertToAmadeusDate('1-1-2024')).toBe('2024-01-01');
-      expect(convertToAmadeusDate('31-12-2023')).toBe('2023-12-31');
+    it('should convert DD-MM-YYYY to YYYY-MM-DD', async () => {
+      const result1 = await convertToAmadeusDate('12-10-2025');
+      expect(result1).toBe('2025-10-12');
+      const result2 = await convertToAmadeusDate('1-1-2024');
+      expect(result2).toBe('2024-01-01');
+      const result3 = await convertToAmadeusDate('31-12-2023');
+      expect(result3).toBe('2023-12-31');
     });
 
-    it('should handle MM-DD-YYYY format', () => {
-      expect(convertToAmadeusDate('10-12-2025')).toBe('2025-12-10'); // DD-MM-YYYY (our default)
-      expect(convertToAmadeusDate('13-12-2023')).toBe('2023-12-13'); // Clearly DD-MM-YYYY (13 > 12)
-      expect(convertToAmadeusDate('12-31-2023')).toBe('2023-12-31'); // Interpreted as MM-DD-YYYY (31 > 12)
+    it('should handle MM-DD-YYYY format', async () => {
+      const result1 = await convertToAmadeusDate('10-12-2025');
+      expect(result1).toBe('2025-12-10'); // DD-MM-YYYY (our default)
+      const result2 = await convertToAmadeusDate('13-12-2023');
+      expect(result2).toBe('2023-12-13'); // Clearly DD-MM-YYYY (13 > 12)
+      const result3 = await convertToAmadeusDate('12-31-2023');
+      expect(result3).toBe('2023-12-31'); // Interpreted as MM-DD-YYYY (31 > 12)
     });
 
-    it('should keep YYYY-MM-DD format unchanged', () => {
-      expect(convertToAmadeusDate('2025-10-12')).toBe('2025-10-12');
-      expect(convertToAmadeusDate('2023-12-31')).toBe('2023-12-31');
+    it('should keep YYYY-MM-DD format unchanged', async () => {
+      const result1 = await convertToAmadeusDate('2025-10-12');
+      expect(result1).toBe('2025-10-12');
+      const result2 = await convertToAmadeusDate('2023-12-31');
+      expect(result2).toBe('2023-12-31');
     });
 
-    it('should handle edge cases', () => {
-      expect(convertToAmadeusDate('')).toBe(`${new Date().getFullYear()}-01-01`);
-      expect(convertToAmadeusDate('invalid-date')).toBe(`${new Date().getFullYear()}-01-01`);
+    it('should handle edge cases', async () => {
+      const currentYear = new Date().getFullYear();
+      const result1 = await convertToAmadeusDate('');
+      expect(result1).toBe(`${currentYear}-01-01`);
+      const result2 = await convertToAmadeusDate('invalid-date');
+      expect(result2).toBe(`${currentYear}-01-01`);
     });
   });
 });

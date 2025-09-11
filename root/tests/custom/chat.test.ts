@@ -1,5 +1,5 @@
-import { ChatInput, ChatOutput } from '../src/schemas/chat.js';
-import { handleChat } from '../src/core/blend.js';
+import { ChatInput, ChatOutput } from '../../src/schemas/chat.js';
+import { handleChat } from '../../src/core/blend.js';
 import pino from 'pino';
 
 const log = pino({ level: 'silent' });

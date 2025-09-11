@@ -1,0 +1,501 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:e2e:04
+
+> voyant-travel-assistant@1.0.0 test:e2e:04
+> jest --runInBand --testPathPattern=tests/e2e/04-input_variance_cot.test.ts
+
+  console.log
+    🔧 Transformers.js configured for offline mode: {
+      localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+      allowRemoteModels: false
+    }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+{"level":20,"time":1757574120941,"pid":79154,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"🤖 TRANSFORMERS: Loading content classification pipeline"}
+{"level":20,"time":1757574120941,"pid":79154,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"✅ TRANSFORMERS: Content classification pipeline loaded (child process)"}
+{"level":20,"time":1757574122780,"pid":79154,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"🤖 TRANSFORMERS: Loading intent classification pipeline"}
+{"level":20,"time":1757574122780,"pid":79154,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"✅ TRANSFORMERS: Intent classification pipeline loaded (child process)"}
+{"level":20,"time":1757574124485,"pid":79154,"hostname":"sicksadmbp","text":"Wher shud I go in Jnne from NYC?","intent":"destinations","confidence":0.9523703007652093,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574124485,"pid":79154,"hostname":"sicksadmbp","text":"Wher shud I go in Jnne from NYC?","content_type":"travel","confidence":0.9871497686842247,"intent":"destinations","msg":"🎯 TRANSFORMERS: Content classified"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574126081,"pid":79154,"hostname":"sicksadmbp","text":"Wher shud I go in Jnne from NYC?","intent":"destinations","confidence":0.9523703007652093,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574126402,"pid":79154,"hostname":"sicksadmbp","detectedResults":[{"lang":"en","prob":0.9999964729817529}],"topLanguage":"en","libraryConfidence":0.95,"msg":"🌐 LANGDETECT: Library detection results"}
+{"level":20,"time":1757574126402,"pid":79154,"hostname":"sicksadmbp","language":"en","script_type":"latin","has_mixed_languages":false,"confidence":0.95,"textLength":31,"scriptCounts":{"hasCyrillic":false,"hasJapanese":false,"hasLatin":true,"hasArabic":false,"hasChinese":false,"hasHebrew":false},"msg":"🌐 LANGUAGE: Final detection result"}
+{"level":20,"time":1757574126402,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574126402,"pid":79154,"hostname":"sicksadmbp","totalEntities":0,"locations":0,"dates":0,"money":0,"durations":0,"overallConfidence":0.5,"msg":"🔍 NER: Enhanced entity extraction complete"}
+{"level":20,"time":1757574126403,"pid":79154,"hostname":"sicksadmbp","isBudgetQuery":false,"confidence":0.99,"method":"transformers","msg":"🔍 BUDGET: Transformers classification"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574126404,"pid":79154,"hostname":"sicksadmbp","threadSlots":{},"awaitingDeepResearch":false,"awaitingSearchConsent":false,"threadId":"fsdmmbtg","msg":"🔍 THREAD: Slots state check"}
+{"level":20,"time":1757574126404,"pid":79154,"hostname":"sicksadmbp","msg":"🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy"}
+{"level":20,"time":1757574126405,"pid":79154,"hostname":"sicksadmbp","extractionMethod":"unknown","extractionConfidence":0,"constraintCategories":[],"constraintKey":"none","complexityClass":"simple","constraintCount":0,"routingThreshold":"fallback","msg":"🎯 ROUTING: AI decision metrics"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574126405,"pid":79154,"hostname":"sicksadmbp","isComplexTravelQuery":false,"constraintCount":0,"confidence":0.99,"method":"transformers","msg":"🔍 COMPLEXITY: Transformers classification"}
+{"level":20,"time":1757574126406,"pid":79154,"hostname":"sicksadmbp","message":"Wher shud I go in Jnne from NYC?","msg":"router_start"}
+{"level":20,"time":1757574126452,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2319 tokens, Format: json"}
+{"level":20,"time":1757574126452,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574128359,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 42 tokens"}
+{"level":20,"time":1757574128359,"pid":79154,"hostname":"sicksadmbp","message":"Wher shud I go in Jnne from NYC?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": true, \"needs_web_search\": true, \"categori","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574128360,"pid":79154,"hostname":"sicksadmbp","DEEP_RESEARCH_ENABLED":"true","shouldCheckComplexity":true,"msg":"🔧 ROUTER: Environment check"}
+{"level":20,"time":1757574128360,"pid":79154,"hostname":"sicksadmbp","deepResearchEnabled":true,"message":"Wher shud I go in Jnne from NYC?","msg":"🔍 COMPLEXITY: Deep research enabled, checking complexity"}
+{"level":20,"time":1757574128360,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1604 tokens, Format: json"}
+{"level":20,"time":1757574128360,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574129352,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 28 tokens"}
+{"level":20,"time":1757574129352,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574129353,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2319 tokens, Format: json"}
+{"level":20,"time":1757574129353,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574130549,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 42 tokens"}
+{"level":20,"time":1757574130549,"pid":79154,"hostname":"sicksadmbp","message":"Wher shud I go in Jnne from NYC?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": true, \"needs_web_search\": false, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574130549,"pid":79154,"hostname":"sicksadmbp","method":"fast_transformers","entities":0,"constraints":["location","time"],"isComplex":false,"msg":"🚀 COMPLEXITY: Fast detection - SIMPLE"}
+{"level":20,"time":1757574130549,"pid":79154,"hostname":"sicksadmbp","isComplex":false,"confidence":0.6,"reasoning":"simple: 0 entities, 2 constraints","msg":"🔍 COMPLEXITY: Detection result"}
+{"level":20,"time":1757574130549,"pid":79154,"hostname":"sicksadmbp","step":1,"msg":"🤖 ROUTING_CASCADE: Transformers disabled"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574130552,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 64 tokens, Format: json"}
+{"level":20,"time":1757574130552,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574131162,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 9 tokens"}
+{"level":20,"time":1757574131163,"pid":79154,"hostname":"sicksadmbp","error":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"normalized\"\n    ],\n    \"message\": \"Required\"\n  }\n]","msg":"city_llm_failed"}
+{"level":20,"time":1757574131163,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 731 tokens, Format: json"}
+{"level":20,"time":1757574131163,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574131883,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 15 tokens"}
+{"level":20,"time":1757574131883,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 81 tokens, Format: json"}
+{"level":20,"time":1757574131883,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574132834,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 19 tokens"}
+{"level":20,"time":1757574132834,"pid":79154,"hostname":"sicksadmbp","result":{"originCity":"NYC","destinationCity":"Jnne","confidence":0.95},"msg":"od_llm_success"}
+{"level":20,"time":1757574132834,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 795 tokens, Format: json"}
+{"level":20,"time":1757574132834,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574133583,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 14 tokens"}
+{"level":20,"time":1757574133583,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1604 tokens, Format: json"}
+{"level":20,"time":1757574133583,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574134586,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 28 tokens"}
+{"level":20,"time":1757574134586,"pid":79154,"hostname":"sicksadmbp","step":2,"method":"llm","intent":"destinations","confidence":0.65,"source":"llm_intent_classification","success":true,"msg":"✅ ROUTING_CASCADE: LLM intent classification succeeded"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'fsdmmbtg', slots: {}, storeSize: 0, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574134588,"pid":79154,"hostname":"sicksadmbp","prior":{},"extracted":{"city":"Moscow","originCity":"NYC","destinationCity":"Jnne","month":"June","dates":"June","departureDate":"June"},"merged":{"city":"Moscow","originCity":"NYC","destinationCity":"Jnne","month":"June","dates":"June","departureDate":"June"},"intent":"destinations","msg":"slot_merge"}
+{"level":20,"time":1757574134589,"pid":79154,"hostname":"sicksadmbp","needsCity":true,"hasCity":true,"hasWhen":true,"missing":[],"cityValue":"Moscow","datesValue":"June","monthValue":"June","msg":"missing_check"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'fsdmmbtg',
+      newSlots: {
+        city: 'Moscow',
+        originCity: 'NYC',
+        destinationCity: 'Jnne',
+        month: 'June',
+        dates: 'June',
+        departureDate: 'June'
+      },
+      prevSlots: {},
+      mergedSlots: {
+        city: 'Moscow',
+        originCity: 'NYC',
+        destinationCity: 'Jnne',
+        month: 'June',
+        dates: 'June',
+        departureDate: 'June'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'fsdmmbtg',
+      slots: {
+        city: 'Moscow',
+        originCity: 'NYC',
+        destinationCity: 'Jnne',
+        month: 'June',
+        dates: 'June',
+        departureDate: 'June'
+      },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574134599,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 178 tokens, Format: json"}
+{"level":20,"time":1757574134599,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574135322,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 1 tokens"}
+{"level":50,"time":1757574135322,"pid":79154,"hostname":"sicksadmbp","error":{},"msg":"Failed to get AI-driven destinations"}
+{"level":20,"time":1757574135322,"pid":79154,"hostname":"sicksadmbp","query":"travel destinations June","msg":"performing_web_search_node"}
+{"level":20,"time":1757574138094,"pid":79154,"hostname":"sicksadmbp","text":"what to pack for tokyo in march 🤔","intent":"packing","confidence":0.754590619815428,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574138094,"pid":79154,"hostname":"sicksadmbp","text":"what to pack for tokyo in march 🤔","content_type":"travel","confidence":0.9393146179706726,"intent":"packing","msg":"🎯 TRANSFORMERS: Content classified"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'wyb991c8', slots: {}, storeSize: 1, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574139714,"pid":79154,"hostname":"sicksadmbp","text":"what to pack for tokyo in march 🤔","intent":"packing","confidence":0.754590619815428,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574139716,"pid":79154,"hostname":"sicksadmbp","detectedResults":[{"lang":"en","prob":0.8571400272893731},{"lang":"tl","prob":0.1428569852212723}],"topLanguage":"en","libraryConfidence":0.8571400272893731,"msg":"🌐 LANGDETECT: Library detection results"}
+{"level":20,"time":1757574139716,"pid":79154,"hostname":"sicksadmbp","language":"en","script_type":"latin","has_mixed_languages":false,"confidence":0.8571400272893731,"textLength":31,"scriptCounts":{"hasCyrillic":false,"hasJapanese":false,"hasLatin":true,"hasArabic":false,"hasChinese":false,"hasHebrew":false},"msg":"🌐 LANGUAGE: Final detection result"}
+{"level":20,"time":1757574139716,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574139717,"pid":79154,"hostname":"sicksadmbp","totalEntities":0,"locations":0,"dates":0,"money":0,"durations":0,"overallConfidence":0.5,"msg":"🔍 NER: Enhanced entity extraction complete"}
+{"level":20,"time":1757574139717,"pid":79154,"hostname":"sicksadmbp","isBudgetQuery":false,"confidence":0.94,"method":"transformers","msg":"🔍 BUDGET: Transformers classification"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'wyb991c8', slots: {}, storeSize: 1, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'wyb991c8', slots: {}, storeSize: 1, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574139718,"pid":79154,"hostname":"sicksadmbp","threadSlots":{},"awaitingDeepResearch":false,"awaitingSearchConsent":false,"threadId":"wyb991c8","msg":"🔍 THREAD: Slots state check"}
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","msg":"🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy"}
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","extractionMethod":"unknown","extractionConfidence":0,"constraintCategories":[],"constraintKey":"none","complexityClass":"simple","constraintCount":0,"routingThreshold":"fallback","msg":"🎯 ROUTING: AI decision metrics"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'wyb991c8', slots: {}, storeSize: 1, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","isComplexTravelQuery":false,"constraintCount":0,"confidence":0.94,"method":"transformers","msg":"🔍 COMPLEXITY: Transformers classification"}
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","message":"what to pack for tokyo in march 🤔","msg":"router_start"}
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2320 tokens, Format: json"}
+{"level":20,"time":1757574139719,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 46 tokens"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","message":"what to pack for tokyo in march 🤔","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": false, \"catego","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","DEEP_RESEARCH_ENABLED":"true","shouldCheckComplexity":true,"msg":"🔧 ROUTER: Environment check"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","deepResearchEnabled":true,"message":"what to pack for tokyo in march 🤔","msg":"🔍 COMPLEXITY: Deep research enabled, checking complexity"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1604 tokens, Format: json"}
+{"level":20,"time":1757574140874,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574141917,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 32 tokens"}
+{"level":20,"time":1757574141918,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574141918,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2320 tokens, Format: json"}
+{"level":20,"time":1757574141918,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574143316,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 46 tokens"}
+{"level":20,"time":1757574143316,"pid":79154,"hostname":"sicksadmbp","message":"what to pack for tokyo in march 🤔","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": false, \"catego","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574143316,"pid":79154,"hostname":"sicksadmbp","method":"fast_transformers","entities":0,"constraints":["accommodation","location","time"],"strategy":"ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3","confidence":0.7999999999999999,"msg":"🚀 COMPLEXITY: Fast detection - COMPLEX"}
+{"level":20,"time":1757574143316,"pid":79154,"hostname":"sicksadmbp","isComplex":true,"confidence":0.7999999999999999,"reasoning":"ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3","msg":"🔍 COMPLEXITY: Detection result"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'wyb991c8',
+      newSlots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3'
+      },
+      prevSlots: {},
+      mergedSlots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574143317,"pid":79154,"hostname":"sicksadmbp","intent":"system","reason":"deep_research_consent_needed","msg":"✅ COMPLEXITY: Triggering deep research consent"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'wyb991c8',
+      slots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3'
+      },
+      storeSize: 2,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'wyb991c8',
+      slots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3'
+      },
+      storeSize: 2,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574143318,"pid":79154,"hostname":"sicksadmbp","prior":{"awaiting_deep_research_consent":"true","pending_deep_research_query":"what to pack for tokyo in march 🤔","complexity_reasoning":"ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3"},"extracted":{"deep_research_consent_needed":"true","complexity_score":"0.80"},"merged":{"deep_research_consent_needed":"true","complexity_score":"0.80"},"intent":"system","msg":"slot_merge"}
+{"level":20,"time":1757574143318,"pid":79154,"hostname":"sicksadmbp","needsCity":false,"hasCity":false,"hasWhen":false,"missing":[],"msg":"missing_check"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'wyb991c8',
+      newSlots: { deep_research_consent_needed: 'true', complexity_score: '0.80' },
+      prevSlots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3'
+      },
+      mergedSlots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3',
+        deep_research_consent_needed: 'true',
+        complexity_score: '0.80'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'wyb991c8',
+      slots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'what to pack for tokyo in march 🤔',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.85, constraints=3',
+        deep_research_consent_needed: 'true',
+        complexity_score: '0.80'
+      },
+      storeSize: 2,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.log
+    🧪 Test Evaluator - BaseURL: https://openrouter.ai/api/v1, Model: deepseek/deepseek-chat-v3.1:free, API Key: SET
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:33:13)
+
+  console.log
+    ✅ Test Evaluator Response: {
+      "passes": false,
+      "confidence": 0.0,
+      "reason": "Response fails to provide any packing guidance or extract travel entities (city, dates) from the query. It asks for missing information instead o...
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:70:13)
+
+{"level":20,"time":1757574151875,"pid":79154,"hostname":"sicksadmbp","text":"Packing list for Tokyo in March? Explain briefly.","intent":"packing","confidence":0.8185921588700356,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574151875,"pid":79154,"hostname":"sicksadmbp","text":"Packing list for Tokyo in March? Explain briefly.","content_type":"travel","confidence":0.9473603819632912,"intent":"packing","msg":"🎯 TRANSFORMERS: Content classified"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574153216,"pid":79154,"hostname":"sicksadmbp","text":"Packing list for Tokyo in March? Explain briefly.","intent":"packing","confidence":0.8185921588700356,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574153218,"pid":79154,"hostname":"sicksadmbp","detectedResults":[{"lang":"en","prob":0.9999946664497131}],"topLanguage":"en","libraryConfidence":0.95,"msg":"🌐 LANGDETECT: Library detection results"}
+{"level":20,"time":1757574153218,"pid":79154,"hostname":"sicksadmbp","language":"en","script_type":"latin","has_mixed_languages":false,"confidence":0.95,"textLength":48,"scriptCounts":{"hasCyrillic":false,"hasJapanese":false,"hasLatin":true,"hasArabic":false,"hasChinese":false,"hasHebrew":false},"msg":"🌐 LANGUAGE: Final detection result"}
+{"level":20,"time":1757574153218,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574153218,"pid":79154,"hostname":"sicksadmbp","totalEntities":0,"locations":0,"dates":0,"money":0,"durations":0,"overallConfidence":0.5,"msg":"🔍 NER: Enhanced entity extraction complete"}
+{"level":20,"time":1757574153219,"pid":79154,"hostname":"sicksadmbp","isBudgetQuery":false,"confidence":0.95,"method":"transformers","msg":"🔍 BUDGET: Transformers classification"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574153219,"pid":79154,"hostname":"sicksadmbp","threadSlots":{},"awaitingDeepResearch":false,"awaitingSearchConsent":false,"threadId":"gdbtlqky","msg":"🔍 THREAD: Slots state check"}
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","msg":"🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy"}
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","extractionMethod":"unknown","extractionConfidence":0,"constraintCategories":[],"constraintKey":"none","complexityClass":"simple","constraintCount":0,"routingThreshold":"fallback","msg":"🎯 ROUTING: AI decision metrics"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","isComplexTravelQuery":false,"constraintCount":0,"confidence":0.95,"method":"transformers","msg":"🔍 COMPLEXITY: Transformers classification"}
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","message":"Packing list for Tokyo in March? Explain briefly.","msg":"router_start"}
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2324 tokens, Format: json"}
+{"level":20,"time":1757574153220,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 42 tokens"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","message":"Packing list for Tokyo in March? Explain briefly.","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": true, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","DEEP_RESEARCH_ENABLED":"true","shouldCheckComplexity":true,"msg":"🔧 ROUTER: Environment check"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","deepResearchEnabled":true,"message":"Packing list for Tokyo in March? Explain briefly.","msg":"🔍 COMPLEXITY: Deep research enabled, checking complexity"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1608 tokens, Format: json"}
+{"level":20,"time":1757574154487,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574155700,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 32 tokens"}
+{"level":20,"time":1757574155700,"pid":79154,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574155700,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2324 tokens, Format: json"}
+{"level":20,"time":1757574155700,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574156728,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 42 tokens"}
+{"level":20,"time":1757574156729,"pid":79154,"hostname":"sicksadmbp","message":"Packing list for Tokyo in March? Explain briefly.","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": true, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574156729,"pid":79154,"hostname":"sicksadmbp","method":"fast_transformers","entities":0,"constraints":["location","time"],"isComplex":false,"msg":"🚀 COMPLEXITY: Fast detection - SIMPLE"}
+{"level":20,"time":1757574156729,"pid":79154,"hostname":"sicksadmbp","isComplex":false,"confidence":0.6,"reasoning":"simple: 0 entities, 2 constraints","msg":"🔍 COMPLEXITY: Detection result"}
+{"level":20,"time":1757574156729,"pid":79154,"hostname":"sicksadmbp","step":1,"msg":"🤖 ROUTING_CASCADE: Transformers disabled"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574156730,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 73 tokens, Format: json"}
+{"level":20,"time":1757574156730,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574157225,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 10 tokens"}
+{"level":20,"time":1757574157225,"pid":79154,"hostname":"sicksadmbp","error":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"normalized\"\n    ],\n    \"message\": \"Required\"\n  }\n]","msg":"city_llm_failed"}
+{"level":20,"time":1757574157225,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 736 tokens, Format: json"}
+{"level":20,"time":1757574157225,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574158059,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 15 tokens"}
+{"level":20,"time":1757574158059,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 85 tokens, Format: json"}
+{"level":20,"time":1757574158059,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574159087,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 19 tokens"}
+{"level":20,"time":1757574159087,"pid":79154,"hostname":"sicksadmbp","error":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"originCity\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]","msg":"od_llm_failed"}
+{"level":20,"time":1757574159087,"pid":79154,"hostname":"sicksadmbp","destinationCity":"March","msg":"od_regex_fallback"}
+{"level":20,"time":1757574159088,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 800 tokens, Format: json"}
+{"level":20,"time":1757574159088,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574159548,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 13 tokens"}
+{"level":20,"time":1757574159548,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 66 tokens, Format: text"}
+{"level":20,"time":1757574159548,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574159928,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 1 tokens"}
+{"level":20,"time":1757574159928,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 88 tokens, Format: text"}
+{"level":20,"time":1757574159928,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574160349,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 2 tokens"}
+{"level":20,"time":1757574160349,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1608 tokens, Format: json"}
+{"level":20,"time":1757574160349,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574161206,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 32 tokens"}
+{"level":20,"time":1757574161206,"pid":79154,"hostname":"sicksadmbp","step":2,"method":"llm","intent":"packing","confidence":0.92,"source":"llm_intent_classification","success":true,"msg":"✅ ROUTING_CASCADE: LLM intent classification succeeded"}
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots { threadId: 'gdbtlqky', slots: {}, storeSize: 2, isCliMode: false }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574161208,"pid":79154,"hostname":"sicksadmbp","prior":{},"extracted":{"city":"Tokyo","destinationCity":"March","month":"March","dates":"March","departureDate":"March","passengers":"1","cabinClass":"economy"},"merged":{"city":"Tokyo","destinationCity":"March","month":"March","dates":"March","departureDate":"March","passengers":"1","cabinClass":"economy"},"intent":"packing","msg":"slot_merge"}
+{"level":20,"time":1757574161208,"pid":79154,"hostname":"sicksadmbp","needsCity":true,"hasCity":true,"hasWhen":true,"missing":[],"cityValue":"Tokyo","datesValue":"March","monthValue":"March","msg":"missing_check"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'gdbtlqky',
+      newSlots: {
+        city: 'Tokyo',
+        destinationCity: 'March',
+        month: 'March',
+        dates: 'March',
+        departureDate: 'March',
+        passengers: '1',
+        cabinClass: 'economy'
+      },
+      prevSlots: {},
+      mergedSlots: {
+        city: 'Tokyo',
+        destinationCity: 'March',
+        month: 'March',
+        dates: 'March',
+        departureDate: 'March',
+        passengers: '1',
+        cabinClass: 'economy'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'gdbtlqky',
+      slots: {
+        city: 'Tokyo',
+        destinationCity: 'March',
+        month: 'March',
+        dates: 'March',
+        departureDate: 'March',
+        passengers: '1',
+        cabinClass: 'economy'
+      },
+      storeSize: 3,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574161210,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2324 tokens, Format: json"}
+{"level":20,"time":1757574161210,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574162367,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 42 tokens"}
+{"level":20,"time":1757574162367,"pid":79154,"hostname":"sicksadmbp","message":"Packing list for Tokyo in March? Explain briefly.","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": true, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574162382,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo:geocode","attempt":1,"maxAttempts":4,"url":"https://geocoding-api.open-meteo.com/v1/search?name=Tokyo&count=1&language=en&format=json","msg":"🌐 API request attempt"}
+{"level":20,"time":1757574162662,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo:geocode","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757574162666,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo:geocode","responseSize":293,"duration":298,"msg":"✅ API request successful"}
+{"level":20,"time":1757574162673,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo","attempt":1,"maxAttempts":4,"url":"https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.69171&daily=temperature_2m_max...","msg":"🌐 API request attempt"}
+{"level":20,"time":1757574162953,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757574162957,"pid":79154,"hostname":"sicksadmbp","target":"open-meteo","responseSize":580,"duration":289,"msg":"✅ API request successful"}
+{"level":20,"time":1757574162960,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1803 tokens, Format: text"}
+{"level":20,"time":1757574162960,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574164774,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 107 tokens"}
+{"level":20,"time":1757574164774,"pid":79154,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1861 tokens, Format: text"}
+{"level":20,"time":1757574164774,"pid":79154,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574166541,"pid":79154,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 109 tokens"}
+ FAIL  tests/e2e/04-input_variance_cot.test.ts (48.61 s)
+  E2E: Input Variance & CoT Safety
+    🔤 Input Variance & Noise
+      ✕ typos are tolerated (14385 ms)
+      ✕ emojis and punctuationless input (13775 ms)
+    🛡️ CoT Safety
+      ✓ no chain-of-thought leakage (17415 ms)
+
+  ● E2E: Input Variance & CoT Safety › 🔤 Input Variance & Noise › typos are tolerated
+
+    TypeError: tavily_1.TavilyClient is not a constructor
+
+      27 |     return { ok: false, reason: 'no_api_key' };
+      28 |   }
+    > 29 |   const client = new TavilyClient({ apiKey });
+         |                  ^
+      30 |   try {
+      31 |     const start = Date.now();
+      32 |     const res = await tavilyCircuitBreaker.execute(() =>
+
+      at searchTravelInfo (src/tools/tavily_search.ts:29:18)
+      at searchTravelInfo (src/tools/search.ts:33:19)
+      at performWebSearchNode (src/core/graph.ts:1702:46)
+      at webSearchNode (src/core/graph.ts:1692:16)
+      at destinationsNode (src/core/graph.ts:1378:14)
+      at handleChat (src/core/blend.ts:292:18)
+      at Object.expect (tests/e2e/_setup.ts:92:26)
+      at Object.<anonymous> (tests/e2e/04-input_variance_cot.test.ts:31:17)
+
+  ● E2E: Input Variance & CoT Safety › 🔤 Input Variance & Noise › emojis and punctuationless input
+
+    Test failed: Response fails to provide any packing guidance or extract travel entities (city, dates) from the query. It asks for missing information instead of acting on the provided context (Tokyo, March). (confidence: 0)
+
+       95 |       
+       96 |       if (!result.passes) {
+    >  97 |         throw new Error(`Test failed: ${result.reason} (confidence: ${result.confidence})`);
+          |               ^
+       98 |       }
+       99 |       
+      100 |       if (result.confidence < minConfidence) {
+
+      at Object.toPass (src/test/llm-evaluator.ts:97:15)
+      at Object.<anonymous> (tests/e2e/04-input_variance_cot.test.ts:41:7)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        48.813 s
+Ran all test suites matching /tests\/e2e\/04-input_variance_cot.test.ts/i.
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:e2e:04                       

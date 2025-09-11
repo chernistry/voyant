@@ -1,7 +1,8 @@
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import nock from 'nock';
-import { router } from '../src/api/routes.js';
+import { router } from '../../src/api/routes.js';
 import pino from 'pino';
 
 function createTestApp(): express.Express {
@@ -58,7 +59,7 @@ describe('Brave Search Fallback Tests', () => {
         .post('/chat')
         .send({ message: 'Weather in Tokyo?' })
         .expect(200);
-
+    
       expect(response.body.reply).toContain('Tokyo');
       expect(response.body.reply).toContain('25');
       expect(response.body.citations).toContain('Brave Search');
@@ -135,7 +136,7 @@ describe('Brave Search Fallback Tests', () => {
         .post('/chat')
         .send({ message: 'What to do in Paris?' })
         .expect(200);
-
+    
       expect(response.body.reply).toContain('Paris');
       expect(response.body.citations).toContain('Brave Search');
     }, 45000);
@@ -166,7 +167,7 @@ describe('Brave Search Fallback Tests', () => {
         .post('/chat')
         .send({ message: 'Weather in Tokyo?' })
         .expect(200);
-
+    
       expect(attemptCount).toBe(3); // Should have retried 3 times
       expect(response.body.reply).toContain('25°C');
       expect(response.body.citations).toContain('Open-Meteo');
@@ -209,7 +210,7 @@ describe('Brave Search Fallback Tests', () => {
         .post('/chat')
         .send({ message: 'Where should I go in June from Tokyo?', threadId: 'test-multiple-fallback' })
         .expect(200);
-
+    
       expect(response.body.reply).toContain('Tokyo');
       expect(response.body.citations).toContain('Brave Search');
     }, 20000);

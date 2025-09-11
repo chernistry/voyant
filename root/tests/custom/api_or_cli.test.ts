@@ -1,16 +1,22 @@
 import request from 'supertest';
 import express from 'express';
 import pino from 'pino';
-import { router } from '../src/api/routes.js';
-import { handleChat } from '../src/core/blend.js';
+import { router } from '../../src/api/routes.js';
+import { handleChat } from '../../src/core/blend.js';
 
 const log = pino({ level: 'silent' });
-const app = express();
-app.use(express.json());
-app.use('/', router(log));
+
+// Функция для создания тестового приложения
+function createTestApp() {
+  const app = express();
+  app.use(express.json());
+  app.use('/', router(log));
+  return app;
+}
 
 describe('API Endpoints', () => {
   test('POST /chat returns valid response for valid input', async () => {
+    const app = createTestApp();
     const response = await request(app)
       .post('/chat')
       .send({ message: 'Hello' })
@@ -24,6 +30,7 @@ describe('API Endpoints', () => {
   });
 
   test('POST /chat preserves threadId when provided', async () => {
+    const app = createTestApp();
     const threadId = 'test-thread-123';
     const response = await request(app)
       .post('/chat')
@@ -34,6 +41,7 @@ describe('API Endpoints', () => {
   });
 
   test('POST /chat generates threadId when not provided', async () => {
+    const app = createTestApp();
     const response = await request(app)
       .post('/chat')
       .send({ message: 'Hello' })
@@ -45,6 +53,7 @@ describe('API Endpoints', () => {
   });
 
   test('POST /chat validates input schema', async () => {
+    const app = createTestApp();
     // Empty message
     await request(app)
       .post('/chat')
@@ -65,6 +74,7 @@ describe('API Endpoints', () => {
   });
 
   test('POST /chat handles malformed input gracefully', async () => {
+    const app = createTestApp();
     // Test with malformed but parseable input
     await request(app)
       .post('/chat')
@@ -73,6 +83,7 @@ describe('API Endpoints', () => {
   });
 
   test('GET /metrics returns JSON snapshot by default', async () => {
+    const app = createTestApp();
     const r = await request(app)
       .get('/metrics')
       .expect(200);
@@ -132,6 +143,7 @@ describe('CLI Integration', () => {
 
 describe('End-to-End Conversation Flow', () => {
   test('complete conversation maintains context', async () => {
+    const app = createTestApp();
     const response1 = await request(app)
       .post('/chat')
       .send({ message: 'What to pack for Tokyo in March?' })
@@ -154,6 +166,7 @@ describe('End-to-End Conversation Flow', () => {
   });
 
   test('API handles malformed JSON gracefully', async () => {
+    const app = createTestApp();
     await request(app)
       .post('/chat')
       .set('Content-Type', 'application/json')

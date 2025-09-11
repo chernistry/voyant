@@ -1,5 +1,5 @@
-import { runGraphTurn } from '../src/core/graph.js';
-import { expectLLMEvaluation } from '../src/test/llm-evaluator.js';
+import { runGraphTurn } from '../../src/core/graph.js';
+import { expectLLMEvaluation } from '../../src/test/llm-evaluator.js';
 
 const mockLogger = { log: { warn: jest.fn(), debug: jest.fn() } as any };
 

@@ -1,4 +1,4 @@
-import { fetchJSON, ExternalFetchError } from '../src/util/fetch.js';
+import { fetchJSON, ExternalFetchError } from '../../src/util/fetch.js';
 
 describe('Fetch allowlist', () => {
   test('blocks non-allowlisted host', async () => {

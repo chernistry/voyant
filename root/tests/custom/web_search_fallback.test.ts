@@ -1,6 +1,6 @@
 import nock from 'nock';
-import { handleChat } from '../src/core/blend.js';
-import { createLogger } from '../src/util/logging.js';
+import { handleChat } from '../../src/core/blend.js';
+import { createLogger } from '../../src/util/logging.js';
 
 describe('Web Search Fallback', () => {
   const logger = createLogger();

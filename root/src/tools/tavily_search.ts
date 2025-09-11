@@ -40,12 +40,18 @@ export async function searchTravelInfo(
     );
     const duration = Date.now() - start;
     log?.debug?.(`✅ Tavily success after ${duration}ms`);
-    const results: SearchResult[] =
-      res.results?.map(r => ({
-        title: r.title || '',
-        url: r.url || '',
-        description: r.content || '',
-      })) ?? [];
+    interface TavilyResult {
+      title: string;
+      url: string;
+      content: string;
+      answer?: string;
+    }
+  
+    const results: SearchResult[] = res.results?.map((r: TavilyResult) => ({
+      title: r.title || '',
+      url: r.url || '',
+      description: r.content || '',
+    })) ?? [];
     let deepSummary = res.answer?.trim();
     if (deepResearch && results.length > 0) {
       try {

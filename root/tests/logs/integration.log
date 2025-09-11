@@ -1,0 +1,441 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:integration
+
+> voyant-travel-assistant@1.0.0 test:integration
+> jest --runInBand --config jest.config.cjs --testPathPattern=tests/integration/
+
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+
+ FAIL  tests/integration/crawlee.playwright.integration.test.ts (19.448 s)
+  ● Console
+
+    console.log
+      🔍 Crawlee engine: playwright
+
+      at deepResearchPages (src/tools/crawlee_research.ts:19:11)
+
+    console.log
+      🔍 Crawlee config: CRAWLEE_ENGINE=playwright, CRAWLEE_MAX_PAGES=2, maxPages=2, urls.length=4
+
+      at deepResearchPages (src/tools/crawlee_research.ts:25:13)
+
+    console.log
+      INFO  PlaywrightCrawler: Starting the crawler.
+
+      at _LoggerText._outputWithConsole (node_modules/@apify/src/logger.ts:37:25)
+
+    console.log
+      📄 Crawling (Playwright): https://example.com/1
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:198:17)
+
+    console.log
+      📝 Title: Example Domain
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:199:17)
+
+    console.log
+      📊 Content length: 202 chars
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:200:17)
+
+    console.log
+      ✅ Added to results (1/2)
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:208:19)
+
+    console.log
+      📄 Crawling (Playwright): https://example.com/2
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:198:17)
+
+    console.log
+      📝 Title: Example Domain
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:199:17)
+
+    console.log
+      📊 Content length: 202 chars
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:200:17)
+
+    console.log
+      ✅ Added to results (2/2)
+
+      at PlaywrightCrawler.requestHandler [as userProvidedRequestHandler] (src/tools/crawlee_research.ts:208:19)
+
+    console.log
+      INFO  PlaywrightCrawler: Crawler reached the maxRequestsPerCrawl limit of 2 requests and will shut down soon. Requests that are in progress will be allowed to finish.
+
+      at _LoggerText._outputWithConsole (node_modules/@apify/src/logger.ts:37:25)
+
+    console.log
+      INFO  PlaywrightCrawler: Earlier, the crawler reached the maxRequestsPerCrawl limit of 2 requests and all requests that were in progress at that time have now finished. In total, the crawler processed 2 requests and will shut down.
+
+      at _LoggerText._outputWithConsole (node_modules/@apify/src/logger.ts:37:25)
+
+    console.log
+      INFO  PlaywrightCrawler: Final request statistics: {"requestsFinished":2,"requestsFailed":0,"retryHistogram":[2],"requestAvgFailedDurationMillis":null,"requestAvgFinishedDurationMillis":10985,"requestsFinishedPerMinute":10,"requestsFailedPerMinute":0,"requestTotalDurationMillis":21969,"requestsTotal":2,"crawlerRuntimeMillis":11502}
+
+      at _LoggerText._outputWithConsole (node_modules/@apify/src/logger.ts:37:25)
+
+    console.log
+      INFO  PlaywrightCrawler: Finished! Total 2 requests: 2 succeeded, 0 failed. {"terminal":true}
+
+      at _LoggerText._outputWithConsole (node_modules/@apify/src/logger.ts:37:25)
+
+    console.log
+      📋 Successfully crawled 2 pages, starting summarization...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:38:13)
+
+    console.log
+      🤖 Summarizing page 1/2: Example Domain...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:45:15)
+
+    console.log
+      ✅ Summary: This webpage describes "Example Domain" as a domain specifically intended for use in illustrative ex...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:47:15)
+
+    console.log
+      🤖 Summarizing page 2/2: Example Domain...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:45:15)
+
+    console.log
+      ✅ Summary: This webpage describes "Example Domain" as a domain specifically intended for use in illustrative ex...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:47:15)
+
+    console.log
+      🔄 Creating overall summary from 2 page summaries...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:51:13)
+
+    console.log
+      📊 Final summary: The "Example Domain" is a readily available and ideal choice for testing queries due to its specific purpose. This domain is designed for use in illus...
+
+      at deepResearchPages (src/tools/crawlee_research.ts:53:13)
+
+  ● Crawlee Playwright Integration › should respect CRAWLEE_MAX_PAGES environment variable
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      57 |     
+      58 |     // Should return ok: false since these are fake URLs, but shouldn't crash
+    > 59 |     expect(result.ok).toBe(false);
+         |                       ^
+      60 |     expect(result.results).toEqual([]);
+      61 |   });
+      62 | });
+
+      at Object.<anonymous> (tests/integration/crawlee.playwright.integration.test.ts:59:23)
+
+ FAIL  tests/integration/date_formatting.test.ts
+  ● Test suite failed to run
+
+    src/tools/amadeus_flights.ts:224:7 - error TS2322: Type '{ id: string; price: { currency?: string; total?: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }[]' is not assignable to type '{ id: string; price: { currency: string; total: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }[]'.
+      Type '{ id: string; price: { currency?: string; total?: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }' is not assignable to type '{ id: string; price: { currency: string; total: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }'.
+        Types of property 'price' are incompatible.
+          Type '{ currency?: string; total?: string; }' is not assignable to type '{ currency: string; total: string; }'.
+            Property 'currency' is optional in type '{ currency?: string; total?: string; }' but required in type '{ currency: string; total: string; }'.
+
+    224       flights,
+              ~~~~~~~
+    src/tools/amadeus_flights.ts:346:5 - error TS2322: Type 'FlightSearchResult' is not assignable to type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+      Type '{ ok: true; flights: { id: string; price: { currency: string; total: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }[]; source: string; }' is not assignable to type '{ ok: true; summary: string; source: string; } | { ok: false; reason: string; }'.
+        Property 'summary' is missing in type '{ ok: true; flights: { id: string; price: { currency: string; total: string; }; duration: string; segments: { departure: { airport: string; time: string; }; arrival: { airport: string; time: string; }; airline: string; flightNumber: string; duration: string; }[]; }[]; source: string; }' but required in type '{ ok: true; summary: string; source: string; }'.
+
+    346     return result;
+            ~~~~~~
+
+      src/tools/amadeus_flights.ts:304:25
+        304 }): Promise<{ ok: true; summary: string; source: string } | { ok: false; reason: string }> {
+                                    ~~~~~~~
+        'summary' is declared here.
+
+ FAIL  tests/integration/flight_search.test.ts
+  ● Test suite failed to run
+
+    tests/integration/flight_search.test.ts:77:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    77       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+               ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:81:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    81     expect(result.reply).toContain('Found 2 one-way flights');
+                         ~~~~~
+    tests/integration/flight_search.test.ts:82:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    82     expect(result.reply).toContain('New York to Miami');
+                         ~~~~~
+    tests/integration/flight_search.test.ts:83:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    83     expect(result.reply).toContain('June 15');
+                         ~~~~~
+    tests/integration/flight_search.test.ts:84:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    84     expect(result.reply).toContain('USD 450.00');
+                         ~~~~~
+    tests/integration/flight_search.test.ts:85:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    85     expect(result.reply).toContain('USD 520.00');
+                         ~~~~~
+    tests/integration/flight_search.test.ts:86:19 - error TS2339: Property 'citations' does not exist on type 'NodeOut'.
+      Property 'citations' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    86     expect(result.citations).toEqual(
+                         ~~~~~~~~~
+    tests/integration/flight_search.test.ts:128:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    128       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:132:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    132     expect(result.reply).toContain('Found 1 one-way flights');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:133:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    133     expect(result.reply).toContain('Los Angeles to London');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:134:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    134     expect(result.reply).toContain('July 20');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:135:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    135     expect(result.reply).toContain('USD 1200.00');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:171:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    171       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:175:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    175     expect(result.reply).toContain('round-trip flights');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:176:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    176     expect(result.reply).toContain('San Francisco to Seattle');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:177:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    177     expect(result.reply).toContain('August 10');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:178:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    178     expect(result.reply).toContain('returning August 17');
+                          ~~~~~
+    tests/integration/flight_search.test.ts:188:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    188       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:192:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    192     expect(result.reply).toBeTruthy();
+                          ~~~~~
+    tests/integration/flight_search.test.ts:193:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    193     expect(result.reply.length).toBeGreaterThan(0);
+                          ~~~~~
+    tests/integration/flight_search.test.ts:208:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    208       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:213:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    213     expect(result.reply).toBeTruthy();
+                          ~~~~~
+    tests/integration/flight_search.test.ts:214:19 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    214     expect(result.reply.length).toBeGreaterThan(0);
+                          ~~~~~
+    tests/integration/flight_search.test.ts:253:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    253       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:257:24 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    257     expect(firstResult.reply).toContain('Denver to Phoenix');
+                               ~~~~~
+    tests/integration/flight_search.test.ts:292:9 - error TS2322: Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is not assignable to type 'Logger<never, boolean>'.
+      Type '{ info: Mock<UnknownFunction>; debug: Mock<UnknownFunction>; warn: Mock<UnknownFunction>; error: Mock<UnknownFunction>; ... 4 more ...; msgPrefix: string; }' is missing the following properties from type 'LoggerExtras<never, boolean>': version, levels, useLevelLabels, levelVal, and 21 more.
+
+    292       { log: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn(), level: 'silent', fatal: jest.fn(), trace: jest.fn(), silent: jest.fn(), msgPrefix: '' } }
+                ~~~
+
+      src/core/graph.ts:241:10
+        241   ctx: { log: pino.Logger; onStatus?: (status: string) => void },
+                     ~~~
+        The expected type comes from property 'log' which is declared here on type '{ log: Logger<never, boolean>; onStatus?: (status: string) => void; }'
+    tests/integration/flight_search.test.ts:296:25 - error TS2339: Property 'reply' does not exist on type 'NodeOut'.
+      Property 'reply' does not exist on type '{ next: "weather" | "destinations" | "packing" | "attractions" | "policy" | "flights" | "unknown" | "web_search" | "system"; slots?: Record<string, string>; }'.
+
+    296     expect(secondResult.reply).toContain('Las Vegas');
+                                ~~~~~
+
+ FAIL  tests/integration/ner.integration.test.ts
+  ● Console
+
+    console.log
+      🔧 Transformers.js configured for offline mode: {
+        localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+        allowRemoteModels: false
+      }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+  ● NER Integration › extracts entities from fixture text with known LOC/DATE entities
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 2
+    Received length: 0
+    Received array:  []
+
+      27 |     const result = await extractEntities(text, mockLogger);
+      28 |
+    > 29 |     expect(result).toHaveLength(2);
+         |                    ^
+      30 |     expect(result[0]).toEqual({
+      31 |       entity_group: 'LOC',
+      32 |       score: 0.9,
+
+      at Object.<anonymous> (tests/integration/ner.integration.test.ts:29:20)
+
+  ● NER Integration › produces same entity outputs as policy and router expect
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: ArrayContaining [ObjectContaining {"entity_group": Any<String>, "score": Any<Number>, "text": Any<String>}]
+    Received: []
+
+      56 |
+      57 |     // Verify the structure matches what policy_agent.ts and router.ts expect
+    > 58 |     expect(result).toEqual(
+         |                    ^
+      59 |       expect.arrayContaining([
+      60 |         expect.objectContaining({
+      61 |           entity_group: expect.any(String),
+
+      at Object.<anonymous> (tests/integration/ner.integration.test.ts:58:20)
+
+ FAIL  tests/integration/nlp-pipeline.test.ts
+  ● Test suite failed to run
+
+    src/core/graph.ts:1705:42 - error TS2339: Property 'reason' does not exist on type 'Out'.
+      Property 'reason' does not exist on type '{ ok: true; results: SearchResult[]; deepSummary?: string; }'.
+
+    1705     ctx.log.debug({ reason: searchResult.reason }, 'web_search_failed');
+                                                  ~~~~~~
+
+ FAIL  tests/integration/resilience.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    /Users/sasha/IdeaProjects/navan/root/tests/__mocks__/tavily.js:14
+    export { TavilyClient };
+    ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    > 1 | import { TavilyClient } from 'tavily';
+        | ^
+      2 | import { deepResearchPages } from './crawlee_research.js';
+      3 | import { CircuitBreaker } from '../core/circuit-breaker.js';
+      4 | import { CIRCUIT_BREAKER_CONFIG } from '../config/resilience.js';
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1505:14)
+      at Object.<anonymous> (src/tools/tavily_search.ts:1:1)
+      at Object.<anonymous> (src/tools/search.ts:2:1)
+      at Object.<anonymous> (tests/integration/resilience.test.ts:3:1)
+
+Test Suites: 6 failed, 6 total
+Tests:       3 failed, 2 passed, 5 total
+Snapshots:   0 total
+Time:        21.234 s
+Ran all test suites matching /tests\/integration\//i.
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ inpm run test:unit

@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { searchPOIs } from '../src/tools/opentripmap.js';
+import { searchPOIs } from '../../src/tools/opentripmap.js';
 
 describe('OpenTripMap adapter', () => {
   const API = 'https://api.opentripmap.com';

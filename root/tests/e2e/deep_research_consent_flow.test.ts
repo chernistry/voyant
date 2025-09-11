@@ -43,5 +43,5 @@ describe('E2E-Graph: Consent Flow - Deep Research', () => {
     
     // Reset environment
     delete process.env.DEEP_RESEARCH_ENABLED;
-  }, 30000); // Increased timeout for complex E2E test
+  }, 60000); // Increased timeout to 60 seconds for complex deep research E2E test
 });

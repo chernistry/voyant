@@ -1,4 +1,4 @@
-import { scrubMessage, scrubPII } from '../src/util/redact.js';
+import { scrubMessage, scrubPII } from '../../src/util/redact.js';
 
 describe('Security: Redaction & Allowlist', () => {
   test('scrubMessage redacts dates and cities', () => {

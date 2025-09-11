@@ -1,0 +1,58 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:e2e:flight-clarification
+
+
+> voyant-travel-assistant@1.0.0 test:e2e:flight-clarification
+> jest --runInBand --testPathPattern=tests/e2e/flight_clarification_flow.test.ts
+
+  console.log
+    🔧 Transformers.js configured for offline mode: {
+      localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+      allowRemoteModels: false
+    }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+ FAIL  tests/e2e/flight_clarification_flow.test.ts (11.854 s)
+  E2E-Graph: Flight Clarification Flow
+    ✕ simple_flight_query (10002 ms)
+
+  ● E2E-Graph: Flight Clarification Flow › simple_flight_query
+
+    thrown: "Exceeded timeout of 10000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      34 |   });
+      35 |
+    > 36 |   test('simple_flight_query', async () => {
+         |   ^
+      37 |     const response = await request(app)
+      38 |       .post('/chat')
+      39 |       .send({ message: 'flights to Europe', threadId });
+
+      at tests/e2e/flight_clarification_flow.test.ts:36:3
+      at Object.<anonymous> (tests/e2e/flight_clarification_flow.test.ts:29:1)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        12.088 s
+Ran all test suites matching /tests\/e2e\/flight_clarification_flow.test.ts/i.
+
+Jest has detected the following 1 open handle potentially keeping Jest from exiting:
+
+  ●  TCPSERVERWRAP
+
+      36 |   test('simple_flight_query', async () => {
+      37 |     const response = await request(app)
+    > 38 |       .post('/chat')
+         |        ^
+      39 |       .send({ message: 'flights to Europe', threadId });
+      40 |
+      41 |     expect(response.status).toBe(200);
+
+      at Test.serverAddress (node_modules/supertest/lib/test.js:63:35)
+      at new Test (node_modules/supertest/lib/test.js:49:14)
+      at Object.obj.<computed> [as post] (node_modules/supertest/index.js:39:18)
+      at Object.<anonymous> (tests/e2e/flight_clarification_flow.test.ts:38:8)
+
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ 

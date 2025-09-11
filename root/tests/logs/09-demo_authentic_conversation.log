@@ -1,0 +1,398 @@
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ npm run test:e2e:09
+
+> voyant-travel-assistant@1.0.0 test:e2e:09
+> jest --runInBand --testPathPattern=tests/e2e/09-demo_authentic_conversation.test.ts
+
+  console.log
+    🔧 Transformers.js configured for offline mode: {
+      localModelPath: '/Users/sasha/IdeaProjects/navan/root/models',
+      allowRemoteModels: false
+    }
+
+      at Object.<anonymous> (src/core/transformers-env.ts:21:11)
+
+{"level":20,"time":1757574852997,"pid":14776,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"🤖 TRANSFORMERS: Loading content classification pipeline"}
+{"level":20,"time":1757574852997,"pid":14776,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"✅ TRANSFORMERS: Content classification pipeline loaded (child process)"}
+{"level":20,"time":1757574856745,"pid":14776,"hostname":"sicksadmbp","text":"Weather in Barcelona?","content_type":"travel","confidence":0.3516042477243114,"msg":"🎯 TRANSFORMERS: Content classified"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574856750,"pid":14776,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"🤖 TRANSFORMERS: Loading intent classification pipeline"}
+{"level":20,"time":1757574856750,"pid":14776,"hostname":"sicksadmbp","model":"Xenova/nli-deberta-v3-base","msg":"✅ TRANSFORMERS: Intent classification pipeline loaded (child process)"}
+{"level":20,"time":1757574859395,"pid":14776,"hostname":"sicksadmbp","text":"Weather in Barcelona?","intent":"weather","confidence":0.9521541670898696,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574859714,"pid":14776,"hostname":"sicksadmbp","detectedResults":[{"lang":"en","prob":0.9999948383149846}],"topLanguage":"en","libraryConfidence":0.95,"msg":"🌐 LANGDETECT: Library detection results"}
+{"level":20,"time":1757574859714,"pid":14776,"hostname":"sicksadmbp","language":"en","script_type":"latin","has_mixed_languages":false,"confidence":0.95,"textLength":20,"scriptCounts":{"hasCyrillic":false,"hasJapanese":false,"hasLatin":true,"hasArabic":false,"hasChinese":false,"hasHebrew":false},"msg":"🌐 LANGUAGE: Final detection result"}
+{"level":20,"time":1757574859715,"pid":14776,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574859715,"pid":14776,"hostname":"sicksadmbp","totalEntities":0,"locations":0,"dates":0,"money":0,"durations":0,"overallConfidence":0.5,"msg":"🔍 NER: Enhanced entity extraction complete"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574859717,"pid":14776,"hostname":"sicksadmbp","threadSlots":{},"awaitingDeepResearch":false,"awaitingSearchConsent":false,"threadId":"comprehensive-demo","msg":"🔍 THREAD: Slots state check"}
+{"level":20,"time":1757574859717,"pid":14776,"hostname":"sicksadmbp","msg":"🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy"}
+{"level":20,"time":1757574859718,"pid":14776,"hostname":"sicksadmbp","extractionMethod":"unknown","extractionConfidence":0,"constraintCategories":[],"constraintKey":"none","complexityClass":"simple","constraintCount":0,"routingThreshold":"fallback","msg":"🎯 ROUTING: AI decision metrics"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574859719,"pid":14776,"hostname":"sicksadmbp","message":"Weather in Barcelona?","msg":"router_start"}
+{"level":20,"time":1757574859769,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2317 tokens, Format: json"}
+{"level":20,"time":1757574859769,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574861295,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 34 tokens"}
+{"level":20,"time":1757574861295,"pid":14776,"hostname":"sicksadmbp","message":"Weather in Barcelona?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"needs_web_search\": true, \"categories\": [\"location\", \"time\"], \"c","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574861296,"pid":14776,"hostname":"sicksadmbp","DEEP_RESEARCH_ENABLED":"true","shouldCheckComplexity":true,"msg":"🔧 ROUTER: Environment check"}
+{"level":20,"time":1757574861297,"pid":14776,"hostname":"sicksadmbp","deepResearchEnabled":true,"message":"Weather in Barcelona?","msg":"🔍 COMPLEXITY: Deep research enabled, checking complexity"}
+{"level":20,"time":1757574861297,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1601 tokens, Format: json"}
+{"level":20,"time":1757574861297,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574862783,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 59 tokens"}
+{"level":20,"time":1757574862783,"pid":14776,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574862783,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2317 tokens, Format: json"}
+{"level":20,"time":1757574862783,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574863969,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 34 tokens"}
+{"level":20,"time":1757574863969,"pid":14776,"hostname":"sicksadmbp","message":"Weather in Barcelona?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"needs_web_search\": true, \"categories\": [\"location\", \"time\"], \"c","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574863969,"pid":14776,"hostname":"sicksadmbp","method":"fast_transformers","entities":0,"constraints":["location","time"],"isComplex":false,"msg":"🚀 COMPLEXITY: Fast detection - SIMPLE"}
+{"level":20,"time":1757574863969,"pid":14776,"hostname":"sicksadmbp","isComplex":false,"confidence":0.6,"reasoning":"simple: 0 entities, 2 constraints","msg":"🔍 COMPLEXITY: Detection result"}
+{"level":20,"time":1757574863969,"pid":14776,"hostname":"sicksadmbp","step":1,"msg":"🤖 ROUTING_CASCADE: Transformers disabled"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574863971,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 63 tokens, Format: json"}
+{"level":20,"time":1757574863972,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574864861,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 11 tokens"}
+{"level":20,"time":1757574864862,"pid":14776,"hostname":"sicksadmbp","error":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"normalized\"\n    ],\n    \"message\": \"Required\"\n  }\n]","msg":"city_llm_failed"}
+{"level":20,"time":1757574864862,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 729 tokens, Format: json"}
+{"level":20,"time":1757574864862,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574865532,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 17 tokens"}
+{"level":20,"time":1757574865532,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 78 tokens, Format: json"}
+{"level":20,"time":1757574865532,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574866417,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 20 tokens"}
+{"level":20,"time":1757574866417,"pid":14776,"hostname":"sicksadmbp","error":"[\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"string\",\n    \"received\": \"null\",\n    \"path\": [\n      \"originCity\"\n    ],\n    \"message\": \"Expected string, received null\"\n  }\n]","msg":"od_llm_failed"}
+{"level":20,"time":1757574866417,"pid":14776,"hostname":"sicksadmbp","destinationCity":"Barcelona","msg":"od_regex_fallback"}
+{"level":20,"time":1757574866418,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 793 tokens, Format: json"}
+{"level":20,"time":1757574866418,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574867016,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 11 tokens"}
+{"level":20,"time":1757574867016,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1601 tokens, Format: json"}
+{"level":20,"time":1757574867016,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574868499,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 59 tokens"}
+{"level":20,"time":1757574868499,"pid":14776,"hostname":"sicksadmbp","step":2,"method":"llm","intent":"weather","confidence":0.95,"source":"llm_intent_classification","success":true,"msg":"✅ ROUTING_CASCADE: LLM intent classification succeeded"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {},
+      storeSize: 0,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574868501,"pid":14776,"hostname":"sicksadmbp","prior":{},"extracted":{"city":"Barcelona","destinationCity":"Barcelona"},"merged":{"city":"Barcelona","destinationCity":"Barcelona"},"intent":"weather","msg":"slot_merge"}
+{"level":20,"time":1757574868501,"pid":14776,"hostname":"sicksadmbp","needsCity":true,"hasCity":true,"hasWhen":false,"missing":[],"cityValue":"Barcelona","msg":"missing_check"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'comprehensive-demo',
+      newSlots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      prevSlots: {},
+      mergedSlots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574868504,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2317 tokens, Format: json"}
+{"level":20,"time":1757574868504,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574869458,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 34 tokens"}
+{"level":20,"time":1757574869458,"pid":14776,"hostname":"sicksadmbp","message":"Weather in Barcelona?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"needs_web_search\": true, \"categories\": [\"location\", \"time\"], \"c","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574869474,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo:geocode","attempt":1,"maxAttempts":4,"url":"https://geocoding-api.open-meteo.com/v1/search?name=Barcelona&count=1&language=en&format=json","msg":"🌐 API request attempt"}
+{"level":20,"time":1757574869767,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo:geocode","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757574869770,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo:geocode","responseSize":759,"duration":311,"msg":"✅ API request successful"}
+{"level":20,"time":1757574869776,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo","attempt":1,"maxAttempts":4,"url":"https://api.open-meteo.com/v1/forecast?latitude=41.38879&longitude=2.15899&daily=temperature_2m_max,...","msg":"🌐 API request attempt"}
+{"level":20,"time":1757574870078,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo","status":200,"statusText":"OK","msg":"📡 API response received"}
+{"level":20,"time":1757574870081,"pid":14776,"hostname":"sicksadmbp","target":"open-meteo","responseSize":580,"duration":310,"msg":"✅ API request successful"}
+{"level":20,"time":1757574870081,"pid":14776,"hostname":"sicksadmbp","wxSource":"open-meteo","source":"Open-Meteo","citsLength":1,"msg":"weather_citation_added"}
+{"level":20,"time":1757574870082,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1625 tokens, Format: text"}
+{"level":20,"time":1757574870082,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574872215,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 87 tokens"}
+{"level":20,"time":1757574872215,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1705 tokens, Format: text"}
+{"level":20,"time":1757574872215,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574873578,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 48 tokens"}
+  console.log
+    🧪 Test Evaluator - BaseURL: https://openrouter.ai/api/v1, Model: deepseek/deepseek-chat-v3.1:free, API Key: SET
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:33:13)
+
+  console.log
+    ✅ Test Evaluator Response: {
+      "passes": true,
+      "confidence": 0.9,
+      "reason": "Response provides specific weather information for Barcelona including temperature, precipitation probability, and overall conditions."
+    }
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:70:13)
+
+{"level":20,"time":1757574884190,"pid":14776,"hostname":"sicksadmbp","text":"What should I pack for Barcelona weather?","intent":"weather","confidence":0.5477820817996735,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574884190,"pid":14776,"hostname":"sicksadmbp","text":"What should I pack for Barcelona weather?","content_type":"travel","confidence":0.9518526852926192,"msg":"🎯 TRANSFORMERS: Content classified"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574885705,"pid":14776,"hostname":"sicksadmbp","text":"What should I pack for Barcelona weather?","intent":"weather","confidence":0.5477820817996735,"msg":"🎯 TRANSFORMERS: Intent classified"}
+{"level":20,"time":1757574885707,"pid":14776,"hostname":"sicksadmbp","detectedResults":[{"lang":"en","prob":0.9999974697029638}],"topLanguage":"en","libraryConfidence":0.95,"msg":"🌐 LANGDETECT: Library detection results"}
+{"level":20,"time":1757574885707,"pid":14776,"hostname":"sicksadmbp","language":"en","script_type":"latin","has_mixed_languages":false,"confidence":0.95,"textLength":40,"scriptCounts":{"hasCyrillic":false,"hasJapanese":false,"hasLatin":true,"hasArabic":false,"hasChinese":false,"hasHebrew":false},"msg":"🌐 LANGUAGE: Final detection result"}
+{"level":20,"time":1757574885707,"pid":14776,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574885708,"pid":14776,"hostname":"sicksadmbp","totalEntities":0,"locations":0,"dates":0,"money":0,"durations":0,"overallConfidence":0.5,"msg":"🔍 NER: Enhanced entity extraction complete"}
+{"level":20,"time":1757574885708,"pid":14776,"hostname":"sicksadmbp","isBudgetQuery":false,"confidence":0.95,"method":"transformers","msg":"🔍 BUDGET: Transformers classification"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574885709,"pid":14776,"hostname":"sicksadmbp","threadSlots":{"city":"Barcelona","destinationCity":"Barcelona"},"awaitingDeepResearch":false,"awaitingSearchConsent":false,"threadId":"comprehensive-demo","msg":"🔍 THREAD: Slots state check"}
+{"level":20,"time":1757574885710,"pid":14776,"hostname":"sicksadmbp","msg":"🔍 ENTITY: No cities found via AI methods, skipping regex fallback for better accuracy"}
+{"level":20,"time":1757574885710,"pid":14776,"hostname":"sicksadmbp","extractionMethod":"unknown","extractionConfidence":0,"constraintCategories":[],"constraintKey":"none","complexityClass":"simple","constraintCount":0,"routingThreshold":"fallback","msg":"🎯 ROUTING: AI decision metrics"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574885711,"pid":14776,"hostname":"sicksadmbp","isComplexTravelQuery":false,"constraintCount":0,"confidence":0.95,"method":"transformers","msg":"🔍 COMPLEXITY: Transformers classification"}
+{"level":20,"time":1757574885711,"pid":14776,"hostname":"sicksadmbp","message":"What should I pack for Barcelona weather?","msg":"router_start"}
+{"level":20,"time":1757574885711,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2322 tokens, Format: json"}
+{"level":20,"time":1757574885711,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574887636,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 46 tokens"}
+{"level":20,"time":1757574887636,"pid":14776,"hostname":"sicksadmbp","message":"What should I pack for Barcelona weather?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": true, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574887637,"pid":14776,"hostname":"sicksadmbp","DEEP_RESEARCH_ENABLED":"true","shouldCheckComplexity":true,"msg":"🔧 ROUTER: Environment check"}
+{"level":20,"time":1757574887637,"pid":14776,"hostname":"sicksadmbp","deepResearchEnabled":true,"message":"What should I pack for Barcelona weather?","msg":"🔍 COMPLEXITY: Deep research enabled, checking complexity"}
+{"level":20,"time":1757574887637,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 1606 tokens, Format: json"}
+{"level":20,"time":1757574887637,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574889019,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 61 tokens"}
+{"level":20,"time":1757574889019,"pid":14776,"hostname":"sicksadmbp","msg":"🔌 NER: Transformers disabled"}
+{"level":20,"time":1757574889019,"pid":14776,"hostname":"sicksadmbp","msg":"🤖 LLM Call - Input: 2322 tokens, Format: json"}
+{"level":20,"time":1757574889019,"pid":14776,"hostname":"sicksadmbp","msg":"🔗 Trying model: google/gemma-3n-e4b-it at https://openrouter.ai/api/v1"}
+{"level":20,"time":1757574890263,"pid":14776,"hostname":"sicksadmbp","msg":"✅ Model google/gemma-3n-e4b-it succeeded - Output: 46 tokens"}
+{"level":20,"time":1757574890263,"pid":14776,"hostname":"sicksadmbp","message":"What should I pack for Barcelona weather?","response":"{\"content_type\": \"travel\", \"is_explicit_search\": false, \"has_mixed_languages\": false, \"needs_web_search\": true, \"categor","responseType":"string","msg":"content_classification_response"}
+{"level":20,"time":1757574890264,"pid":14776,"hostname":"sicksadmbp","method":"fast_transformers","entities":0,"constraints":["accommodation","location","time"],"strategy":"ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3","confidence":0.7999999999999999,"msg":"🚀 COMPLEXITY: Fast detection - COMPLEX"}
+{"level":20,"time":1757574890264,"pid":14776,"hostname":"sicksadmbp","isComplex":true,"confidence":0.7999999999999999,"reasoning":"ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3","msg":"🔍 COMPLEXITY: Detection result"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'comprehensive-demo',
+      newSlots: {
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3'
+      },
+      prevSlots: { city: 'Barcelona', destinationCity: 'Barcelona' },
+      mergedSlots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574890265,"pid":14776,"hostname":"sicksadmbp","intent":"system","reason":"deep_research_consent_needed","msg":"✅ COMPLEXITY: Triggering deep research consent"}
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3'
+      },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3'
+      },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+{"level":20,"time":1757574890267,"pid":14776,"hostname":"sicksadmbp","prior":{"city":"Barcelona","destinationCity":"Barcelona","awaiting_deep_research_consent":"true","pending_deep_research_query":"What should I pack for Barcelona weather?","complexity_reasoning":"ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3"},"extracted":{"deep_research_consent_needed":"true","complexity_score":"0.80"},"merged":{"city":"Barcelona","destinationCity":"Barcelona","deep_research_consent_needed":"true","complexity_score":"0.80"},"intent":"system","msg":"slot_merge"}
+{"level":20,"time":1757574890267,"pid":14776,"hostname":"sicksadmbp","needsCity":false,"hasCity":true,"hasWhen":false,"missing":[],"cityValue":"Barcelona","msg":"missing_check"}
+  console.debug
+    🔧 SLOTS: updateThreadSlots {
+      threadId: 'comprehensive-demo',
+      newSlots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        deep_research_consent_needed: 'true',
+        complexity_score: '0.80'
+      },
+      prevSlots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3'
+      },
+      mergedSlots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3',
+        deep_research_consent_needed: 'true',
+        complexity_score: '0.80'
+      },
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.debug
+    🔧 SLOTS: getThreadSlots {
+      threadId: 'comprehensive-demo',
+      slots: {
+        city: 'Barcelona',
+        destinationCity: 'Barcelona',
+        awaiting_deep_research_consent: 'true',
+        pending_deep_research_query: 'What should I pack for Barcelona weather?',
+        complexity_reasoning: 'ai_confidence_low_or_many_constraints: confidence=0.92, constraints=3',
+        deep_research_consent_needed: 'true',
+        complexity_score: '0.80'
+      },
+      storeSize: 1,
+      isCliMode: false
+    }
+
+      at debugLog (src/core/slot_memory.ts:10:13)
+
+  console.log
+    🧪 Test Evaluator - BaseURL: https://openrouter.ai/api/v1, Model: deepseek/deepseek-chat-v3.1:free, API Key: SET
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:33:13)
+
+  console.log
+    ✅ Test Evaluator Response: {
+      "passes": false,
+      "confidence": 0.1,
+      "reason": "Response asks for missing information (city/dates) rather than providing packing advice for Barcelona. No evidence of intent classification or en...
+
+      at evaluateWithLLM (src/test/llm-evaluator.ts:70:13)
+
+ FAIL  tests/e2e/09-demo_authentic_conversation.test.ts (43.675 s)
+  E2E: Demo Authentic Conversation - Comprehensive Travel Planning Showcase
+    ✕ Comprehensive demo: Natural conversation showcasing all capabilities (41408 ms)
+
+  ● E2E: Demo Authentic Conversation - Comprehensive Travel Planning Showcase › Comprehensive demo: Natural conversation showcasing all capabilities
+
+    Test failed: Response asks for missing information (city/dates) rather than providing packing advice for Barcelona. No evidence of intent classification or entity extraction for the given query. (confidence: 0.1)
+
+       95 |       
+       96 |       if (!result.passes) {
+    >  97 |         throw new Error(`Test failed: ${result.reason} (confidence: ${result.confidence})`);
+          |               ^
+       98 |       }
+       99 |       
+      100 |       if (result.confidence < minConfidence) {
+
+      at Object.toPass (src/test/llm-evaluator.ts:97:15)
+      at Object.<anonymous> (tests/e2e/09-demo_authentic_conversation.test.ts:59:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        43.892 s
+Ran all test suites matching /tests\/e2e\/09-demo_authentic_conversation.test.ts/i.
+~/IdeaProjects/navan/root (tests/update-test-suite) ❯ 09-demo_authentic_conversation.log

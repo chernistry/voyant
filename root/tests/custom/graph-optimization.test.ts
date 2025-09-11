@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { runGraphTurn } from '../src/core/graph.js';
-import * as transformersClassifier from '../src/core/transformers-classifier.js';
-import * as nerEnhanced from '../src/core/ner-enhanced.js';
+import { runGraphTurn } from '../../src/core/graph.js';
+import * as transformersClassifier from '../../src/core/transformers-classifier.js';
+import * as nerEnhanced from '../../src/core/ner-enhanced.js';
 
 // Mock dependencies
 jest.mock('../src/core/transformers-classifier.js');
