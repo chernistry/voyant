@@ -1,6 +1,6 @@
-import { fetchJSON } from '../util/fetch.js';
-import { getAmadeusToken } from './amadeus_auth.js';
-import { AmadeusLocationList, TLocation } from '../schemas/amadeus.js';
+import { getAmadeusClient } from '../vendors/amadeus_client.js';
+import { withPolicies } from './_sdk_policies.js';
+import { toStdError } from './errors.js';
 
 export type SearchOpts = {
   keyword: string; 
@@ -32,6 +32,137 @@ export type Airport = {
   longitude?: number 
 };
 
+/**
+ * Search locations using Amadeus SDK with pagination support.
+ */
+export async function searchLocations(
+  opts: SearchOpts, 
+  signal?: AbortSignal
+): Promise<any[]> {
+  try {
+    return await withPolicies(async () => {
+      const amadeus = await getAmadeusClient();
+      
+      const params = {
+        keyword: opts.keyword,
+        subType: opts.subType,
+        view: opts.view ?? 'FULL',
+        page: { limit: opts.limit ?? 20 },
+        ...(opts.countryCode && { countryCode: opts.countryCode }),
+      };
+      
+      const response = await amadeus.referenceData.locations.get(params);
+      let results = response.data || [];
+      
+      // Paginate up to 2 pages
+      if (response.meta?.links?.next && results.length < 40) {
+        try {
+          const nextResponse = await amadeus.next(response);
+          results = results.concat(nextResponse.data || []);
+        } catch (e) {
+          // Ignore pagination errors
+        }
+      }
+      
+      return results;
+    }, signal, 4000);
+  } catch (error) {
+    const stdError = toStdError(error, 'searchLocations');
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
+/**
+ * Resolve city with confidence scoring using Jaro-Winkler similarity.
+ */
+export async function resolveCity(
+  input: string, 
+  countryHint?: string
+): Promise<ResolveCityOut> {
+  try {
+    const results = await searchLocations({
+      keyword: input,
+      subType: 'CITY',
+      countryCode: countryHint,
+      view: 'FULL',
+      limit: 10,
+    });
+    
+    if (!results.length) {
+      return { ok: false, reason: 'not_found' };
+    }
+    
+    const candidates = results
+      .filter(loc => loc.subType === 'CITY' && loc.iataCode)
+      .map(loc => ({
+        cityCode: loc.iataCode,
+        cityName: loc.name,
+        confidence: jaroWinkler(input.toLowerCase(), loc.name.toLowerCase()),
+      }))
+      .sort((a, b) => b.confidence - a.confidence);
+    
+    if (!candidates.length) {
+      return { ok: false, reason: 'not_found' };
+    }
+    
+    const best = candidates[0]!;
+    const bestResult = results.find(r => r.iataCode === best.cityCode);
+    
+    return {
+      ok: true,
+      cityCode: best.cityCode,
+      cityName: best.cityName,
+      confidence: Math.round(best.confidence * 100) / 100,
+      source: 'amadeus',
+      geo: bestResult?.geoCode ? {
+        latitude: bestResult.geoCode.latitude,
+        longitude: bestResult.geoCode.longitude,
+      } : undefined,
+      candidates: candidates.slice(0, 3),
+    };
+  } catch (error) {
+    const stdError = toStdError(error, 'resolveCity');
+    return { 
+      ok: false, 
+      reason: stdError.code.includes('timeout') ? 'timeout' : 'network' 
+    };
+  }
+}
+
+/**
+ * Get airports for a city code.
+ */
+export async function airportsForCity(
+  cityCode: string, 
+  signal?: AbortSignal
+): Promise<Airport[]> {
+  try {
+    const results = await searchLocations({
+      keyword: cityCode,
+      subType: 'AIRPORT',
+      limit: 20,
+    }, signal);
+    
+    return results
+      .filter(loc => 
+        loc.subType === 'AIRPORT' && 
+        loc.address?.cityCode === cityCode
+      )
+      .map(loc => ({
+        iataCode: loc.iataCode,
+        name: loc.name,
+        cityCode: loc.address?.cityCode || cityCode,
+        score: loc.analytics?.travelers?.score,
+        latitude: loc.geoCode?.latitude,
+        longitude: loc.geoCode?.longitude,
+      }))
+      .sort((a, b) => (b.score || 0) - (a.score || 0));
+  } catch (error) {
+    const stdError = toStdError(error, 'airportsForCity');
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
 // Simple Jaro-Winkler implementation
 function jaroWinkler(s1: string, s2: string): number {
   if (s1 === s2) return 1.0;
@@ -59,7 +190,7 @@ function jaroWinkler(s1: string, s2: string): number {
     }
   }
   
-  if (matches === 0) return 0.0;
+  if (matches === 0) return 0;
   
   // Count transpositions
   let k = 0;
@@ -70,7 +201,8 @@ function jaroWinkler(s1: string, s2: string): number {
     k++;
   }
   
-  const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3;
+  const jaro = (matches / len1 + matches / len2 + 
+    (matches - transpositions / 2) / matches) / 3;
   
   // Winkler prefix bonus
   let prefix = 0;
@@ -80,149 +212,4 @@ function jaroWinkler(s1: string, s2: string): number {
   }
   
   return jaro + (0.1 * prefix * (1 - jaro));
-}
-
-function normalize(str: string): string {
-  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-// In-memory cache with TTL
-const cache = new Map<string, { data: any; expires: number }>();
-
-function getCached<T>(key: string): T | null {
-  const entry = cache.get(key);
-  if (entry && entry.expires > Date.now()) {
-    return entry.data;
-  }
-  cache.delete(key);
-  return null;
-}
-
-function setCache<T>(key: string, data: T, ttlMs = 600000): void { // 10 min
-  cache.set(key, { data, expires: Date.now() + ttlMs });
-}
-
-export async function searchLocations(opts: SearchOpts, signal?: AbortSignal): Promise<TLocation[]> {
-  const cacheKey = `${opts.keyword}:${opts.subType}:${opts.countryCode || ''}`;
-  const cached = getCached<TLocation[]>(cacheKey);
-  if (cached) return cached;
-
-  const token = await getAmadeusToken(signal);
-  const baseUrl = process.env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
-  
-  const params = new URLSearchParams({
-    keyword: opts.keyword,
-    subType: opts.subType,
-    view: opts.view || 'FULL',
-    'page[limit]': (opts.limit || 20).toString(),
-  });
-  
-  if (opts.countryCode) {
-    params.append('countryCode', opts.countryCode);
-  }
-
-  const response = await fetchJSON<typeof AmadeusLocationList._type>(
-    `${baseUrl}/v1/reference-data/locations?${params.toString()}`,
-    {
-      headers: { 'Authorization': `Bearer ${token}` },
-      timeoutMs: 4000,
-      retries: 3,
-      target: 'amadeus:locations',
-    }
-  );
-
-  const parsed = AmadeusLocationList.parse(response);
-  setCache(cacheKey, parsed.data);
-  return parsed.data;
-}
-
-export async function resolveCity(input: string, countryHint?: string): Promise<ResolveCityOut> {
-  try {
-    const locations = await searchLocations({
-      keyword: input,
-      subType: 'CITY',
-      countryCode: countryHint,
-    });
-
-    const cities = locations.filter(loc => loc.subType === 'CITY');
-    if (cities.length === 0) {
-      return { ok: false, reason: 'not_found' };
-    }
-
-    const inputNorm = normalize(input);
-    const candidates = cities.map(city => {
-      const cityName = city.name || city.detailedName || city.address?.cityName || '';
-      const similarity = jaroWinkler(inputNorm, normalize(cityName));
-      const travScore = city.analytics?.travelers?.score || 0;
-      const confidence = Math.min(1, 0.7 * similarity + 0.3 * Math.min(1, travScore / 100));
-      
-      return {
-        cityCode: city.iataCode,
-        cityName,
-        confidence: Math.round(confidence * 100) / 100,
-        location: city,
-      };
-    }).sort((a, b) => b.confidence - a.confidence);
-
-    const best = candidates[0];
-    if (!best || best.confidence < 0.60) {
-      return { ok: false, reason: 'ambiguous' };
-    }
-
-    return {
-      ok: true,
-      cityCode: best.cityCode,
-      cityName: best.cityName,
-      confidence: best.confidence,
-      source: 'amadeus',
-      geo: best.location.geoCode && best.location.geoCode.latitude !== undefined && best.location.geoCode.longitude !== undefined 
-        ? { latitude: best.location.geoCode.latitude, longitude: best.location.geoCode.longitude }
-        : undefined,
-      candidates: candidates.slice(0, 3).map(c => ({
-        cityCode: c.cityCode,
-        cityName: c.cityName,
-        confidence: c.confidence,
-      })),
-    };
-  } catch (error: any) {
-    if (error?.kind === 'timeout') return { ok: false, reason: 'timeout' };
-    if (error?.status >= 500) return { ok: false, reason: 'http_5xx' };
-    if (error?.status >= 400) return { ok: false, reason: 'http_4xx' };
-    return { ok: false, reason: 'network' };
-  }
-}
-
-export async function airportsForCity(cityCode: string): Promise<Airport[]> {
-  const cacheKey = `airports:${cityCode}`;
-  const cached = getCached<Airport[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const locations = await searchLocations({
-      keyword: cityCode,
-      subType: 'AIRPORT',
-    });
-
-    const airports = locations
-      .filter(loc => loc.subType === 'AIRPORT' && loc.address?.cityCode === cityCode)
-      .map(airport => ({
-        iataCode: airport.iataCode,
-        name: airport.name || airport.detailedName,
-        cityCode,
-        score: airport.analytics?.travelers?.score,
-        latitude: airport.geoCode?.latitude,
-        longitude: airport.geoCode?.longitude,
-      }))
-      .sort((a, b) => {
-        const scoreA = a.score || 0;
-        const scoreB = b.score || 0;
-        if (scoreA !== scoreB) return scoreB - scoreA;
-        return (a.name || '').localeCompare(b.name || '');
-      });
-
-    setCache(cacheKey, airports);
-    return airports;
-  } catch {
-    return [];
-  }
 }

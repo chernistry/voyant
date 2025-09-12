@@ -521,8 +521,8 @@ async function flightsNode(
     if (mergedSlots.originCity && (mergedSlots.destinationCity || mergedSlots.city) && departureDate) {
       const result = await searchFlights({
         origin: mergedSlots.originCity,
-        destination: mergedSlots.destinationCity || mergedSlots.city,
-        departureDate: departureDate ? await convertToAmadeusDate(departureDate) : undefined,
+        destination: (mergedSlots.destinationCity || mergedSlots.city)!,
+        departureDate: await convertToAmadeusDate(departureDate),
         returnDate: returnDate ? returnDate : undefined,
         passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
         cabinClass: mergedSlots.cabinClass,

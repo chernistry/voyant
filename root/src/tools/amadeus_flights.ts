@@ -1,413 +1,238 @@
-import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
-import { callLLM } from '../core/llm.js';
-import { getPrompt } from '../core/prompts.js';
-import { z } from 'zod';
+import { getAmadeusClient } from '../vendors/amadeus_client.js';
+import { withPolicies } from './_sdk_policies.js';
+import { toStdError } from './errors.js';
 
-// Amadeus API schemas
-const AmadeusTokenResponse = z.object({
-  access_token: z.string(),
-  token_type: z.string(),
-  expires_in: z.number(),
-});
+export interface FlightSearchQuery {
+  originLocationCode: string;
+  destinationLocationCode: string;
+  departureDate: string;
+  adults: string;
+  returnDate?: string;
+  max?: string;
+  nonStop?: boolean;
+  currencyCode?: string;
+}
 
-const AmadeusLocation = z.object({
-  iataCode: z.string(),
-  name: z.string().optional(),
-  cityName: z.string().optional(),
-  countryName: z.string().optional(),
-});
+/**
+ * Search flight offers using Amadeus SDK GET endpoint.
+ */
+export async function flightOffersGet(
+  query: FlightSearchQuery,
+  signal?: AbortSignal
+): Promise<any> {
+  try {
+    const result = await withPolicies(async () => {
+      const amadeus = await getAmadeusClient();
+      
+      const params = {
+        originLocationCode: query.originLocationCode,
+        destinationLocationCode: query.destinationLocationCode,
+        departureDate: query.departureDate,
+        adults: query.adults,
+        ...(query.returnDate && { returnDate: query.returnDate }),
+        ...(query.max && { max: query.max }),
+        ...(query.nonStop !== undefined && { nonStop: query.nonStop }),
+        ...(query.currencyCode && { currencyCode: query.currencyCode }),
+      };
+      
+      const response = await amadeus.shopping.flightOffersSearch.get(params);
+      return response.data;
+    }, signal, 10000);
+    
+    // Log successful result
+    console.log('Amadeus flight search successful:', result?.length || 0, 'offers');
+    
+    // Return in expected format for graph
+    if (result && result.length > 0) {
+      // Extract top 3 flight offers with details
+      const topOffers = result.slice(0, 3).map((offer: any) => {
+        const price = offer.price?.total;
+        const currency = offer.price?.currency || 'EUR';
+        const segments = offer.itineraries?.[0]?.segments || [];
+        const firstSegment = segments[0];
+        const lastSegment = segments[segments.length - 1];
+        
+        return {
+          price: `${price} ${currency}`,
+          departure: `${firstSegment?.departure?.iataCode} ${firstSegment?.departure?.at}`,
+          arrival: `${lastSegment?.arrival?.iataCode} ${lastSegment?.arrival?.at}`,
+          airline: firstSegment?.carrierCode,
+          stops: segments.length > 1 ? `${segments.length - 1} stop(s)` : 'Direct'
+        };
+      });
+      
+      const summary = `Found ${result.length} flight offers from ${query.originLocationCode} to ${query.destinationLocationCode} on ${query.departureDate}
 
-const AmadeusFlightOffer = z.object({
-  id: z.string(),
-  price: z.object({
-    currency: z.string(),
-    total: z.string(),
-  }),
-  itineraries: z.array(z.object({
-    duration: z.string(),
-    segments: z.array(z.object({
-      departure: z.object({
-        iataCode: z.string(),
-        at: z.string(),
-      }),
-      arrival: z.object({
-        iataCode: z.string(),
-        at: z.string(),
-      }),
-      carrierCode: z.string(),
-      number: z.string(),
-      duration: z.string(),
-    })),
-  })),
-});
+Top options:
+${topOffers.map((offer: any, i: number) => 
+  `${i + 1}. ${offer.price} - ${offer.departure} → ${offer.arrival} (${offer.airline}, ${offer.stops})`
+).join('\n')}
 
-const AmadeusFlightSearchResponse = z.object({
-  data: z.array(AmadeusFlightOffer),
-});
+${result.length > 3 ? `\n...and ${result.length - 3} more options available.` : ''}`;
 
-type FlightSearchParams = {
+      return {
+        ok: true,
+        source: 'amadeus',
+        offers: result,
+        count: result.length,
+        summary
+      };
+    }
+    
+    return { ok: false, reason: 'no_results' };
+    
+  } catch (error) {
+    console.error('Amadeus flight search failed:', error);
+    const stdError = toStdError(error, 'flightOffersGet');
+    
+    // Fallback message if enabled and no results
+    if (process.env.IATA_RESOLVER === 'llm' && stdError.code === 'not_found') {
+      return {
+        fallback: true,
+        message: 'Flight search temporarily unavailable. Please try alternative airports or check directly with airlines.',
+        source: 'llm_fallback',
+      };
+    }
+    
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
+/**
+ * Search flight offers using Amadeus SDK POST endpoint.
+ */
+export async function flightOffersPost(
+  body: unknown,
+  signal?: AbortSignal
+): Promise<any> {
+  try {
+    return await withPolicies(async () => {
+      const amadeus = await getAmadeusClient();
+      const response = await amadeus.shopping.flightOffersSearch.post(body);
+      return response.data;
+    }, signal, 6000);
+  } catch (error) {
+    const stdError = toStdError(error, 'flightOffersPost');
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
+/**
+ * Price flight offers using Amadeus SDK.
+ */
+export async function flightOffersPrice(
+  offer: unknown,
+  include?: string,
+  signal?: AbortSignal
+): Promise<any> {
+  try {
+    return await withPolicies(async () => {
+      const amadeus = await getAmadeusClient();
+      
+      const body = {
+        data: {
+          type: 'flight-offers-pricing',
+          flightOffers: Array.isArray(offer) ? offer : [offer],
+        },
+        ...(include && { include }),
+      };
+      
+      const response = await amadeus.shopping.flightOffers.pricing.post(body);
+      return response.data;
+    }, signal, 6000);
+  } catch (error) {
+    const stdError = toStdError(error, 'flightOffersPrice');
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
+/**
+ * Get seatmaps from flight offer using Amadeus SDK.
+ */
+export async function seatmapsFromOffer(
+  offer: unknown,
+  signal?: AbortSignal
+): Promise<any> {
+  try {
+    return await withPolicies(async () => {
+      const amadeus = await getAmadeusClient();
+      
+      const body = {
+        data: Array.isArray(offer) ? offer : [offer],
+      };
+      
+      const response = await amadeus.shopping.seatmaps.post(body);
+      return response.data;
+    }, signal, 6000);
+  } catch (error) {
+    const stdError = toStdError(error, 'seatmapsFromOffer');
+    throw new Error(`${stdError.code}: ${stdError.message}`);
+  }
+}
+
+// Legacy exports for backward compatibility
+export async function searchFlights(params: {
   origin: string;
   destination: string;
   departureDate: string;
   returnDate?: string;
   adults?: number;
-  children?: number;
-  infants?: number;
-  travelClass?: 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
-  nonStop?: boolean;
-  maxPrice?: number;
-  max?: number;
-};
-
-type FlightSearchResult = {
-  ok: true;
-  flights: Array<{
-    id: string;
-    price: { currency: string; total: string };
-    duration: string;
-    segments: Array<{
-      departure: { airport: string; time: string };
-      arrival: { airport: string; time: string };
-      airline: string;
-      flightNumber: string;
-      duration: string;
-    }>;
-  }>;
-  source: string;
-} | {
-  ok: false;
-  reason: string;
-};
-
-async function getIataCode(cityOrAirport: string): Promise<string> {
-  try {
-    const promptTemplate = await getPrompt('iata_code_generator');
-    const prompt = promptTemplate.replace('{city_or_airport}', cityOrAirport);
-    const response = await callLLM(prompt);
-    const code = response.trim().toUpperCase().replace(/[^A-Z]/g, '');
-    
-    // Validate it's 3 letters
-    if (code.length === 3 && /^[A-Z]{3}$/.test(code)) {
-      return code;
+  passengers?: number;
+  cabinClass?: string;
+}): Promise<any> {
+  // Resolve city names to IATA codes if needed
+  let originCode = params.origin;
+  let destinationCode = params.destination;
+  
+  // If not 3-letter codes, try to resolve via Amadeus
+  if (originCode.length !== 3 || !/^[A-Z]{3}$/.test(originCode)) {
+    const { resolveCity } = await import('./amadeus_locations.js');
+    const resolved = await resolveCity(originCode);
+    if (resolved.ok) {
+      originCode = resolved.cityCode;
     }
-    
-    // Fallback to original if invalid
-    return cityOrAirport.toUpperCase().substring(0, 3);
-  } catch {
-    return cityOrAirport.toUpperCase().substring(0, 3);
+    // Don't throw error - let it try with original name
   }
+  
+  if (destinationCode.length !== 3 || !/^[A-Z]{3}$/.test(destinationCode)) {
+    const { resolveCity } = await import('./amadeus_locations.js');
+    const resolved = await resolveCity(destinationCode);
+    if (resolved.ok) {
+      destinationCode = resolved.cityCode;
+    }
+    // Don't throw error - let it try with original name
+  }
+  
+  return flightOffersGet({
+    originLocationCode: originCode,
+    destinationLocationCode: destinationCode,
+    departureDate: params.departureDate,
+    adults: ((params.adults || params.passengers) || 1).toString(),
+    ...(params.returnDate && { returnDate: params.returnDate }),
+  });
 }
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getAmadeusToken(): Promise<string> {
-  const now = Date.now();
+export async function convertToAmadeusDate(dateStr?: string): Promise<string> {
+  if (!dateStr) return '2024-12-01'; // Default date
   
-  if (cachedToken && cachedToken.expiresAt > now + 60000) { // 1 min buffer
-    return cachedToken.token;
-  }
-
-  const clientId = process.env.AMADEUS_CLIENT_ID;
-  const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
+  const lowerDate = dateStr.toLowerCase();
   
-  if (!clientId || !clientSecret) {
-    throw new Error('Amadeus credentials not configured');
+  // Handle relative dates
+  if (lowerDate === 'tomorrow') {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0]!;
   }
-
-  const baseUrl = process.env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
   
-  try {
-    // Use native fetch for POST requests since fetchJSON doesn't support them
-    const response = await fetch(`${baseUrl}/v1/security/oauth2/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      }).toString(),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) {
-      throw new ExternalFetchError('http', `HTTP ${response.status}`, response.status);
-    }
-
-    const data = await response.json();
-    const parsed = AmadeusTokenResponse.parse(data);
-    cachedToken = {
-      token: parsed.access_token,
-      expiresAt: now + (parsed.expires_in * 1000) - 60000, // 1 min buffer
-    };
-
-    return parsed.access_token;
-  } catch (error) {
-    if (error instanceof ExternalFetchError) {
-      throw error;
-    }
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new ExternalFetchError('timeout', 'Request timeout');
-    }
-    throw new ExternalFetchError('network', 'Network error');
+  if (lowerDate === 'today') {
+    return new Date().toISOString().split('T')[0]!;
   }
-}
-
-async function searchAmadeusFlights(params: FlightSearchParams): Promise<FlightSearchResult> {
-  try {
-    const token = await getAmadeusToken();
-    const baseUrl = process.env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
-    
-    const searchParams = new URLSearchParams({
-      originLocationCode: params.origin,
-      destinationLocationCode: params.destination,
-      departureDate: params.departureDate,
-      adults: (params.adults || 1).toString(),
-      max: (params.max || 10).toString(),
-    });
-
-    if (params.returnDate) {
-      searchParams.append('returnDate', params.returnDate);
-    }
-    if (params.children) {
-      searchParams.append('children', params.children.toString());
-    }
-    if (params.infants) {
-      searchParams.append('infants', params.infants.toString());
-    }
-    if (params.travelClass) {
-      searchParams.append('travelClass', params.travelClass);
-    }
-    if (params.nonStop) {
-      searchParams.append('nonStop', 'true');
-    }
-    if (params.maxPrice) {
-      searchParams.append('maxPrice', params.maxPrice.toString());
-    }
-
-    const response = await fetchJSON<z.infer<typeof AmadeusFlightSearchResponse>>(
-      `${baseUrl}/v2/shopping/flight-offers?${searchParams.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        timeoutMs: 10000,
-        retries: 2,
-        target: 'amadeus:flights',
-      }
-    );
-
-    const parsed = AmadeusFlightSearchResponse.parse(response);
-    
-    const flights = parsed.data.map(offer => ({
-      id: offer.id,
-      price: offer.price,
-      duration: offer.itineraries[0]?.duration || 'Unknown',
-      segments: offer.itineraries[0]?.segments.map(segment => ({
-        departure: {
-          airport: segment.departure.iataCode,
-          time: segment.departure.at,
-        },
-        arrival: {
-          airport: segment.arrival.iataCode,
-          time: segment.arrival.at,
-        },
-        airline: segment.carrierCode,
-        flightNumber: `${segment.carrierCode}${segment.number}`,
-        duration: segment.duration,
-      })) || [],
-    }));
-
-    return {
-      ok: true,
-      flights,
-      source: 'amadeus',
-    };
-  } catch (error) {
-    if (error instanceof ExternalFetchError) {
-      return {
-        ok: false,
-        reason: error.kind === 'timeout' ? 'timeout' : 
-                error.status && error.status >= 500 ? 'http_5xx' : 'http_4xx',
-      };
-    }
-    return {
-      ok: false,
-      reason: error instanceof Error ? error.message : 'unknown_error',
-    };
-  }
-}
-
-async function convertToAmadeusDate(dateStr: string): Promise<string> {
+  
   // If already in YYYY-MM-DD format, return as-is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
     return dateStr;
   }
   
-  // Handle "today" and "tomorrow" explicitly for relative inputs
-  const trimmed = dateStr.trim();
-  if (/^today$/i.test(trimmed)) {
-    return new Date().toISOString().split('T')[0] || new Date().getFullYear() + '-01-01';
-  }
-  if (/^tomorrow$/i.test(trimmed)) {
-    const t = new Date();
-    t.setDate(t.getDate() + 1);
-    return t.toISOString().split('T')[0] || `${t.getFullYear()}-01-02`;
-  }
-
-  // Handle "next week" explicitly (snap to next Monday)
-  if (/^next\s+week$/i.test(dateStr.trim())) {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    const day = d.getDay(); // 0=Sun,1=Mon
-    const diff = day === 0 ? 1 : (1 - day);
-    d.setDate(d.getDate() + diff);
-    const iso = d.toISOString().split('T')[0];
-    return iso || `${d.getFullYear()}-01-01`;
-  }
-  
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  
-  // Handle common formats directly
-  if (dateStr.match(/^(October|Oct)\s+(\d{1,2})$/i)) {
-    const day = dateStr.match(/(\d{1,2})/)?.[1];
-    if (day) {
-      const testDate = new Date(currentYear, 9, parseInt(day)); // October = month 9
-      const targetYear = testDate < today ? currentYear + 1 : currentYear;
-      return `${targetYear}-10-${day.padStart(2, '0')}`;
-    }
-  }
-  
-  try {
-    // Use dedicated date parser for other formats
-    const promptTemplate = await getPrompt('date_parser');
-    const prompt = promptTemplate.replace('{text}', dateStr).replace('{context}', 'flight booking');
-    const response = await callLLM(prompt);
-    const parsed = JSON.parse(response);
-    
-    if (parsed.confidence > 0.5 && parsed.dates) {
-      let date = new Date(parsed.dates);
-      if (!isNaN(date.getTime())) {
-        // If date is in the past, assume next year
-        if (date < today) {
-          date.setFullYear(date.getFullYear() + 1);
-        }
-        return date.toISOString().split('T')[0] || `${currentYear}-01-01`;
-      }
-    }
-  } catch (error) {
-    console.debug('Date parser failed, using fallback:', error);
-  }
-  
-  // Fallback: try basic parsing
-  let date = new Date(dateStr);
-  if (!isNaN(date.getTime())) {
-    if (date < today) {
-      date.setFullYear(date.getFullYear() + 1);
-    }
-    return date.toISOString().split('T')[0] || `${currentYear}-01-01`;
-  }
-  
-  // Last resort
-  return `${currentYear + 1}-01-01`;
-}
-
-export { convertToAmadeusDate };
-
-export async function searchFlights(input: {
-  origin?: string;
-  destination?: string;
-  departureDate?: string;
-  returnDate?: string;
-  passengers?: number;
-  cabinClass?: string;
-}): Promise<{ ok: true; summary: string; source: string; reason?: string } | { ok: false; reason: string }> {
-  // Validation is now handled in graph.ts, but we'll keep a basic check
-  if (!input.origin || !input.destination || !input.departureDate) {
-    return { ok: false, reason: 'missing_required_fields' };
-  }
-
-  // Convert city names to IATA codes
-  const originCode = await getIataCode(input.origin);
-  const destinationCode = await getIataCode(input.destination);
-
-  // Convert dates to Amadeus format (YYYY-MM-DD)
-  const formattedDepartureDate = await convertToAmadeusDate(input.departureDate);
-  const formattedReturnDate = input.returnDate ? await convertToAmadeusDate(input.returnDate) : undefined;
-
-  console.debug('Date conversion:', {
-    input: input.departureDate,
-    output: formattedDepartureDate,
-    today: new Date().toISOString().split('T')[0]
-  });
-
-  // Convert cabin class to Amadeus format
-  let travelClass: FlightSearchParams['travelClass'] = 'ECONOMY';
-  if (input.cabinClass) {
-    const classLower = input.cabinClass.toLowerCase();
-    if (classLower.includes('business')) travelClass = 'BUSINESS';
-    else if (classLower.includes('first')) travelClass = 'FIRST';
-    else if (classLower.includes('premium')) travelClass = 'PREMIUM_ECONOMY';
-  }
-
-  const searchParams: FlightSearchParams = {
-    origin: originCode,
-    destination: destinationCode,
-    departureDate: formattedDepartureDate,
-    returnDate: formattedReturnDate,
-    adults: input.passengers || 1,
-    travelClass,
-    max: 5, // Limit results for summary
-  };
-
-  const result = await searchAmadeusFlights(searchParams);
-  
-  if (!result.ok) {
-    return result;
-  }
-
-  if (result.flights.length === 0) {
-    return { ok: false, reason: 'no_flights_found' };
-  }
-
-  // Create AI-friendly summary
-  const tripType = input.returnDate ? 'round-trip' : 'one-way';
-  const flightSummaries = result.flights.slice(0, 3).map((flight, idx) => {
-    if (!flight.segments.length) return `${idx + 1}. Flight details unavailable`;
-    
-    const stops = flight.segments.length > 1 ? ` (${flight.segments.length - 1} stop${flight.segments.length > 2 ? 's' : ''})` : ' (nonstop)';
-    
-    // Show all segments for complete journey
-    const segmentDetails = flight.segments.map((segment, segIdx) => {
-      const departureTime = new Date(segment.departure.time).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'UTC'
-      });
-      const arrivalTime = new Date(segment.arrival.time).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'UTC' 
-      });
-      
-      return `   ${segment.flightNumber}: ${departureTime} ${segment.departure.airport} → ${arrivalTime} ${segment.arrival.airport}`;
-    }).join('\n');
-    
-    return `${idx + 1}. ${flight.price.currency} ${flight.price.total}${stops} - Total: ${flight.duration}
-${segmentDetails}`;
-  }).join('\n\n');
-
-  const summary = `Found ${result.flights.length} ${tripType} flight${result.flights.length > 1 ? 's' : ''} from ${input.origin} to ${input.destination} on ${formattedDepartureDate}:
-
-${flightSummaries}
-
-Note: Times shown in UTC. Check airline for local times and booking details.`;
-
-  return {
-    ok: true,
-    summary,
-    source: result.source,
-  };
+  // Default fallback
+  return '2024-12-01';
 }
