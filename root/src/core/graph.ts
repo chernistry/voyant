@@ -149,24 +149,29 @@ export async function runGraphTurn(
   }
   
   // === EXTRACT STAGE: Router-once with intent-gated extractors ===
-  // Single router call with slots
+  // Single router call with slots. If guard forced an intent, skip LLM router.
   if (!C.route) {
-    const routed = await routeIntent({
-      message,
-      threadId: threadId, 
-      logger: { log: ctx.log }
-    });
-    C.route = { 
-      intent: routed.intent, 
-      slots: routed.slots || {}, 
-      confidence: routed.confidence 
-    };
-    llmCallsThisTurn++;
-    ctx.log.debug({ route: C.route }, 'router_once');
+    if (C.forced) {
+      C.route = { intent: C.forced, slots: {}, confidence: 0.9 } as any;
+      ctx.log.debug({ route: C.route }, 'router_skipped_forced_intent');
+    } else {
+      const routed = await routeIntent({
+        message,
+        threadId: threadId, 
+        logger: { log: ctx.log }
+      });
+      C.route = { 
+        intent: routed.intent, 
+        slots: routed.slots || {}, 
+        confidence: routed.confidence 
+      };
+      llmCallsThisTurn++;
+      ctx.log.debug({ route: C.route }, 'router_once');
+    }
   }
   
   // Intent-gated extractors
-  const routedIntent = C.forced ?? C.route.intent;
+  const routedIntent = C.forced ?? C.route?.intent;
   const promises = [];
   
   // Only run NER for flights intent
@@ -178,7 +183,7 @@ export async function runGraphTurn(
   }
   
   // Lightweight city extraction for weather/attractions/packing/destinations
-  if (['weather', 'attractions', 'packing', 'destinations'].includes(routedIntent) && !C.route.slots.city) {
+  if (routedIntent && ['weather', 'attractions', 'packing', 'destinations'].includes(routedIntent) && !C.route?.slots.city) {
     promises.push((async () => {
       const { extractCityLite } = await import('./graph.optimizers.js');
       const city = await extractCityLite(message, ctx.log);
@@ -264,15 +269,15 @@ export async function runGraphTurn(
   }
   
   // Use cached router result instead of calling routeIntentNode
-  let intent = C.forced ?? C.route.intent;
+  let intent = C.forced ?? C.route?.intent;
   
   // === SLOT PROCESSING ===
   const prior = getThreadSlots(threadId);
-  const extractedSlots = C.route.slots || {};
+  const extractedSlots = C.route?.slots || {};
   const slots = normalizeSlots(prior, extractedSlots, intent);
   
   // Check for missing required slots
-  const missing = checkMissingSlots(intent, slots, message);
+  const missing = intent ? checkMissingSlots(intent, slots, message) : [];
   if (missing.length > 0) {
     updateThreadSlots(threadId, slots, missing);
     const q = await buildClarifyingQuestion(missing, slots, ctx.log);
@@ -292,7 +297,7 @@ export async function runGraphTurn(
   
   // === ACT STAGE: Route to domain nodes ===
   const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
-  return await routeToDomainNode(intent, routeCtx, slots, ctx);
+  return intent ? await routeToDomainNode(intent, routeCtx, slots, ctx) : { done: true, reply: "Unable to determine intent", citations: [] };
 }
 
 // === HELPER FUNCTIONS ===
@@ -708,14 +713,21 @@ async function policyNode(
     const { PolicyAgent } = await import('./policy_agent.js');
     const agent = new PolicyAgent();
     
-    const { answer, citations } = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log);
+    // Check if user wants receipts/citations
+    const wantReceipts = /receipt|citation|proof|evidence|source/i.test(ctx.msg);
     
-    // Check if no results found
+    const { answer, citations, receipts, needsWebSearch, assessmentReason } = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log, wantReceipts);
+    
+    // Check if no results found or quality assessment suggests web search
     const noRelevantInfo = !citations.length || 
                           citations.every(c => !c.snippet?.trim()) ||
                           /do not specify|cannot determine|not found|no information|don't contain/i.test(answer);
     
-    if (noRelevantInfo) {
+    // If we have successful receipts, use them even if needsWebSearch is true
+    const hasSuccessfulReceipts = receipts && receipts.length > 0 && receipts.some(r => r.confidence >= 0.6);
+
+    // Route to web search if needed (but not if we have good receipts)
+    if ((noRelevantInfo || needsWebSearch) && !hasSuccessfulReceipts) {
       // For visa questions, auto-fallback to web search
       if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(ctx.msg)) {
         const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
@@ -728,29 +740,63 @@ async function policyNode(
       // For other policy questions, ask for consent
       writeConsentState(ctx.threadId, { type: 'web_after_rag', pending: ctx.msg });
       
+      const reason = needsWebSearch ? `Quality assessment: ${assessmentReason}` : 'No relevant information found';
       return { 
         done: true, 
-        reply: `I couldn't find information about this in our internal knowledge base. Would you like me to search the web for current information? Type 'yes' to proceed with web search, or ask me something else.`,
-        citations: ['Internal Knowledge Base (No Results)']
+        reply: `I couldn't find sufficient information about this in our internal knowledge base (${reason}). Would you like me to search the web for current information? Type 'yes' to proceed with web search, or ask me something else.`,
+        citations: ['Internal Knowledge Base (Insufficient Results)']
       };
     }
     
-    // Format answer with sources
-    const formattedAnswer = citations.length > 0 
-      ? `${answer}\n\nSources:\n${citations.map((c, i) => `${i + 1}. ${c.title ?? 'Internal Knowledge Base'}${c.url ? ` — ${c.url}` : ''}`).join('\n')}`
-      : answer;
+    // Prefer synthesizing from receipts when we have high-confidence browser content
+    let finalAnswer = answer;
+    let displayCitations: Array<{ url?: string; title?: string; snippet?: string; score?: number }> = citations;
+    if (hasSuccessfulReceipts) {
+      try {
+        const summarizer = await getPrompt('policy_summarizer');
+        const ctxText = (receipts || [])
+          .map((r, i) => `[${i + 1}] Source: ${r.url}\n${r.quote}`)
+          .join('\n\n');
+        const prompt = summarizer
+          .replace('{question}', ctx.msg)
+          .replace('{context}', ctxText);
+        const receiptsAnswer = await callLLM(prompt, { log: logger.log });
+        const cleaned = receiptsAnswer.trim();
+        const looksUseful = cleaned.length > 0 && !/no information available/i.test(cleaned);
+        // Override when original looks insufficient or when we have a solid receipts-based answer
+        if (looksUseful && (noRelevantInfo || cleaned.length >= Math.min(60, answer.length))) {
+          finalAnswer = cleaned;
+          displayCitations = (receipts || []).map(r => ({ url: r.url, title: new URL(r.url).hostname + ' policy', snippet: r.quote, score: r.confidence }));
+        }
+      } catch (e) {
+        logger.log?.debug({ error: String(e) }, 'receipt_synthesis_failed_fallback_to_rag_summary');
+      }
+    }
+
+    // Format answer with sources and receipts
+    let formattedAnswer = displayCitations.length > 0 
+      ? `${finalAnswer}\n\nSources:\n${displayCitations.map((c, i) => `${i + 1}. ${c.title ?? 'Internal Knowledge Base'}${c.url ? ` — ${c.url}` : ''}`).join('\n')}`
+      : finalAnswer;
+    
+    // Add receipts if available
+    if (receipts && receipts.length > 0) {
+      const receiptText = receipts.map((r, i) => 
+        `${i + 1}. ${r.url} (confidence: ${(r.confidence * 100).toFixed(0)}%)\n   "${r.quote.slice(0, 150)}..."`
+      ).join('\n');
+      formattedAnswer += `\n\nPolicy Receipts:\n${receiptText}`;
+    }
     
     // Store facts for /why command
     const { setLastReceipts } = await import('./slot_memory.js');
-    const facts = citations.map((c, i) => ({
+    const facts = displayCitations.map((c, i) => ({
       key: `policy_citation_${i}`,
       value: c.snippet || c.title || 'Policy information',
       source: c.title || c.url || 'Internal Knowledge Base'
     }));
-    const decisions = [`Retrieved ${citations.length} policy citations with FCS filtering`];
+    const decisions = [`Retrieved ${displayCitations.length} policy citations with receipts integration`];
     setLastReceipts(ctx.threadId, facts, decisions, formattedAnswer);
     
-    const citationTitles = citations.map(c => c.title || c.url || 'Internal Knowledge Base');
+    const citationTitles = displayCitations.map(c => c.title || c.url || 'Internal Knowledge Base');
     return { done: true, reply: formattedAnswer, citations: citationTitles };
     
   } catch (error) {

@@ -171,6 +171,29 @@ export function observeIrrops(
   // For now, using existing external request pattern
 }
 
+/**
+ * Record policy browser extraction metrics
+ */
+export function observePolicyBrowser(
+  engine: 'playwright' | 'cheerio',
+  durationMs: number,
+  success: boolean = true,
+  confidence?: number
+) {
+  observeExternal(
+    {
+      target: 'policy_browser',
+      status: success ? 'ok' : 'error',
+    },
+    durationMs
+  );
+  
+  // Log confidence for monitoring extraction quality
+  if (confidence !== undefined) {
+    console.log(`policy_browser_confidence: ${confidence.toFixed(2)} (${engine})`);
+  }
+}
+
 export function incBreakerEvent(target: string, type: string) {
   if (counterBreakerEvents) {
     counterBreakerEvents.inc({ target, type });

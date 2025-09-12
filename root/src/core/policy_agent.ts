@@ -10,6 +10,8 @@ export type PolicyAnswer = {
   citations: Array<{ url?: string; title?: string; snippet?: string; score?: number }>; 
   needsWebSearch?: boolean;
   assessmentReason?: string;
+  wantReceipts?: boolean;
+  receipts?: Array<{ url: string; quote: string; confidence: number; imgPath?: string }>;
 };
 
 /**
@@ -22,7 +24,8 @@ export class PolicyAgent {
     question: string, 
     corpusHint?: 'airlines' | 'hotels' | 'visas', 
     threadId?: string, 
-    log?: pino.Logger
+    log?: pino.Logger,
+    wantReceipts?: boolean
   ): Promise<PolicyAnswer> {
     if (!VECTARA.ENABLED) {
       throw new Error('Vectara RAG is disabled');
@@ -82,11 +85,19 @@ export class PolicyAgent {
       }, '✅ PolicyAgent: Retrieved policy answer with FCS filtering');
     }
 
+    // Try browser mode if receipts wanted and quality is low
+    let receipts: Array<{ url: string; quote: string; confidence: number; imgPath?: string }> | undefined;
+    if (wantReceipts && (assessment.needsWebSearch || avgScore < 0.7)) {
+      receipts = await this.tryBrowserMode(question, citations, threadId, log);
+    }
+
     return { 
       answer, 
       citations, 
       needsWebSearch: assessment.needsWebSearch,
-      assessmentReason: assessment.reason
+      assessmentReason: assessment.reason,
+      wantReceipts,
+      receipts
     };
   }
 
@@ -292,5 +303,101 @@ export class PolicyAgent {
     return lines.length 
       ? `From policy sources:\n${lines.join('\n')}` 
       : 'No policy summary available.';
+  }
+
+  private async tryBrowserMode(
+    question: string,
+    citations: Array<{ url?: string; title?: string; snippet?: string }>,
+    threadId?: string,
+    log?: pino.Logger
+  ): Promise<Array<{ url: string; quote: string; confidence: number; imgPath?: string }>> {
+    try {
+      const { extractPolicyClause } = await import('../tools/policy_browser.js');
+      const { savePolicyReceipt } = await import('./policy_receipts.js');
+      const { searchTravelInfo } = await import('../tools/search.js');
+      
+      // Extract clause type from question
+      const clauseType = this.inferClauseType(question);
+      const receipts: Array<{ url: string; quote: string; confidence: number; imgPath?: string }> = [];
+      
+      // Get URLs from citations or search for official policy pages
+      let urlsToTry = citations.filter(c => c.url).map(c => c.url!);
+      
+      // If no URLs from citations, use web search to find official policy pages
+      if (urlsToTry.length === 0) {
+        log?.debug({ question }, 'No citation URLs, searching for official policy pages');
+        
+        // Create a search query for official policy pages
+        const policySearchQuery = `${question} official site policy`;
+        const searchResults = await searchTravelInfo(policySearchQuery, { maxResults: 3 });
+        
+        if (searchResults.ok && searchResults.results.length > 0) {
+          urlsToTry = searchResults.results
+            .filter(r => r.url && this.isOfficialPolicyUrl(r.url))
+            .map(r => r.url!)
+            .slice(0, 2);
+          
+          log?.debug({ urlsFound: urlsToTry.length, urls: urlsToTry }, 'Found policy URLs via search');
+        }
+      }
+      
+      // Try browser extraction on URLs
+      for (const url of urlsToTry.slice(0, 2)) { // Limit to 2 URLs for performance
+        try {
+          log?.debug({ url, clauseType }, 'Attempting browser extraction');
+          
+          const receipt = await extractPolicyClause({
+            url,
+            clause: clauseType,
+            timeoutMs: 8000
+          });
+          
+          if (receipt.confidence >= 0.6) {
+            receipts.push({
+              url: receipt.url,
+              quote: receipt.quote,
+              confidence: receipt.confidence,
+              imgPath: receipt.imgPath
+            });
+            
+            if (threadId) {
+              savePolicyReceipt(threadId, receipt);
+            }
+            
+            log?.debug({ url, confidence: receipt.confidence }, 'Browser extraction successful');
+          } else {
+            log?.debug({ url, confidence: receipt.confidence }, 'Browser extraction low confidence');
+          }
+        } catch (error) {
+          log?.debug({ url, error: String(error) }, 'Browser extraction failed for URL');
+        }
+      }
+      
+      return receipts;
+    } catch (error) {
+      log?.warn({ error: String(error) }, 'Browser mode initialization failed');
+      return [];
+    }
+  }
+
+  private isOfficialPolicyUrl(url: string): boolean {
+    // Check if URL looks like an official policy page (not hardcoded domains)
+    const u = url.toLowerCase();
+    return (
+      (u.includes('baggage') || u.includes('policy') || u.includes('terms')) &&
+      !u.includes('blog') &&
+      !u.includes('forum') &&
+      !u.includes('reddit') &&
+      !u.includes('wikipedia')
+    );
+  }
+
+  private inferClauseType(question: string): 'baggage' | 'refund' | 'change' | 'visa' {
+    const q = question.toLowerCase();
+    if (/baggage|bag|luggage|carry.?on|checked/i.test(q)) return 'baggage';
+    if (/refund|cancel|money.?back|reimburs/i.test(q)) return 'refund';
+    if (/change|modify|reschedul|reboo/i.test(q)) return 'change';
+    if (/visa|passport|entry|immigration/i.test(q)) return 'visa';
+    return 'baggage'; // Default
   }
 }

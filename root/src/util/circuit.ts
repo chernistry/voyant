@@ -11,30 +11,31 @@ const stats = new Map<string, {
 }>();
 
 function getConfig(host: string) {
-  const defaultTimeout = Number(process.env.EXT_BREAKER_TIMEOUT_MS || 10000); // Increased from 4000 to 10000
+  const defaultTimeout = Number(process.env.EXT_BREAKER_TIMEOUT_MS || 60000); // Global 60 seconds
   const defaultReset = Number(process.env.EXT_BREAKER_RESET_MS || 15000);
   const defaultErrorPct = Number(process.env.EXT_BREAKER_ERROR_PCT || 50);
   const defaultVolume = Number(process.env.EXT_BREAKER_VOLUME || 10);
   
-  // Per-host overrides - Amadeus needs longer timeout
+  // Per-host overrides
   const hostKey = host.replace(/[.-]/g, '_').toUpperCase();
   let timeout = Number(process.env[`BREAK_TIMEOUT_MS_${hostKey}`] || defaultTimeout);
   
-  // Special handling for Amadeus API
+  // Special handling for Amadeus API only
   if (host.includes('amadeus.com')) {
-    timeout = Number(process.env.AMADEUS_TIMEOUT_MS || 15000); // 15 seconds for Amadeus
+    timeout = Number(process.env.AMADEUS_TIMEOUT_MS || 15000);
   }
   
   const resetTimeout = Number(process.env[`BREAK_RESET_MS_${hostKey}`] || defaultReset);
   const errorThresholdPercentage = Number(process.env[`BREAK_ERROR_PCT_${hostKey}`] || defaultErrorPct);
   const volumeThreshold = Number(process.env[`BREAK_VOLUME_${hostKey}`] || defaultVolume);
-  
+
   return {
     timeout,
     resetTimeout,
     errorThresholdPercentage,
     volumeThreshold,
     rollingCountTimeout: 10000, // 10s rolling window
+    name: host
   };
 }
 

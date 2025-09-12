@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import fs from 'node:fs';
 import path from 'node:path';
 
 type PromptName =
@@ -28,6 +29,8 @@ type PromptName =
   | 'flight_complexity_detector'
   | 'policy_summarizer'
   | 'policy_classifier'
+  | 'policy_extractor'
+  | 'policy_confidence'
   | 'policy_quality_assessor'
   | 'search_result_extractor'
   | 'search_query_optimizer_llm'
@@ -59,7 +62,21 @@ async function loadFileSafe(filePath: string): Promise<string> {
 
 export async function preloadPrompts(): Promise<void> {
   if (loaded) return;
-  const base = path.join(process.cwd(), 'src', 'prompts');
+  // Resolve prompts directory with robust fallback
+  const candidates: string[] = [];
+  if (process.env.PROMPTS_DIR) {
+    candidates.push(path.resolve(process.env.PROMPTS_DIR));
+  }
+  candidates.push(path.join(process.cwd(), 'src', 'prompts'));
+  candidates.push(path.join(process.cwd(), 'root', 'src', 'prompts'));
+  // Relative to this file location (works under ts-jest CJS transform)
+  // __dirname should be root/src/core at runtime
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const here = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+  candidates.push(path.join(here, '..', 'prompts'));
+  
+  let base = candidates.find((c) => fs.existsSync(c)) || path.join(process.cwd(), 'src', 'prompts');
   PROMPTS.system = await loadFileSafe(path.join(base, 'system.md'));
   PROMPTS.blend = await loadFileSafe(path.join(base, 'blend.md'));
   PROMPTS.blend_planner = await loadFileSafe(path.join(base, 'blend_planner.md'));
@@ -124,6 +141,13 @@ export async function preloadPrompts(): Promise<void> {
   );
   PROMPTS.policy_classifier = await loadFileSafe(
     path.join(base, 'policy_classifier.md'),
+  );
+  // Load extractor and confidence prompts for policy browser
+  PROMPTS.policy_extractor = await loadFileSafe(
+    path.join(base, 'policy_extractor.md'),
+  );
+  PROMPTS.policy_confidence = await loadFileSafe(
+    path.join(base, 'policy_confidence.md'),
   );
   PROMPTS.policy_quality_assessor = await loadFileSafe(
     path.join(base, 'policy_quality_assessor.md'),
