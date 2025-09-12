@@ -120,7 +120,7 @@ Input: "What can you help me with?"
 Output: {"intent":"system","needExternal":false,"slots":{},"confidence":0.90,"missingSlots":[]}
 
 Input: "Book me a flight from NYC to LA on Friday"
-Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","destinationCity":"Los Angeles","dates":"Friday"},"confidence":0.90,"missingSlots":[]}
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","city":"Los Angeles","dates":"Friday"},"confidence":0.90,"missingSlots":["month"]}
 
 Input: "Passport requirements for Thailand"
 Output: {"intent":"policy","needExternal":true,"slots":{"city":"Thailand"},"confidence":0.90,"missingSlots":[]}

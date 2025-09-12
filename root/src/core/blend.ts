@@ -424,8 +424,7 @@ export async function blendWithFacts(
         }
       }
     } else if (input.route.intent === 'packing') {
-    } else if (input.route.intent === 'packing') {
-      ctx.onStatus?.('Preparing packing list...');
+      ctx.onStatus?.('Preparing packing recommendations...');
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
