@@ -1,6 +1,6 @@
 # Voyant Travel Assistant
 
-Enterprise-grade AI travel assistant with advanced RAG and multi-modal research.
+Builds trust, then answers fast.
 
 ![Voyant Travel Assistant Screenshot](./assets/screenshot.png)
 
