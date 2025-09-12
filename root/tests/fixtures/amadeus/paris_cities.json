@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "type": "location",
+      "subType": "CITY",
+      "id": "CPAR",
+      "iataCode": "PAR",
+      "name": "Paris",
+      "detailedName": "Paris, France",
+      "geoCode": {
+        "latitude": 48.85341,
+        "longitude": 2.3488
+      },
+      "address": {
+        "cityName": "Paris",
+        "cityCode": "PAR",
+        "countryCode": "FR",
+        "countryName": "France"
+      },
+      "analytics": {
+        "travelers": {
+          "score": 96
+        }
+      }
+    }
+  ]
+}

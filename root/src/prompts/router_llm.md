@@ -22,14 +22,20 @@ Guidelines:
 - Put any required but missing items into `missingSlots`
 
 Intent Classification Rules:
-- `flights`: Direct flight searches, booking requests, flight prices, airline queries
+- `flights`: ANY flight-related query including "flights", "fly", "book flight", "airline", flight prices, flight schedules, flight booking, travel from X to Y with dates
 - `policy`: Visa requirements, immigration rules, passport info, entry requirements, travel policies
-- `web_search`: Explicit search requests, complex travel planning, multi-constraint queries, research requests
+- `web_search`: Explicit search requests ("search for", "find information about"), complex multi-constraint queries, research requests
 - `system`: Questions about the AI assistant, consent responses, clarifications, app functionality
 - `destinations`: Travel destination recommendations, "where to go" questions
 - `weather`: Weather forecasts, climate information, temperature queries
 - `packing`: What to pack, clothing advice, luggage recommendations
 - `attractions`: Things to do, sightseeing, activities, tourist attractions
+
+CRITICAL: Flight Intent Recognition
+- ANY mention of "flights", "fly", "flying", "book", "travel" with two cities = flights intent
+- Patterns that are ALWAYS flights: "flights from X to Y", "find flights", "book flight", "fly from X to Y", "travel from X to Y on [date]"
+- "Find flights from Paris to Tokyo on October 15th" = flights intent (confidence 0.95+)
+- Do NOT classify flight queries as web_search unless explicitly asking to "search for flight information"
 
 Flight Slot Extraction Rules:
 - For flight queries, always extract `originCity` and `destinationCity` when both are present
@@ -65,6 +71,15 @@ Output schema (strict JSON only):
 }
 
 Few‑shot examples (input → output, strict JSON):
+Input: "Find flights from Paris to Tokyo on October 15th"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Paris","destinationCity":"Tokyo","month":"October","dates":"October 15th"},"confidence":0.95,"missingSlots":[]}
+
+Input: "flights from Paris to Tokyo"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Paris","destinationCity":"Tokyo"},"confidence":0.90,"missingSlots":["dates"]}
+
+Input: "book a flight to Tokyo from Paris tomorrow"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Paris","destinationCity":"Tokyo","dates":"tomorrow"},"confidence":0.95,"missingSlots":[]}
+
 Input: "what's the weather in NYC in June?"
 Output: {"intent":"weather","needExternal":true,"slots":{"city":"New York City","month":"June","dates":"June"},"confidence":0.90,"missingSlots":[]}
 

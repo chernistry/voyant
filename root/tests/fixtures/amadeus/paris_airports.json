@@ -1,0 +1,50 @@
+{
+  "data": [
+    {
+      "type": "location",
+      "subType": "AIRPORT",
+      "id": "ACDG",
+      "iataCode": "CDG",
+      "name": "Charles de Gaulle",
+      "detailedName": "Paris Charles de Gaulle Airport",
+      "geoCode": {
+        "latitude": 49.01278,
+        "longitude": 2.55
+      },
+      "address": {
+        "cityName": "Paris",
+        "cityCode": "PAR",
+        "countryCode": "FR",
+        "countryName": "France"
+      },
+      "analytics": {
+        "travelers": {
+          "score": 85
+        }
+      }
+    },
+    {
+      "type": "location",
+      "subType": "AIRPORT",
+      "id": "AORY",
+      "iataCode": "ORY",
+      "name": "Orly",
+      "detailedName": "Paris Orly Airport",
+      "geoCode": {
+        "latitude": 48.72333,
+        "longitude": 2.37944
+      },
+      "address": {
+        "cityName": "Paris",
+        "cityCode": "PAR",
+        "countryCode": "FR",
+        "countryName": "France"
+      },
+      "analytics": {
+        "travelers": {
+          "score": 72
+        }
+      }
+    }
+  ]
+}
