@@ -1,9 +1,21 @@
 import { fetchJSON, ExternalFetchError } from '../util/fetch.js';
 import { callLLM } from '../core/llm.js';
 import { getPrompt } from '../core/prompts.js';
-import { getAmadeusToken } from './amadeus_auth.js';
-import { resolveCity } from './amadeus_locations.js';
 import { z } from 'zod';
+
+// Amadeus API schemas
+const AmadeusTokenResponse = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  expires_in: z.number(),
+});
+
+const AmadeusLocation = z.object({
+  iataCode: z.string(),
+  name: z.string().optional(),
+  cityName: z.string().optional(),
+  countryName: z.string().optional(),
+});
 
 const AmadeusFlightOffer = z.object({
   id: z.string(),
@@ -67,36 +79,79 @@ type FlightSearchResult = {
   reason: string;
 };
 
-async function legacyLLMFallback(cityOrAirport: string): Promise<string> {
+async function getIataCode(cityOrAirport: string): Promise<string> {
   try {
     const promptTemplate = await getPrompt('iata_code_generator');
     const prompt = promptTemplate.replace('{city_or_airport}', cityOrAirport);
     const response = await callLLM(prompt);
     const code = response.trim().toUpperCase().replace(/[^A-Z]/g, '');
     
+    // Validate it's 3 letters
     if (code.length === 3 && /^[A-Z]{3}$/.test(code)) {
       return code;
     }
     
+    // Fallback to original if invalid
     return cityOrAirport.toUpperCase().substring(0, 3);
   } catch {
     return cityOrAirport.toUpperCase().substring(0, 3);
   }
 }
 
-async function getIataCode(cityOrAirport: string): Promise<string> {
-  const raw = cityOrAirport.trim();
-  const upper = raw.toUpperCase();
-  if (/^[A-Z]{3}$/.test(upper)) return upper;
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function getAmadeusToken(): Promise<string> {
+  const now = Date.now();
+  
+  if (cachedToken && cachedToken.expiresAt > now + 60000) { // 1 min buffer
+    return cachedToken.token;
+  }
+
+  const clientId = process.env.AMADEUS_CLIENT_ID;
+  const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Amadeus credentials not configured');
+  }
+
+  const baseUrl = process.env.AMADEUS_BASE_URL || 'https://test.api.amadeus.com';
   
   try {
-    const resolved = await resolveCity(raw);
-    if (resolved.ok && resolved.confidence >= 0.75) {
-      return resolved.cityCode;
+    // Use native fetch for POST requests since fetchJSON doesn't support them
+    const response = await fetch(`${baseUrl}/v1/security/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      throw new ExternalFetchError('http', `HTTP ${response.status}`, response.status);
     }
-  } catch {}
-  
-  return await legacyLLMFallback(cityOrAirport);
+
+    const data = await response.json();
+    const parsed = AmadeusTokenResponse.parse(data);
+    cachedToken = {
+      token: parsed.access_token,
+      expiresAt: now + (parsed.expires_in * 1000) - 60000, // 1 min buffer
+    };
+
+    return parsed.access_token;
+  } catch (error) {
+    if (error instanceof ExternalFetchError) {
+      throw error;
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ExternalFetchError('timeout', 'Request timeout');
+    }
+    throw new ExternalFetchError('network', 'Network error');
+  }
 }
 
 async function searchAmadeusFlights(params: FlightSearchParams): Promise<FlightSearchResult> {
@@ -147,10 +202,7 @@ async function searchAmadeusFlights(params: FlightSearchParams): Promise<FlightS
     
     const flights = parsed.data.map(offer => ({
       id: offer.id,
-      price: {
-        currency: offer.price.currency || 'USD',
-        total: offer.price.total || '0.00',
-      },
+      price: offer.price,
       duration: offer.itineraries[0]?.duration || 'Unknown',
       segments: offer.itineraries[0]?.segments.map(segment => ({
         departure: {
@@ -193,9 +245,26 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     return dateStr;
   }
   
-  // Handle "today" explicitly
-  if (/^today$/i.test(dateStr.trim())) {
+  // Handle "today" and "tomorrow" explicitly for relative inputs
+  const trimmed = dateStr.trim();
+  if (/^today$/i.test(trimmed)) {
     return new Date().toISOString().split('T')[0] || new Date().getFullYear() + '-01-01';
+  }
+  if (/^tomorrow$/i.test(trimmed)) {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    return t.toISOString().split('T')[0] || `${t.getFullYear()}-01-02`;
+  }
+
+  // Handle "next week" explicitly (snap to next Monday)
+  if (/^next\s+week$/i.test(dateStr.trim())) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    const day = d.getDay(); // 0=Sun,1=Mon
+    const diff = day === 0 ? 1 : (1 - day);
+    d.setDate(d.getDate() + diff);
+    const iso = d.toISOString().split('T')[0];
+    return iso || `${d.getFullYear()}-01-01`;
   }
   
   const today = new Date();
@@ -219,16 +288,6 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     const parsed = JSON.parse(response);
     
     if (parsed.confidence > 0.5 && parsed.dates) {
-      // Handle relative dates
-      if (parsed.dates === 'today') {
-        return new Date().toISOString().split('T')[0] || `${currentYear}-01-01`;
-      }
-      if (parsed.dates === 'tomorrow') {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0] || `${currentYear}-01-02`;
-      }
-      
       let date = new Date(parsed.dates);
       if (!isNaN(date.getTime())) {
         // If date is in the past, assume next year
@@ -240,21 +299,6 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     }
   } catch (error) {
     console.debug('Date parser failed, using fallback:', error);
-  }
-  
-  // Handle DD-MM-YYYY format explicitly
-  const ddmmyyyyMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (ddmmyyyyMatch) {
-    const day = ddmmyyyyMatch[1];
-    const month = ddmmyyyyMatch[2]; 
-    const year = ddmmyyyyMatch[3];
-    if (day && month && year) {
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      if (!isNaN(date.getTime())) {
-        const isoString = date.toISOString().split('T')[0];
-        return isoString || `${currentYear}-01-01`;
-      }
-    }
   }
   
   // Fallback: try basic parsing
@@ -321,7 +365,7 @@ export async function searchFlights(input: {
   const result = await searchAmadeusFlights(searchParams);
   
   if (!result.ok) {
-    return { ok: false, reason: (result as any).reason };
+    return result;
   }
 
   if (result.flights.length === 0) {

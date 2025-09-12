@@ -154,9 +154,19 @@ export function normalizeSlots(
     }
   }
 
-  // 2) Don't backfill month/dates from "today"
-  if (safe.month && /today|now/i.test(safe.month)) delete safe.month;
-  if (safe.dates && /today|now/i.test(safe.dates)) delete safe.dates;
+  // 2) Don't backfill month/dates from "today" for non-flight intents.
+  // For flights we must preserve relative dates like "today"/"tomorrow".
+  if (intent !== 'flights') {
+    if (safe.month && /today|now/i.test(safe.month)) delete safe.month;
+    if (safe.dates && /today|now/i.test(safe.dates)) delete safe.dates;
+  }
+
+  // 2b) For flights, map relative dates into departureDate if missing
+  if (intent === 'flights') {
+    if (safe.dates && !safe.departureDate && /^(today|tomorrow|tonight)$/i.test(safe.dates)) {
+      safe.departureDate = safe.dates;
+    }
+  }
 
   // 3) Intent-scoped writes to prevent cross-contamination
   if (intent === 'weather') {
@@ -227,5 +237,4 @@ export function writeConsentState(threadId: string, next: { type: 'web' | 'deep'
   
   updateThreadSlots(threadId, updates, []);
 }
-
 

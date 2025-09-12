@@ -41,12 +41,6 @@ export async function routeIntent({ message, threadId, logger }: {
     clearConsentState(threadId);
     return RouterResult.parse({ intent:'policy', needExternal:true, slots:{}, confidence:0.9 });
   }
-  
-  if (RE.explicitSearch.test(m)) {
-    clearConsentState(threadId);
-    const q = await optimizeSearchQuery(m, threadId ? getThreadSlots(threadId) : {}, 'web_search', logger?.log);
-    return RouterResult.parse({ intent:'web_search', needExternal:true, slots:{ search_query:q }, confidence:0.9 });
-  }
 
   // Handle flight clarification responses (no recursion)
   const ctxSlots = threadId ? getThreadSlots(threadId) : {};
@@ -93,6 +87,23 @@ export async function routeIntent({ message, threadId, logger }: {
       logger?.log?.debug({ isDirect:true, slots }, '✈️ FLIGHTS: direct (heuristic)');
       return RouterResult.parse({ intent:'flights', needExternal:true, slots, confidence:0.9 });
     }
+  }
+
+  // Explicit search (run after flight fast-path to avoid misrouting "find flights ...")
+  if (RE.explicitSearch.test(m)) {
+    clearConsentState(threadId);
+    const q = await optimizeSearchQuery(
+      m,
+      threadId ? getThreadSlots(threadId) : {},
+      'web_search',
+      logger?.log
+    );
+    return RouterResult.parse({
+      intent: 'web_search',
+      needExternal: true,
+      slots: { search_query: q },
+      confidence: 0.9,
+    });
   }
 
   // 2) Deep-research consent? (no LLM)

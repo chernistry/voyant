@@ -109,7 +109,7 @@ export async function runGraphTurn(
       
       if (yesNo === 'yes' && consentState.pending) {
         if (consentState.type === 'deep') {
-          return await performDeepResearchNode(consentState.pending, ctx, threadId, {});
+          return await performDeepResearchNode(consentState.pending, ctx, threadId);
         } else {
           return await performWebSearchNode(consentState.pending, ctx, threadId);
         }
@@ -243,7 +243,7 @@ export async function runGraphTurn(
         
         if (consent === 'yes') {
           if (currentConsentState.type === 'deep') {
-            return await performDeepResearchNode(currentConsentState.pending, ctx, threadId, {});
+            return await performDeepResearchNode(currentConsentState.pending, ctx, threadId);
           } else {
             return await performWebSearchNode(currentConsentState.pending, ctx, threadId);
           }
@@ -266,23 +266,10 @@ export async function runGraphTurn(
   // Use cached router result instead of calling routeIntentNode
   let intent = C.forced ?? C.route.intent;
   
-  ctx.log.debug({ 
-    forced: C.forced, 
-    routeIntent: C.route.intent, 
-    finalIntent: intent,
-    routeConfidence: C.route.confidence 
-  }, 'graph_intent_decision');
-  
   // === SLOT PROCESSING ===
   const prior = getThreadSlots(threadId);
   const extractedSlots = C.route.slots || {};
   const slots = normalizeSlots(prior, extractedSlots, intent);
-  
-  ctx.log.debug({ 
-    priorSlots: prior, 
-    extractedSlots, 
-    normalizedSlots: slots 
-  }, 'graph_slot_processing');
   
   // Check for missing required slots
   const missing = checkMissingSlots(intent, slots, message);
@@ -304,7 +291,6 @@ export async function runGraphTurn(
   }, 'graph_turn_complete');
   
   // === ACT STAGE: Route to domain nodes ===
-  ctx.log.debug({ intent, slots }, 'graph_routing_to_domain_node');
   const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
   return await routeToDomainNode(intent, routeCtx, slots, ctx);
 }
@@ -374,36 +360,25 @@ async function routeToDomainNode(
 ): Promise<NodeOut> {
   const mergedSlots = slots;
   
-  logger.log?.debug({ intent, slots: mergedSlots }, 'routing_to_domain_node');
-  
   switch (intent) {
     case 'destinations':
-      logger.log?.debug('routing_to_destinations_node');
       return destinationsNode(ctx, mergedSlots, logger);
     case 'weather':
-      logger.log?.debug('routing_to_weather_node');
       return weatherNode(ctx, mergedSlots, logger);
     case 'packing':
-      logger.log?.debug('routing_to_packing_node');
       return packingNode(ctx, mergedSlots, logger);
     case 'attractions':
-      logger.log?.debug('routing_to_attractions_node');
       return attractionsNode(ctx, mergedSlots, logger);
     case 'flights':
-      logger.log?.debug('routing_to_flights_node');
       return flightsNode(ctx, mergedSlots, logger);
     case 'policy':
-      logger.log?.debug('routing_to_policy_node');
       return policyNode(ctx, mergedSlots, logger);
     case 'system':
-      logger.log?.debug('routing_to_system_node');
       return systemNode(ctx);
     case 'web_search':
-      logger.log?.debug('routing_to_web_search_node');
       return webSearchNode(ctx, mergedSlots, logger);
     case 'unknown':
     default:
-      logger.log?.debug('routing_to_unknown_node');
       return unknownNode(ctx, logger);
   }
 }
@@ -536,35 +511,22 @@ async function flightsNode(
   const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...slots };
   
-  logger.log?.debug({ mergedSlots }, 'flights_node_slots');
-  
-  // Normalize slots for flights - handle both city/destinationCity patterns
-  const origin = mergedSlots.originCity;
-  const destination = mergedSlots.destinationCity || mergedSlots.city;
-  const departureDate = mergedSlots.departureDate || mergedSlots.dates;
-  
-  logger.log?.debug({ origin, destination, departureDate }, 'flights_node_normalized_params');
-  
   // Try Amadeus API first
-  if (origin && destination && departureDate) {
-    try {
-      logger.log?.debug('flights_node_calling_amadeus');
-      
-      const { searchFlights, convertToAmadeusDate } = await import('../tools/amadeus_flights.js');
-      
-      const convertedDate = await convertToAmadeusDate(departureDate);
-      logger.log?.debug({ originalDate: departureDate, convertedDate }, 'flights_date_conversion');
-      
+  try {
+    const { searchFlights, convertToAmadeusDate } = await import('../tools/amadeus_flights.js');
+    
+    const departureDate = mergedSlots.departureDate || mergedSlots.dates;
+    const returnDate = mergedSlots.returnDate;
+    
+    if (mergedSlots.originCity && (mergedSlots.destinationCity || mergedSlots.city) && departureDate) {
       const result = await searchFlights({
-        origin,
-        destination,
-        departureDate: convertedDate,
-        returnDate: mergedSlots.returnDate ? await convertToAmadeusDate(mergedSlots.returnDate) : undefined,
+        origin: mergedSlots.originCity,
+        destination: mergedSlots.destinationCity || mergedSlots.city,
+        departureDate: departureDate ? await convertToAmadeusDate(departureDate) : undefined,
+        returnDate: returnDate ? returnDate : undefined,
         passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
         cabinClass: mergedSlots.cabinClass,
       });
-
-      logger.log?.debug({ success: result.ok, reason: result.reason }, 'flights_amadeus_result');
 
       if (result.ok) {
         return { 
@@ -573,23 +535,43 @@ async function flightsNode(
           citations: ['Amadeus Flight API - Live flight search results']
         };
       } else {
-        logger.log?.warn({ reason: result.reason }, 'amadeus_search_failed');
+        // Amadeus returned no results or error → fallback to web with notice
+        const converted = departureDate ? await convertToAmadeusDate(departureDate) : '';
+        const query = `${mergedSlots.originCity} ${mergedSlots.destinationCity || mergedSlots.city} flights ${converted}`.trim();
+        const web = await webSearchNode(ctx, { ...mergedSlots, search_query: query }, logger);
+        if ('reply' in web) {
+          web.reply = `I couldn't find availability via Amadeus${result && 'reason' in result ? ` (reason: ${result.reason})` : ''}. ` +
+                      `Here are results from the web that might help.\n\n${web.reply}`;
+        }
+        return web;
       }
-    } catch (error) {
-      logger.log?.warn({ error: String(error) }, 'amadeus_flights_failed');
     }
-  } else {
-    logger.log?.debug({ 
-      missing: { 
-        origin: !origin, 
-        destination: !destination, 
-        departureDate: !departureDate 
-      } 
-    }, 'flights_missing_required_params');
+  } catch (error) {
+    logger.log?.warn({ error: String(error) }, 'amadeus_flights_failed');
+    // Explicit web search fallback on error for flight flow
+    const q = `${mergedSlots.originCity || ''} ${mergedSlots.destinationCity || mergedSlots.city || ''} flights ${mergedSlots.departureDate || mergedSlots.dates || ''}`.trim();
+    if (q.replace(/\s+/g, '').length > 0) {
+      const web = await webSearchNode(ctx, { ...mergedSlots, search_query: q }, logger);
+      if ('reply' in web) {
+        web.reply = `Amadeus search errored; showing web results instead.\n\n${web.reply}`;
+      }
+      return web;
+    }
   }
   
-  // Fallback to blend with facts
-  logger.log?.debug('flights_falling_back_to_blend');
+  // Fallback to blend with facts (keeps policy/safety consistent). If the user
+  // explicitly asked to "search" we can still provide helpful web results.
+  if (/\bsearch\b/i.test(ctx.msg) && (mergedSlots.originCity || mergedSlots.destinationCity || mergedSlots.city)) {
+    const q = `${mergedSlots.originCity || ''} ${mergedSlots.destinationCity || mergedSlots.city || ''} flights`.trim();
+    const web = await webSearchNode(ctx, { ...mergedSlots, search_query: q }, logger);
+    if ('reply' in web) {
+      web.reply = `I can search the web while we confirm exact dates. ` +
+                  `Please share your travel date to check live availability.\n\n${web.reply}`;
+    }
+    return web;
+  }
+
+  // Otherwise blend facts/ask clarifying questions
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
@@ -615,18 +597,31 @@ async function policyNode(
     const { PolicyAgent } = await import('./policy_agent.js');
     const agent = new PolicyAgent();
     
-    const policyResult = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log);
-    const { answer, citations } = policyResult;
+    const { answer, citations } = await agent.answer(ctx.msg, undefined, ctx.threadId, logger.log);
     
-    // Use the new quality assessment from PolicyAgent
-    if (policyResult.needsWebSearch) {
-      logger.log?.debug({ reason: policyResult.assessmentReason }, 'policy_quality_insufficient_triggering_web_search');
-      
-      const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
-      if ('reply' in webResult && webResult.reply) {
-        webResult.reply = `I don't have sufficient information in our internal database (${policyResult.assessmentReason}), but let me search the web for current details:\n\n${webResult.reply}`;
+    // Check if no results found
+    const noRelevantInfo = !citations.length || 
+                          citations.every(c => !c.snippet?.trim()) ||
+                          /do not specify|cannot determine|not found|no information|don't contain/i.test(answer);
+    
+    if (noRelevantInfo) {
+      // For visa questions, auto-fallback to web search
+      if (/\b(visa|passport|entry requirements?|immigration)\b/i.test(ctx.msg)) {
+        const webResult = await webSearchNode(ctx, { ...slots, search_query: ctx.msg }, logger);
+        if ('reply' in webResult && webResult.reply) {
+          webResult.reply = `I don't have this information in our internal database, but let me search the web for current details:\n\n${webResult.reply}`;
+        }
+        return webResult;
       }
-      return webResult;
+      
+      // For other policy questions, ask for consent
+      writeConsentState(ctx.threadId, { type: 'web_after_rag', pending: ctx.msg });
+      
+      return { 
+        done: true, 
+        reply: `I couldn't find information about this in our internal knowledge base. Would you like me to search the web for current information? Type 'yes' to proceed with web search, or ask me something else.`,
+        citations: ['Internal Knowledge Base (No Results)']
+      };
     }
     
     // Format answer with sources
@@ -762,12 +757,9 @@ async function performDeepResearchNode(
   query: string,
   ctx: { log: pino.Logger },
   threadId: string,
-  slots: Record<string, string> = {}
 ): Promise<NodeOut> {
   try {
-    const threadSlots = getThreadSlots(threadId);
-    const mergedSlots = { ...threadSlots, ...slots };
-    const optimizedQuery = await optimizeSearchQuery(query, mergedSlots, 'destinations', ctx.log);
+    const optimizedQuery = await optimizeSearchQuery(query, {}, 'destinations', ctx.log);
     
     const { performDeepResearch } = await import('./deep_research.js');
     const research = await performDeepResearch(optimizedQuery, { threadId }, ctx.log);
