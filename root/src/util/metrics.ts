@@ -148,6 +148,29 @@ export function updateBreakerMetrics() {
   }
 }
 
+/**
+ * Record IRROPS processing metrics
+ */
+export function observeIrrops(
+  disruptionType: string,
+  optionsGenerated: number,
+  durationMs: number,
+  success: boolean = true
+) {
+  observeExternal(
+    {
+      target: 'irrops',
+      status: success ? 'ok' : 'error',
+      // Use target field to include disruption type for now
+      // In production, would extend labels to include disruption_type
+    },
+    durationMs
+  );
+  
+  // Could add specific IRROPS counters here if needed
+  // For now, using existing external request pattern
+}
+
 export function incBreakerEvent(target: string, type: string) {
   if (counterBreakerEvents) {
     counterBreakerEvents.inc({ target, type });

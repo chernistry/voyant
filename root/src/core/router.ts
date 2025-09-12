@@ -32,12 +32,14 @@ export async function routeIntent({ message, threadId, logger }: {
   // 0) Guards (no LLM) - clear consent state for unrelated queries
   if (!m) return RouterResult.parse({ intent:'unknown', needExternal:false, slots:{}, confidence:0.1 });
   
-  if (RE.sys.test(m)) {
+  // Only use regex guards for very specific system queries, not general "help" requests
+  if (/^(who are you|what can you do|how do you work)$/i.test(m)) {
     clearConsentState(threadId);
     return RouterResult.parse({ intent:'system', needExternal:false, slots:{}, confidence:0.9 });
   }
   
-  if (RE.policy.test(m)) {
+  // Only use policy regex for very specific visa/passport queries
+  if (/\b(visa requirements?|passport requirements?|entry requirements?|immigration rules?)\b/i.test(m)) {
     clearConsentState(threadId);
     return RouterResult.parse({ intent:'policy', needExternal:true, slots:{}, confidence:0.9 });
   }

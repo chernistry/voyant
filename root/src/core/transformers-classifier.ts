@@ -78,7 +78,7 @@ export const ContentClassification = z.object({
 });
 
 export const IntentClassification = z.object({
-  intent: z.enum(['weather', 'packing', 'attractions', 'destinations', 'system', 'unknown']),
+  intent: z.enum(['weather', 'packing', 'attractions', 'destinations', 'irrops', 'system', 'unknown']),
   confidence: z.number().min(0).max(1)
 });
 
@@ -247,7 +247,7 @@ export async function classifyIntent(text: string, log?: pino.Logger): Promise<I
   try {
     const classifier = await loadIntentClassifier(log);
     
-    const candidateLabels = ['weather', 'packing', 'attractions', 'destinations', 'system', 'unknown'];
+    const candidateLabels = ['weather', 'packing', 'attractions', 'destinations', 'irrops', 'system', 'unknown'];
     const result = await classifier.classify(text, candidateLabels);
     
     const topLabel = result.labels[0];
@@ -275,6 +275,11 @@ export async function classifyIntent(text: string, log?: pino.Logger): Promise<I
     
     if (/are you (a )?real|are you (an? )?person|are you (an? )?(ai|bot|robot|human)/i.test(m)) {
       return { intent: 'system', confidence: 0.95 };
+    }
+    
+    // IRROPS patterns - disruption and rebooking requests
+    if (/\b(cancel|delay|disrupt|rebook|change.*flight|flight.*cancel|flight.*delay|equipment.*change|missed.*connection)\b/i.test(m)) {
+      return { intent: 'irrops', confidence: 0.9 };
     }
     
     // Handle refinement patterns - these should not be classified as system

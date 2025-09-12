@@ -18,7 +18,7 @@ export const NLPResult = z.object({
     intent: z.enum(['weather', 'packing', 'attractions', 'destinations']).optional()
   }),
   intent_classification: z.object({
-    intent: z.enum(['weather', 'packing', 'attractions', 'destinations', 'system', 'unknown']),
+    intent: z.enum(['weather', 'packing', 'attractions', 'destinations', 'irrops', 'system', 'unknown']),
     confidence: z.number()
   }),
   language_detection: z.object({

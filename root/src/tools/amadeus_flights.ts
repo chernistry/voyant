@@ -236,3 +236,57 @@ export async function convertToAmadeusDate(dateStr?: string): Promise<string> {
   // Default fallback
   return '2024-12-01';
 }
+
+export interface SearchConstraints {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  cabin?: string;
+  passengers?: number;
+}
+
+export interface FlightAlternative {
+  departure: string;
+  arrival: string;
+  carrier: string;
+  flightNumber: string;
+  price?: number;
+}
+
+/**
+ * Search for alternative flights for IRROPS scenarios
+ */
+export async function searchAlternatives(
+  originalSegments: any[],
+  affectedSegmentIndex: number,
+  constraints: SearchConstraints,
+  signal?: AbortSignal
+): Promise<FlightAlternative[]> {
+  try {
+    const result = await flightOffersGet({
+      originLocationCode: constraints.origin,
+      destinationLocationCode: constraints.destination,
+      departureDate: constraints.departureDate,
+      adults: (constraints.passengers || 1).toString(),
+      max: '10'
+    }, signal);
+
+    // Handle the wrapped response format
+    const offers = result.ok ? result.offers : [];
+    if (!offers || offers.length === 0) return [];
+
+    return offers.slice(0, 5).map((offer: any) => {
+      const segment = offer.itineraries?.[0]?.segments?.[0];
+      return {
+        departure: segment?.departure?.at || constraints.departureDate + 'T08:00:00',
+        arrival: segment?.arrival?.at || constraints.departureDate + 'T10:00:00',
+        carrier: segment?.carrierCode || 'XX',
+        flightNumber: (segment?.carrierCode || 'XX') + (segment?.number || '000'),
+        price: parseFloat(offer.price?.total || '0')
+      };
+    });
+  } catch (error) {
+    console.error('Alternative search failed:', error);
+    return [];
+  }
+}

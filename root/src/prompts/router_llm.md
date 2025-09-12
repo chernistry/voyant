@@ -10,7 +10,7 @@ Hard requirements:
 Guidelines:
 - Use the output schema exactly. No extra keys. No comments.
 - Normalize entities:
-  - `intent` ∈ {"destinations","packing","attractions","weather","flights","policy","web_search","system","unknown"}
+  - `intent` ∈ {"destinations","packing","attractions","weather","flights","irrops","policy","web_search","system","unknown"}
   - `city`: expand common abbreviations (e.g., NYC → New York City, LA → Los Angeles)
   - `originCity`: departure city for flights (e.g., "Tel Aviv", "New York City")
   - `destinationCity`: arrival city for flights (e.g., "Moscow", "Paris")
@@ -23,6 +23,7 @@ Guidelines:
 
 Intent Classification Rules:
 - `flights`: ANY flight-related query including "flights", "fly", "book flight", "airline", flight prices, flight schedules, flight booking, travel from X to Y with dates
+- `irrops`: Flight disruptions, cancellations, delays, rebooking requests, equipment changes, missed connections, "my flight was cancelled", "flight delayed", "need to rebook"
 - `policy`: Visa requirements, immigration rules, passport info, entry requirements, travel policies
 - `web_search`: Explicit search requests ("search for", "find information about"), complex multi-constraint queries, research requests
 - `system`: Questions about the AI assistant, consent responses, clarifications, app functionality
@@ -63,7 +64,7 @@ User: {message}
 
 Output schema (strict JSON only):
 {
-  "intent": "destinations|packing|attractions|weather|flights|policy|web_search|system|unknown",
+  "intent": "destinations|packing|attractions|weather|flights|irrops|policy|web_search|system|unknown",
   "needExternal": true|false,
   "slots": {"city": "...", "originCity": "...", "destinationCity": "...", "month": "...", "dates": "...", "travelerProfile": "..."},
   "confidence": 0..1,
@@ -97,6 +98,15 @@ Output: {"intent":"unknown","needExternal":true,"slots":{},"confidence":0.90,"mi
 
 Input: "what to do there?"
 Output: {"intent":"attractions","needExternal":false,"slots":{},"confidence":0.40,"missingSlots":["city"]}
+
+Input: "My flight AA123 was cancelled, please help me rebook"
+Output: {"intent":"irrops","needExternal":true,"slots":{"originCity":"","destinationCity":""},"confidence":0.95,"missingSlots":["originCity","destinationCity"]}
+
+Input: "Flight delayed 3 hours due to weather, need alternatives"
+Output: {"intent":"irrops","needExternal":true,"slots":{},"confidence":0.90,"missingSlots":[]}
+
+Input: "Equipment changed from 777 to 737, any issues?"
+Output: {"intent":"irrops","needExternal":true,"slots":{},"confidence":0.85,"missingSlots":[]}
 
 Input: "Best kid-friendly things in SF for late Aug?"
 Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Francisco","month":"August","dates":"late August","travelerProfile":"family with kids"},"confidence":0.80,"missingSlots":[]}

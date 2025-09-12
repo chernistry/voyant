@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const Intent = z.enum(['destinations', 'packing', 'attractions', 'weather', 'policy', 'flights', 'unknown', 'web_search', 'system']);
+export const Intent = z.enum(['destinations', 'packing', 'attractions', 'weather', 'policy', 'flights', 'irrops', 'unknown', 'web_search', 'system']);
 
 export const RouterSlots = z.object({
   city: z.string().optional(),
@@ -14,6 +14,13 @@ export const RouterSlots = z.object({
   cabinClass: z.string().optional(),
   travelerProfile: z.string().optional(),
   search_query: z.string().optional(),
+  // IRROPS-specific slots
+  recordLocator: z.string().optional(),
+  disruptionType: z.string().optional(),
+  affectedSegments: z.string().optional(),
+  maxPriceIncrease: z.string().optional(),
+  preferredCarriers: z.string().optional(),
+  minConnectionTime: z.string().optional(),
   // Deep research consent flow (optional)
   awaiting_deep_research_consent: z.string().optional(),
   pending_deep_research_query: z.string().optional(),

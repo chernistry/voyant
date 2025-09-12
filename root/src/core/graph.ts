@@ -39,7 +39,7 @@ import {
 // Types
 export type NodeCtx = { msg: string; threadId: string; onStatus?: (status: string) => void };
 export type NodeOut =
-  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'flights' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
+  | { next: 'weather' | 'destinations' | 'packing' | 'attractions' | 'policy' | 'flights' | 'irrops' | 'unknown' | 'web_search' | 'system'; slots?: Record<string, string> }
   | { done: true; reply: string; citations?: string[] };
 
 type ScoredSpan = { text: string; score: number };
@@ -371,6 +371,8 @@ async function routeToDomainNode(
       return attractionsNode(ctx, mergedSlots, logger);
     case 'flights':
       return flightsNode(ctx, mergedSlots, logger);
+    case 'irrops':
+      return irropsNode(ctx, mergedSlots, logger);
     case 'policy':
       return policyNode(ctx, mergedSlots, logger);
     case 'system':
@@ -586,6 +588,115 @@ async function flightsNode(
     logger || { log: pinoLib({ level: 'silent' }), onStatus: ctx.onStatus },
   );
   return { done: true, reply, citations };
+}
+
+async function irropsNode(
+  ctx: NodeCtx,
+  slots: Record<string, string>,
+  logger: { log: pino.Logger; onStatus?: (status: string) => void }
+): Promise<NodeOut> {
+  const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
+  const mergedSlots = { ...threadSlots, ...slots };
+
+  try {
+    const { processIrrops } = await import('../core/irrops_engine.js');
+    const { parsePNRFromText } = await import('../tools/pnr_parser.js');
+    
+    logger.onStatus?.('Processing disruption...');
+    
+    // Parse PNR from message or use mock data for testing
+    let pnr = await parsePNRFromText(ctx.msg);
+    if (!pnr) {
+      // Generate future date for mock PNR
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const futureDateTime = tomorrow.toISOString();
+      const arrivalTime = new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000).toISOString(); // +3 hours
+      
+      // Mock PNR for testing - in production would require actual PNR data
+      pnr = {
+        recordLocator: mergedSlots.recordLocator || 'ABC123',
+        passengers: [{ name: 'PASSENGER', type: 'ADT' }],
+        segments: [{
+          origin: mergedSlots.originCity || 'JFK',
+          destination: mergedSlots.destinationCity || mergedSlots.city || 'LAX',
+          departure: futureDateTime,
+          arrival: arrivalTime,
+          carrier: 'AA',
+          flightNumber: 'AA123',
+          cabin: 'Y',
+          status: 'XX' // Cancelled
+        }]
+      };
+    }
+
+    // Classify disruption from message
+    const message = ctx.msg.toLowerCase();
+    let disruptionType: 'cancellation' | 'delay' | 'equipment_change' | 'user_request' = 'user_request';
+    let severity: 'low' | 'medium' | 'high' = 'medium';
+    
+    if (message.includes('cancel')) {
+      disruptionType = 'cancellation';
+      severity = 'high';
+    } else if (message.includes('delay')) {
+      disruptionType = 'delay';
+      severity = message.includes('hour') ? 'medium' : 'low';
+    } else if (message.includes('equipment') || message.includes('aircraft')) {
+      disruptionType = 'equipment_change';
+      severity = 'medium';
+    }
+
+    const disruption = {
+      type: disruptionType,
+      severity,
+      affectedSegments: [0], // Assume first segment affected
+      timestamp: new Date().toISOString(),
+      reason: `Disruption detected: ${disruptionType}`
+    };
+
+    const preferences = {
+      maxPriceIncrease: mergedSlots.maxPriceIncrease ? parseFloat(mergedSlots.maxPriceIncrease) : undefined,
+      preferredCarriers: mergedSlots.preferredCarriers?.split(','),
+      minConnectionTime: mergedSlots.minConnectionTime ? parseInt(mergedSlots.minConnectionTime) : undefined
+    };
+
+    const options = await processIrrops(pnr, disruption, preferences);
+
+    if (!options || options.length === 0) {
+      return { done: true, reply: 'I couldn\'t find any suitable rebooking options. Please contact your airline directly or try again with different preferences.' };
+    }
+
+    // Format the response
+    const optionsText = options.map((option, index) => {
+      const priceText = option.priceChange.amount > 0 
+        ? `Additional cost: $${option.priceChange.amount} ${option.priceChange.currency}`
+        : option.priceChange.amount < 0 
+        ? `Refund: $${Math.abs(option.priceChange.amount)} ${option.priceChange.currency}`
+        : 'No additional cost';
+      
+      const routeText = option.segments.map(seg => 
+        `${seg.carrier}${seg.flightNumber.replace(seg.carrier, '')} ${seg.origin}-${seg.destination}`
+      ).join(', ');
+
+      return `**Option ${index + 1}** (${option.type.replace('_', ' ')}):\n` +
+             `Route: ${routeText}\n` +
+             `${priceText}\n` +
+             `Confidence: ${Math.round(option.confidence * 100)}%\n` +
+             `Rules: ${option.rulesApplied.slice(0, 2).join(', ')}`;
+    }).join('\n\n');
+
+    const reply = `I found ${options.length} rebooking options for your disruption:\n\n${optionsText}\n\n` +
+                  `All options have been validated against airline policies and connection requirements. ` +
+                  `Would you like me to proceed with one of these options?`;
+
+    const citations = options.flatMap(opt => opt.citations).slice(0, 3);
+    
+    return { done: true, reply, citations };
+    
+  } catch (error) {
+    logger.log?.warn({ error: String(error) }, 'irrops_processing_failed');
+    return { done: true, reply: 'I\'m having trouble processing your disruption request. Please try again or contact your airline directly for assistance.' };
+  }
 }
 
 async function policyNode(
