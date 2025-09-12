@@ -86,46 +86,99 @@ class Spinner {
   private frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   private interval: NodeJS.Timeout | null = null;
   private currentFrame = 0;
-  private currentStatus = 'Thinking...';
+  private currentStatus = 'Analyzing your request...';
+  private customStatus: string | null = null;
+  private customStatusTime: number = 0;
+  private readonly CUSTOM_STATUS_TIMEOUT = 3000; // 3 seconds
+  private processingStage = 0;
 
+  // Processing stages that reflect actual system flow
+  private stageMessages = {
+    0: 'Analyzing your request...',           // Guard stage - fast checks
+    1: 'Extracting travel details...',        // Extract stage - NER/entities
+    2: 'Routing to travel service...',        // Route stage - intent detection
+    3: 'Checking weather data...',            // Weather action
+    4: 'Finding destinations...',             // Destinations action
+    5: 'Searching for attractions...',        // Attractions action
+    6: 'Preparing packing list...',           // Packing action
+    7: 'Checking travel policies...',         // Policy action
+    8: 'Searching for flights...',            // Flights action
+    9: 'Searching the web...',                // Web search action
+    10: 'Preparing your response...',         // Final composition
+    11: 'Finalizing recommendations...'       // Verification and completion
+  };
+
+  // Fallback random messages for variety
   private statusMessages = [
-    'Analyzing your request...',
+    'Gathering travel information...',
     'Processing travel data...',
-    'Searching for information...',
-    'Checking weather conditions...',
-    'Finding attractions...',
-    'Looking up destinations...',
-    'Consulting travel policies...',
-    'Gathering recommendations...',
-    'Verifying information...',
-    'Preparing response...',
-    'Cross-referencing data...',
-    'Calculating travel options...',
-    'Checking visa requirements...',
-    'Finding best routes...',
-    'Comparing prices...',
-    'Validating details...',
-    'Organizing results...',
-    'Finalizing recommendations...',
-    'Almost ready...',
-    'Just a moment more...'
+    'Verifying details...',
+    'Cross-referencing information...',
+    'Calculating travel options...'
   ];
 
   start() {
-    this.currentStatus = this.getRandomStatus();
+    this.resetStage();
     this.interval = setInterval(() => {
-      process.stdout.write(`\r${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(this.currentStatus)}`);
+      // Get current display status (prefer custom status over stage status)
+      const displayStatus = this.getCurrentDisplayStatus();
+
+      // Clear the line and move cursor to beginning before writing new message
+      process.stdout.write(`\r\x1b[2K${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(displayStatus)}`);
       this.currentFrame = (this.currentFrame + 1) % this.frames.length;
 
-      // Change status every 1.5 seconds (19 frames * 80ms)
-      if (this.currentFrame % 19 === 0) {
-        this.currentStatus = this.getRandomStatus();
+      // Progress through stages automatically if no custom status is active
+      if (this.currentFrame % 19 === 0 && !this.customStatus) {
+        this.processingStage = (this.processingStage + 1) % 12;
+        this.currentStatus = this.getStageStatus();
       }
     }, 80);
   }
 
   setStatus(status: string) {
-    this.currentStatus = status || 'Processing...';
+    const newStatus = status || 'Processing...';
+
+    // Set custom status with timestamp
+    this.customStatus = newStatus;
+    this.customStatusTime = Date.now();
+
+    // Update the display immediately if spinner is running
+    if (this.interval) {
+      process.stdout.write(`\r\x1b[2K${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(newStatus)}`);
+    }
+  }
+
+  // Set processing stage to reflect actual system progress
+  setStage(stage: number) {
+    if (stage >= 0 && stage <= 11) {
+      this.processingStage = stage;
+      this.currentStatus = this.getStageStatus();
+
+      // Update display immediately if spinner is running
+      if (this.interval) {
+        process.stdout.write(`\r\x1b[2K${chalk.yellow(this.frames[this.currentFrame])} ${chalk.gray(this.currentStatus)}`);
+      }
+    }
+  }
+
+  // Get status message for current processing stage
+  private getStageStatus(): string {
+    return this.stageMessages[this.processingStage as keyof typeof this.stageMessages] || 'Processing...';
+  }
+
+  private getCurrentDisplayStatus(): string {
+    // If we have a custom status and it's not timed out, use it
+    if (this.customStatus && (Date.now() - this.customStatusTime) < this.CUSTOM_STATUS_TIMEOUT) {
+      return this.customStatus;
+    }
+
+    // Custom status timed out, clear it
+    if (this.customStatus) {
+      this.customStatus = null;
+    }
+
+    // Return current random status
+    return this.currentStatus;
   }
 
   private getRandomStatus(): string {
@@ -133,10 +186,19 @@ class Spinner {
     return this.statusMessages[Math.floor(Math.random() * this.statusMessages.length)] || 'Processing...';
   }
 
+  // Reset processing stage when starting
+  resetStage() {
+    this.processingStage = 0;
+    this.currentStatus = this.getStageStatus();
+  }
+
   stop() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
+      // Clear custom status when stopping
+      this.customStatus = null;
+      this.customStatusTime = 0;
       process.stdout.write('\r'.padEnd(50, ' ') + '\r'); // clear the line
     }
   }

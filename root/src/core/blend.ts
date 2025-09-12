@@ -74,7 +74,7 @@ async function performWebSearch(
   
   ctx.log.debug({ query, isComplexQuery, queryLength: query.length }, 'complex_query_detection');
   
-  ctx.onStatus?.('Searching the web for information...');
+  ctx.onStatus?.('Searching the web...');
   
   const searchResult = await searchTravelInfo(query, ctx.log, isComplexQuery);
   
@@ -396,7 +396,7 @@ export async function blendWithFacts(
   const decisions: string[] = [];
   try {
     if (input.route.intent === 'weather') {
-      ctx.onStatus?.('Checking weather conditions...');
+      ctx.onStatus?.('Checking weather data...');
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
@@ -425,7 +425,7 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'packing') {
     } else if (input.route.intent === 'packing') {
-      ctx.onStatus?.('Preparing packing recommendations...');
+      ctx.onStatus?.('Preparing packing list...');
       const wx = await getWeather({
         city: cityHint,
         datesOrMonth: whenHint || 'today',
@@ -473,7 +473,7 @@ export async function blendWithFacts(
         decisions.push('Detected refinement request - preserving existing travel context and adding specific adjustments.');
       } else {
         // Use destinations catalog for new recommendations
-        ctx.onStatus?.('Finding travel destinations...');
+        ctx.onStatus?.('Finding destinations...');
         ctx.log.debug({ intent: input.route.intent, slots: input.route.slots }, 'destinations_block_entered');
         try {
           const { recommendDestinations } = await import('../tools/destinations.js');
@@ -554,7 +554,7 @@ export async function blendWithFacts(
       }
     } else if (input.route.intent === 'attractions') {
       // Prefer OpenTripMap results; avoid listing specific POIs from generic web search
-      ctx.onStatus?.('Finding attractions and activities...');
+      ctx.onStatus?.('Searching for attractions...');
       const wantsKid = /\b(kids?|children|child|3\s*-?\s*year|toddler|stroller|pram|family)\b/i.test(input.message);
       const at = await getAttractions({ city: cityHint, limit: 5, profile: wantsKid ? 'kid_friendly' : 'default' });
       if (at.ok && (at.source === 'opentripmap' || at.source === getSearchSource())) {
