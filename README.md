@@ -1,10 +1,10 @@
 # Voyant Travel Assistant
 
-Builds trust, then answers fast.
+Enterprise-grade AI travel assistant with advanced RAG and multi-modal research.
 
 ![Voyant Travel Assistant Screenshot](./assets/screenshot.png)
 
-Short, production‑minded demo of a travel assistant: LLM for NLP, API‑first facts (Open‑Meteo, REST Countries, OpenTripMap, Amadeus), consented web/deep search fallback, strict guardrails (no fabricated citations), receipts + self‑check, metrics, and clean CLI/HTTP interfaces.
+Production-ready travel assistant featuring Transformers.js NLP, Amadeus flight search, Vectara RAG for policy documents, intelligent web crawling with Playwright, and comprehensive anti-hallucination safeguards.
 
 ## Quick Start
 ```bash
@@ -18,26 +18,31 @@ npm run dev
 ```
 
 ## Minimal Config
-- LLM: set one of `OPENROUTER_API_KEY` or `LLM_PROVIDER_BASEURL` + `LLM_API_KEY` (+ optional `LLM_MODEL`).
-- Flight search: `AMADEUS_CLIENT_ID` + `AMADEUS_CLIENT_SECRET` for live flight data.
-- Optional external: `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `OPENTRIPMAP_API_KEY`, `VECTARA_API_KEY`.
-- Search provider: set `SEARCH_PROVIDER=brave|tavily` (default `brave`). Both providers support web search with automatic fallback for visa/policy questions.
-- Flags: `METRICS=json|prom`, `DEEP_RESEARCH_ENABLED=true`, `POLICY_RAG=on`.
+- **LLM**: Set `OPENROUTER_API_KEY` or `LLM_PROVIDER_BASEURL` + `LLM_API_KEY` (+ optional `LLM_MODEL`)
+- **Flight Search**: `AMADEUS_CLIENT_ID` + `AMADEUS_CLIENT_SECRET` for live flight data
+- **RAG/Policy**: `VECTARA_API_KEY` + `VECTARA_CUSTOMER_ID` + corpus IDs for policy document search
+- **Web Search**: `BRAVE_SEARCH_API_KEY` or `TAVILY_API_KEY` for fallback research
+- **Optional APIs**: `OPENTRIPMAP_API_KEY` for enhanced attraction data
+- **Features**: `DEEP_RESEARCH_ENABLED=true`, `POLICY_RAG=on`, `SEARCH_PROVIDER=brave|tavily`
+- **Monitoring**: `METRICS=json|prom` for observability
 
 ## Highlights
-- 9 intents (weather, packing, destinations, attractions, flights, policy, system, web_search, unknown) with context and targeted clarifiers.
-- Live flight search via Amadeus API with complete itineraries, pricing, and booking details.
-- API‑first facts with receipts and self‑verification; no fake citations.
-- Web/deep search only with user consent; query optimizer reduces noise.
-- Resilience: timeouts, retries with jitter, host allowlist, `/metrics` (Prom/JSON), circuit breaker + rate limiting.
-- Smart routing: Transformers.js NLP/NER cascade (20-40% latency reduction) with LLM fallback.
-- Enterprise RAG: Vectara integration for policy documents with paragraph-level citations.
+- **Advanced NLP Pipeline**: Transformers.js with multilingual NER, intent classification, and 20-40% latency reduction via smart routing cascade
+- **Live Flight Search**: Amadeus API integration with complete itineraries, pricing, connection details, and natural language date parsing
+- **Enterprise RAG**: Vectara integration for policy documents with paragraph-level citations and quality assessment
+- **Multi-Modal Research**: Crawlee/Playwright-powered web crawling for complex queries with AI summarization
+- **Production Architecture**: Circuit breakers, rate limiting, comprehensive test suite (685+ tests), and Prometheus metrics
+- **Anti-Hallucination**: Self-verification system with citation validation and fact-checking mechanisms
+- **9 Intent Types**: weather, packing, destinations, attractions, flights, policy, system, web_search, unknown with context-aware routing
 
-## Roadmap (selected)
-- Hotel search: Amadeus API integration for accommodations with city search, dates, pricing, and availability.
-- Parallel branches + rollbacks: current graph is linear for debuggability; interfaces ready for LangGraph/xstate merge.
-- Browser policy mode: evidence via Playwright screenshots/snippets in receipts.
-- Interview‑grade demos: IRROPS and partial‑leg change scripted flows with transcripts.
+## Roadmap (Priority Order)
+1. **Policy Browser Mode v1**: Headless Playwright navigation to official policy pages with screenshot+DOM evidence, verbatim citations, and content hashing for chain of custody
+2. **IRROPS & Partial-Leg Changes**: Agentic flow for disruption handling with MCT/fare rule validation, A/B/C options with cited policy rules
+3. **Hotels & Stays (Amadeus)**: City + dates + guests search with policy compliance filtering, loyalty integration, and unified itinerary view
+4. **Profile & Policy Guardrail Engine**: YAML-based rules engine for corporate travel policy with IN-POLICY/OUT-OF-POLICY badges and exception workflows
+5. **Unified Itinerary & Smart Notifications**: Merged flights+hotels+POIs with ICS export and proactive nudges (check-in, gate changes, cancellation windows)
+6. **Trip Risk & Resilience Score**: Predictive disruption scoring with Plan B recommendations based on MCT buffers, weather patterns, and carrier reliability
+7. **Enterprise Observability & Packaging**: P95/P99 metrics, OpenAPI documentation, Docker/Lambda packaging, and cost guardrails with budget controls
 
 ## Agent Decision Flow
 
