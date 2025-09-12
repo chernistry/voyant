@@ -37,7 +37,7 @@ npm run dev
 
 ## Roadmap (Priority Order)
 1. **Policy Browser Mode v1**: Headless Playwright navigation to official policy pages with screenshot+DOM evidence, verbatim citations, and content hashing for chain of custody
-2. **IRROPS & Partial-Leg Changes**: Agentic flow for disruption handling with MCT/fare rule validation, A/B/C options with cited policy rules
+2. **IRROPS & Partial-Leg Changes**: ✨ *Foundational components implemented* - Agentic flow for disruption handling with MCT/fare rule validation, A/B/C options with cited policy rules (basic schemas, constraint validators, and option ranking ready for production integration)
 3. **Hotels & Stays (Amadeus)**: City + dates + guests search with policy compliance filtering, loyalty integration, and unified itinerary view
 4. **Profile & Policy Guardrail Engine**: YAML-based rules engine for corporate travel policy with IN-POLICY/OUT-OF-POLICY badges and exception workflows
 5. **Unified Itinerary & Smart Notifications**: Merged flights+hotels+POIs with ICS export and proactive nudges (check-in, gate changes, cancellation windows)
