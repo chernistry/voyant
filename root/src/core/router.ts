@@ -131,7 +131,43 @@ export async function routeIntent({ message, threadId, logger }: {
   const json = JSON.parse(raw);
   const llm = RouterResult.parse(json);
 
-  // 5) Post-LLM heuristics (cheap)
+  // 5) Post-LLM slot enhancement for flights
+  if (llm.intent === 'flights') {
+    try {
+      const enhancedSlots = await extractSlots(m, ctxSlots, logger?.log);
+      
+      // Preserve relative dates from LLM (today, tomorrow, etc.) over enhanced parsing
+      const preservedSlots = { ...enhancedSlots };
+      if (llm.slots?.dates && /^(today|tomorrow|tonight|now)$/i.test(llm.slots.dates)) {
+        preservedSlots.dates = llm.slots.dates;
+        preservedSlots.departureDate = llm.slots.dates;
+        // Don't override month for relative dates
+        delete preservedSlots.month;
+      }
+      
+      // Merge LLM slots with enhanced slots, prioritizing preserved relative dates
+      const mergedSlots = { ...enhancedSlots, ...llm.slots, ...preservedSlots };
+      
+      logger?.log?.debug({ 
+        llmSlots: llm.slots, 
+        enhancedSlots, 
+        preservedSlots,
+        mergedSlots 
+      }, 'flights_slot_enhancement');
+      
+      const enhanced = RouterResult.parse({
+        ...llm,
+        slots: mergedSlots
+      });
+      
+      logger?.log?.debug({ intent: enhanced.intent, confidence: enhanced.confidence }, 'router_final_result');
+      return enhanced;
+    } catch (error) {
+      logger?.log?.debug({ error: String(error) }, 'flights_slot_enhancement_failed');
+    }
+  }
+  
+  // 6) Post-LLM heuristics (cheap)
   if (llm.intent === 'flights' && !RE.dateish.test(m)) {
     logger?.log?.debug({ reason:'missing_date' }, 'flights_missing_date');
   }

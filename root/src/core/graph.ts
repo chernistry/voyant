@@ -266,10 +266,23 @@ export async function runGraphTurn(
   // Use cached router result instead of calling routeIntentNode
   let intent = C.forced ?? C.route.intent;
   
+  ctx.log.debug({ 
+    forced: C.forced, 
+    routeIntent: C.route.intent, 
+    finalIntent: intent,
+    routeConfidence: C.route.confidence 
+  }, 'graph_intent_decision');
+  
   // === SLOT PROCESSING ===
   const prior = getThreadSlots(threadId);
   const extractedSlots = C.route.slots || {};
   const slots = normalizeSlots(prior, extractedSlots, intent);
+  
+  ctx.log.debug({ 
+    priorSlots: prior, 
+    extractedSlots, 
+    normalizedSlots: slots 
+  }, 'graph_slot_processing');
   
   // Check for missing required slots
   const missing = checkMissingSlots(intent, slots, message);
@@ -291,6 +304,7 @@ export async function runGraphTurn(
   }, 'graph_turn_complete');
   
   // === ACT STAGE: Route to domain nodes ===
+  ctx.log.debug({ intent, slots }, 'graph_routing_to_domain_node');
   const routeCtx: NodeCtx = { msg: message, threadId, onStatus: ctx.onStatus };
   return await routeToDomainNode(intent, routeCtx, slots, ctx);
 }
@@ -360,25 +374,36 @@ async function routeToDomainNode(
 ): Promise<NodeOut> {
   const mergedSlots = slots;
   
+  logger.log?.debug({ intent, slots: mergedSlots }, 'routing_to_domain_node');
+  
   switch (intent) {
     case 'destinations':
+      logger.log?.debug('routing_to_destinations_node');
       return destinationsNode(ctx, mergedSlots, logger);
     case 'weather':
+      logger.log?.debug('routing_to_weather_node');
       return weatherNode(ctx, mergedSlots, logger);
     case 'packing':
+      logger.log?.debug('routing_to_packing_node');
       return packingNode(ctx, mergedSlots, logger);
     case 'attractions':
+      logger.log?.debug('routing_to_attractions_node');
       return attractionsNode(ctx, mergedSlots, logger);
     case 'flights':
+      logger.log?.debug('routing_to_flights_node');
       return flightsNode(ctx, mergedSlots, logger);
     case 'policy':
+      logger.log?.debug('routing_to_policy_node');
       return policyNode(ctx, mergedSlots, logger);
     case 'system':
+      logger.log?.debug('routing_to_system_node');
       return systemNode(ctx);
     case 'web_search':
+      logger.log?.debug('routing_to_web_search_node');
       return webSearchNode(ctx, mergedSlots, logger);
     case 'unknown':
     default:
+      logger.log?.debug('routing_to_unknown_node');
       return unknownNode(ctx, logger);
   }
 }
@@ -511,22 +536,35 @@ async function flightsNode(
   const threadSlots = sanitizeSlotsView(getThreadSlots(ctx.threadId));
   const mergedSlots = { ...threadSlots, ...slots };
   
+  logger.log?.debug({ mergedSlots }, 'flights_node_slots');
+  
+  // Normalize slots for flights - handle both city/destinationCity patterns
+  const origin = mergedSlots.originCity;
+  const destination = mergedSlots.destinationCity || mergedSlots.city;
+  const departureDate = mergedSlots.departureDate || mergedSlots.dates;
+  
+  logger.log?.debug({ origin, destination, departureDate }, 'flights_node_normalized_params');
+  
   // Try Amadeus API first
-  try {
-    const { searchFlights, convertToAmadeusDate } = await import('../tools/amadeus_flights.js');
-    
-    const departureDate = mergedSlots.departureDate || mergedSlots.dates;
-    const returnDate = mergedSlots.returnDate;
-    
-    if (mergedSlots.originCity && (mergedSlots.destinationCity || mergedSlots.city) && departureDate) {
+  if (origin && destination && departureDate) {
+    try {
+      logger.log?.debug('flights_node_calling_amadeus');
+      
+      const { searchFlights, convertToAmadeusDate } = await import('../tools/amadeus_flights.js');
+      
+      const convertedDate = await convertToAmadeusDate(departureDate);
+      logger.log?.debug({ originalDate: departureDate, convertedDate }, 'flights_date_conversion');
+      
       const result = await searchFlights({
-        origin: mergedSlots.originCity,
-        destination: mergedSlots.destinationCity || mergedSlots.city,
-        departureDate: departureDate ? await convertToAmadeusDate(departureDate) : undefined,
-        returnDate: returnDate ? returnDate : undefined,
+        origin,
+        destination,
+        departureDate: convertedDate,
+        returnDate: mergedSlots.returnDate ? await convertToAmadeusDate(mergedSlots.returnDate) : undefined,
         passengers: mergedSlots.passengers ? parseInt(mergedSlots.passengers) : undefined,
         cabinClass: mergedSlots.cabinClass,
       });
+
+      logger.log?.debug({ success: result.ok, reason: result.reason }, 'flights_amadeus_result');
 
       if (result.ok) {
         return { 
@@ -534,13 +572,24 @@ async function flightsNode(
           reply: result.summary, 
           citations: ['Amadeus Flight API - Live flight search results']
         };
+      } else {
+        logger.log?.warn({ reason: result.reason }, 'amadeus_search_failed');
       }
+    } catch (error) {
+      logger.log?.warn({ error: String(error) }, 'amadeus_flights_failed');
     }
-  } catch (error) {
-    logger.log?.warn({ error: String(error) }, 'amadeus_flights_failed');
+  } else {
+    logger.log?.debug({ 
+      missing: { 
+        origin: !origin, 
+        destination: !destination, 
+        departureDate: !departureDate 
+      } 
+    }, 'flights_missing_required_params');
   }
   
   // Fallback to blend with facts
+  logger.log?.debug('flights_falling_back_to_blend');
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
