@@ -245,6 +245,28 @@ async function convertToAmadeusDate(dateStr: string): Promise<string> {
     return dateStr;
   }
   
+  // Handle "today" and "tomorrow" explicitly for relative inputs
+  const trimmed = dateStr.trim();
+  if (/^today$/i.test(trimmed)) {
+    return new Date().toISOString().split('T')[0] || new Date().getFullYear() + '-01-01';
+  }
+  if (/^tomorrow$/i.test(trimmed)) {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    return t.toISOString().split('T')[0] || `${t.getFullYear()}-01-02`;
+  }
+
+  // Handle "next week" explicitly (snap to next Monday)
+  if (/^next\s+week$/i.test(dateStr.trim())) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    const day = d.getDay(); // 0=Sun,1=Mon
+    const diff = day === 0 ? 1 : (1 - day);
+    d.setDate(d.getDate() + diff);
+    const iso = d.toISOString().split('T')[0];
+    return iso || `${d.getFullYear()}-01-01`;
+  }
+  
   const today = new Date();
   const currentYear = today.getFullYear();
   

@@ -3,7 +3,9 @@
 export const RE = {
   sys: /\b(help|what can you do|who (are|r) you|how do you work)\b/i,
   policy: /\b(visa|passport|entry (req|requirement)s?|immigration|customs|baggage policy|fare rules?)\b/i,
-  explicitSearch: /^(search|find|look ?up|google)\b/i,
+  // Prefer explicit search only when not immediately a flight query like
+  // "find flights ..." or "search flights ..."
+  explicitSearch: /^(?:(?:search|look ?up|google)(?!\s+flights?\b)|find(?!\s+flights?\b))\b/i,
   flightDirect: /\b(from|ex)\s+[\w\s.'-]+?\s+(to|→|-?>)\s+[\w\s.'-]+/i,
   iataPair: /\b([A-Z]{3})\s*(to|→|-?>)\s*([A-Z]{3})\b/,
   dateish: /\b(today|tomorrow|this (week|weekend|month)|next (week|month)|\d{1,2}[-/]\d{1,2}([-/]\d{2,4})?)\b/i,

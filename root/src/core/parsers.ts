@@ -328,14 +328,35 @@ export async function parseDate(
   logger?: any,
 ): Promise<ParseResponse<z.infer<typeof DateParseResult>>> {
   // Handle immediate time references
-  const nowWords = ['now', 'today', 'currently', 'right now', 'at the moment'];
-  if (nowWords.some((word) => text.toLowerCase().includes(word))) {
-    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+  const lower = text.toLowerCase();
+  // Tomorrow/tonight first (high confidence for flights and near-term planning)
+  if (/(^|\b)(tomorrow)($|\b)/.test(lower)) {
     return {
       success: true,
-      data: { dates: currentMonth, month: currentMonth, confidence: 1.0 },
+      data: { dates: 'tomorrow', confidence: 1.0 },
       confidence: 1.0,
-      normalized: currentMonth,
+      normalized: 'tomorrow',
+    };
+  }
+  if (/(^|\b)(tonight)($|\b)/.test(lower)) {
+    return {
+      success: true,
+      data: { dates: 'tonight', confidence: 0.95 },
+      confidence: 0.95,
+      normalized: 'tonight',
+    };
+  }
+  const nowWords = ['now', 'today', 'currently', 'right now', 'at the moment'];
+  if (nowWords.some((word) => lower.includes(word))) {
+    const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+    const data = lower.includes('today')
+      ? { dates: 'today', month: currentMonth, confidence: 1.0 }
+      : { dates: currentMonth, month: currentMonth, confidence: 1.0 };
+    return {
+      success: true,
+      data,
+      confidence: 1.0,
+      normalized: data.dates,
     };
   }
 

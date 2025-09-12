@@ -534,13 +534,44 @@ async function flightsNode(
           reply: result.summary, 
           citations: ['Amadeus Flight API - Live flight search results']
         };
+      } else {
+        // Amadeus returned no results or error → fallback to web with notice
+        const converted = departureDate ? await convertToAmadeusDate(departureDate) : '';
+        const query = `${mergedSlots.originCity} ${mergedSlots.destinationCity || mergedSlots.city} flights ${converted}`.trim();
+        const web = await webSearchNode(ctx, { ...mergedSlots, search_query: query }, logger);
+        if ('reply' in web) {
+          web.reply = `I couldn't find availability via Amadeus${result && 'reason' in result ? ` (reason: ${result.reason})` : ''}. ` +
+                      `Here are results from the web that might help.\n\n${web.reply}`;
+        }
+        return web;
       }
     }
   } catch (error) {
     logger.log?.warn({ error: String(error) }, 'amadeus_flights_failed');
+    // Explicit web search fallback on error for flight flow
+    const q = `${mergedSlots.originCity || ''} ${mergedSlots.destinationCity || mergedSlots.city || ''} flights ${mergedSlots.departureDate || mergedSlots.dates || ''}`.trim();
+    if (q.replace(/\s+/g, '').length > 0) {
+      const web = await webSearchNode(ctx, { ...mergedSlots, search_query: q }, logger);
+      if ('reply' in web) {
+        web.reply = `Amadeus search errored; showing web results instead.\n\n${web.reply}`;
+      }
+      return web;
+    }
   }
   
-  // Fallback to blend with facts
+  // Fallback to blend with facts (keeps policy/safety consistent). If the user
+  // explicitly asked to "search" we can still provide helpful web results.
+  if (/\bsearch\b/i.test(ctx.msg) && (mergedSlots.originCity || mergedSlots.destinationCity || mergedSlots.city)) {
+    const q = `${mergedSlots.originCity || ''} ${mergedSlots.destinationCity || mergedSlots.city || ''} flights`.trim();
+    const web = await webSearchNode(ctx, { ...mergedSlots, search_query: q }, logger);
+    if ('reply' in web) {
+      web.reply = `I can search the web while we confirm exact dates. ` +
+                  `Please share your travel date to check live availability.\n\n${web.reply}`;
+    }
+    return web;
+  }
+
+  // Otherwise blend facts/ask clarifying questions
   const { reply, citations } = await blendWithFacts(
     {
       message: ctx.msg,
