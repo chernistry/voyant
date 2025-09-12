@@ -12,8 +12,10 @@ Guidelines:
 - Normalize entities:
   - `intent` ∈ {"destinations","packing","attractions","weather","flights","policy","web_search","system","unknown"}
   - `city`: expand common abbreviations (e.g., NYC → New York City, LA → Los Angeles)
+  - `originCity`: departure city for flights (e.g., "Tel Aviv", "New York City")
+  - `destinationCity`: arrival city for flights (e.g., "Moscow", "Paris")
   - `month`: full month name (e.g., "June"); if a date range implies a month, infer the month name
-  - `dates`: concise human-readable span if present (e.g., "2025-06-12 to 2025-06-18" or "June 2025")
+  - `dates`: concise human-readable span if present (e.g., "2025-06-12 to 2025-06-18" or "June 2025" or "today")
   - `travelerProfile`: short phrase like "family with kids", "solo traveler", "couple", "business"
 - `needExternal` is true when the user asks for current facts (weather now/forecast, prices, live events, visa rules, flight searches); false for evergreen advice (packing lists, generic attractions without live data)
 - Set `confidence` in [0,1]; use ≤0.5 if intent is ambiguous
@@ -28,6 +30,14 @@ Intent Classification Rules:
 - `weather`: Weather forecasts, climate information, temperature queries
 - `packing`: What to pack, clothing advice, luggage recommendations
 - `attractions`: Things to do, sightseeing, activities, tourist attractions
+
+Flight Slot Extraction Rules:
+- For flight queries, always extract `originCity` and `destinationCity` when both are present
+- If only one city is mentioned, use context to determine if it's origin or destination
+- Common patterns: "flights from X to Y", "fly from X to Y", "X to Y flights", "going from X to Y"
+- For "flights to Y from X" → originCity: X, destinationCity: Y
+- For "flights from X to Y" → originCity: X, destinationCity: Y
+- For "Y flights from X" → originCity: X, destinationCity: Y
 
 Confidence Calibration Guidelines:
 - 0.80-1.00: Clear intent with all required slots present
@@ -49,9 +59,9 @@ Output schema (strict JSON only):
 {
   "intent": "destinations|packing|attractions|weather|flights|policy|web_search|system|unknown",
   "needExternal": true|false,
-  "slots": {"city": "...", "month": "...", "dates": "...", "travelerProfile": "..."},
+  "slots": {"city": "...", "originCity": "...", "destinationCity": "...", "month": "...", "dates": "...", "travelerProfile": "..."},
   "confidence": 0..1,
-  "missingSlots": ["city"|"dates"|"month"|...]
+  "missingSlots": ["city"|"dates"|"month"|"originCity"|"destinationCity"|...]
 }
 
 Few‑shot examples (input → output, strict JSON):
@@ -77,10 +87,13 @@ Input: "Best kid-friendly things in SF for late Aug?"
 Output: {"intent":"attractions","needExternal":false,"slots":{"city":"San Francisco","month":"August","dates":"late August","travelerProfile":"family with kids"},"confidence":0.80,"missingSlots":[]}
 
 Input: "Flights to Paris next weekend under $600?"
-Output: {"intent":"flights","needExternal":true,"slots":{"city":"Paris","dates":"next weekend"},"confidence":0.85,"missingSlots":["month"]}
+Output: {"intent":"flights","needExternal":true,"slots":{"destinationCity":"Paris","dates":"next weekend"},"confidence":0.85,"missingSlots":["originCity"]}
 
 Input: "flights from telaviv to ny today"
-Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Tel Aviv","city":"New York","dates":"today"},"confidence":0.90,"missingSlots":[]}
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Tel Aviv","destinationCity":"New York City","dates":"today"},"confidence":0.90,"missingSlots":[]}
+
+Input: "Flights to Moscow from Tel Aviv today"
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"Tel Aviv","destinationCity":"Moscow","dates":"today"},"confidence":0.95,"missingSlots":[]}
 
 Input: "Do I need a visa for Japan?"
 Output: {"intent":"policy","needExternal":true,"slots":{"city":"Japan"},"confidence":0.90,"missingSlots":[]}
@@ -92,7 +105,7 @@ Input: "What can you help me with?"
 Output: {"intent":"system","needExternal":false,"slots":{},"confidence":0.90,"missingSlots":[]}
 
 Input: "Book me a flight from NYC to LA on Friday"
-Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","city":"Los Angeles","dates":"Friday"},"confidence":0.90,"missingSlots":["month"]}
+Output: {"intent":"flights","needExternal":true,"slots":{"originCity":"New York City","destinationCity":"Los Angeles","dates":"Friday"},"confidence":0.90,"missingSlots":[]}
 
 Input: "Passport requirements for Thailand"
 Output: {"intent":"policy","needExternal":true,"slots":{"city":"Thailand"},"confidence":0.90,"missingSlots":[]}
