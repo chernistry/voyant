@@ -24,7 +24,6 @@
   "homepage": "https://github.com/yourusername/voyant-travel-assistant#readme",
   "scripts": {
     "dev": "npm run start & sleep 2 && npm run cli",
-<<<<<<< HEAD
     "cli": "LOG_LEVEL=info tsx src/cli.ts",
     "cli:debug": "LOG_LEVEL=debug tsx src/cli.ts",
     "build": "tsc -p tsconfig.json && cp -r src/prompts dist/ && mkdir -p dist/public && (cp ../docs/index.html dist/public/ || echo 'index.html not found') && (cp ../docs/llmchat.html dist/public/ || echo 'llmchat.html not found')",

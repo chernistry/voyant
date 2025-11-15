@@ -15,6 +15,7 @@ Prompt Inventory
 - **meta_agent.md** — single governing super-prompt (Analyze → Plan → Act → Blend).
   Embeds routing guidance, policy/RAG rules, consent logic, groundedness guardrails,
   ledger expectations, and tool schemas.
+  The current routes include: weather, packing, attractions, destinations, flights, hotels, policy, web, irrops, system.
 - **Planning CONTROL block** — inline system hints issued by `callChatWithTools`
   (no separate file). Produces strict JSON with `route`, `confidence`, `missing`,
   `consent`, and `calls` array.

@@ -15,7 +15,7 @@ flowchart TD
       ACT --> T2["searchTravelInfo (Tavily/Brave)"]
       ACT --> T3["vectaraQuery (RAG locator)"]
       ACT --> T4["extractPolicyWithCrawlee / deepResearch"]
-      ACT --> T5["Amadeus resolveCity / airports / flights"]
+      ACT --> T5["Amadeus resolveCity / airports / flights / hotels"]
     end
 
     BLEND --> RECEIPTS["setLastReceipts()<br/>slot_memory.ts"]
@@ -37,7 +37,7 @@ flowchart TD
 ```
 
 Implementation Map (Big‑LLM First)
-- API entry: `root/src/api/routes.ts` (handles `/chat`, `/metrics`, `/why`).
+- API entry: `root/src/api/routes.ts` (handles `/chat`, `/metrics`). The `/why` behavior is a chat command handled through `/chat`.
 - Orchestrator: `root/src/core/blend.ts` (stores user turns, auto-verify, metrics).
 - Meta agent runner: `root/src/agent/meta_agent.ts` (loads `meta_agent.md`, calls `callChatWithTools`).
 - Tools + planning: `root/src/agent/tools/index.ts` (CONTROL JSON planner, vectara/search/deepResearch/Amadeus).
@@ -45,4 +45,4 @@ Implementation Map (Big‑LLM First)
 - Session & context: `root/src/core/session_store.ts`, `stores/{inmemory,redis}.ts` (no message cap when `SESSION_MAX_MESSAGES=0`).
 - Receipts & verification: `root/src/core/slot_memory.ts`, `core/verify.ts` (strict JSON, shared by auto-verify & `/why`).
 - Metrics & dashboard: `root/src/util/metrics.ts`, `util/metrics-server.ts`, `root/public/metrics-dashboard.html`.
-- Resilience & rate limits: `root/src/core/circuit-breaker.ts`, `util/limiter.ts`, Bottleneck/cockatiel wiring in tools.
+- Resilience & rate limits: `root/src/core/circuit-breaker.ts`, `root/src/util/limiter.ts`, `root/src/util/resilience.ts` (Bottleneck + cockatiel policies in tools).

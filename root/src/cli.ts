@@ -296,16 +296,16 @@ async function main() {
   
   // Display banner and intro
   console.log(chalk.cyan(`
-                                                        
-                                                  d8P
-                                               d888888P
-?88   d8P d8888b ?88   d8P  d888b8b    88bd88b   ?88'
-d88  d8P'd8P' ?88d88   88  d8P' ?88    88P' ?8b  88P
-?8b ,88' 88b  d88?8(  d88  88b  ,88b  d88   88P  88b
-\`?888P'  \`?8888P'\`?88P'?8b \`?88P'\`88bd88'   88b  \`?8b
-                        )88
-                       ,d8P
-                    \`?888P'
+                                                          ░██
+                                                          ░██
+░██    ░██  ░███████  ░██    ░██  ░██████   ░████████  ░████████
+░██    ░██ ░██    ░██ ░██    ░██       ░██  ░██    ░██    ░██
+ ░██  ░██  ░██    ░██ ░██    ░██  ░███████  ░██    ░██    ░██
+  ░██░██   ░██    ░██ ░██   ░███ ░██   ░██  ░██    ░██    ░██
+   ░███     ░███████   ░█████░██  ░█████░██ ░██    ░██     ░████
+                             ░██
+                       ░███████
+
 `));
   console.log(chalk.yellow.bold('✈️  VOYANT Travel Agent CLI — Ask any travel question!'));
   console.log(chalk.gray('─'.repeat(60)));
